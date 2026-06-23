@@ -67,6 +67,8 @@ steps:
           --region=${_REGION} \
           --platform=managed \
           --allow-unauthenticated \
+          --min-instances=1 \
+          --cpu-boost \
           --set-env-vars=API_BASE_URL=$$API_URL,APP_URL=${_APP_URL}
 
 images:

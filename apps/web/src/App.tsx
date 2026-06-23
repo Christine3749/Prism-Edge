@@ -321,8 +321,17 @@ export default function App() {
 
   useEffect(() => {
     refreshQuotes(true);
-    const timer = setInterval(() => refreshQuotes(true), 12000);
-    return () => clearInterval(timer);
+    const timer = setInterval(() => refreshQuotes(true), 5000);
+
+    const refreshOnFocus = () => refreshQuotes(true);
+    window.addEventListener("focus", refreshOnFocus);
+    window.addEventListener("online", refreshOnFocus);
+
+    return () => {
+      clearInterval(timer);
+      window.removeEventListener("focus", refreshOnFocus);
+      window.removeEventListener("online", refreshOnFocus);
+    };
   }, [currentSymbol.symbol]);
 
   useEffect(() => {

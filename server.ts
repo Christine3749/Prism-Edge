@@ -202,6 +202,31 @@ function decimalPrecisionFor(symbol: string, price: number) {
   return 2;
 }
 
+function toStrictNumber(value: unknown): number | null {
+  if (value === null || value === undefined || value === "") return null;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function removeOutlierCandles(candles: Candle[]) {
+  if (candles.length < 10) return candles;
+
+  const closes = candles
+    .map((candle) => candle.close)
+    .filter((value) => Number.isFinite(value) && value > 0)
+    .sort((a, b) => a - b);
+
+  if (closes.length === 0) return candles;
+  const median = closes[Math.floor(closes.length / 2)];
+  if (!Number.isFinite(median) || median <= 0) return candles;
+
+  return candles.filter((candle) => {
+    const minPrice = Math.min(candle.open, candle.high, candle.low, candle.close);
+    const maxPrice = Math.max(candle.open, candle.high, candle.low, candle.close);
+    return minPrice > median * 0.2 && maxPrice < median * 5;
+  });
+}
+
 function parseYahooCandles(result: any, limit: number): Candle[] {
   const timestamps = Array.isArray(result?.timestamp) ? result.timestamp : [];
   const quote = result?.indicators?.quote?.[0] || {};
@@ -211,20 +236,40 @@ function parseYahooCandles(result: any, limit: number): Candle[] {
   const closes = quote.close || [];
   const volumes = quote.volume || [];
 
-  return timestamps.map((time: unknown, index: number) => ({
-    time: Number(time),
-    open: Number(opens[index]),
-    high: Number(highs[index]),
-    low: Number(lows[index]),
-    close: Number(closes[index]),
-    volume: Number(volumes[index] || 0)
-  })).filter((candle: Candle) => (
-    Number.isFinite(candle.time) &&
-    Number.isFinite(candle.open) &&
-    Number.isFinite(candle.high) &&
-    Number.isFinite(candle.low) &&
-    Number.isFinite(candle.close)
-  )).slice(-limit);
+  const candles = timestamps.flatMap((time: unknown, index: number) => {
+    const candleTime = toStrictNumber(time);
+    const open = toStrictNumber(opens[index]);
+    const high = toStrictNumber(highs[index]);
+    const low = toStrictNumber(lows[index]);
+    const close = toStrictNumber(closes[index]);
+    const volume = toStrictNumber(volumes[index]) || 0;
+
+    if (
+      candleTime === null ||
+      open === null ||
+      high === null ||
+      low === null ||
+      close === null ||
+      open <= 0 ||
+      high <= 0 ||
+      low <= 0 ||
+      close <= 0 ||
+      low > high
+    ) {
+      return [];
+    }
+
+    return [{
+      time: candleTime,
+      open,
+      high,
+      low,
+      close,
+      volume
+    }];
+  });
+
+  return removeOutlierCandles(candles).slice(-limit);
 }
 
 function parseLimit(rawLimit: unknown) {
@@ -367,7 +412,7 @@ async function fetchYahooChart(symbol: string, interval: string, limit: number):
       Accept: "application/json",
       "User-Agent": "Prism-Edge market data gateway"
     },
-    signal: AbortSignal.timeout(6500)
+    signal: AbortSignal.timeout(4200)
   });
   const text = await response.text();
 
@@ -670,7 +715,7 @@ app.get("/api/market/klines", async (req, res) => {
     };
 
     marketCache.set(cacheKey, {
-      expiresAt: Date.now() + (limit <= 2 ? 2000 : 15000),
+      expiresAt: Date.now() + (limit <= 2 ? 1000 : 6000),
       payload
     });
 
@@ -709,7 +754,7 @@ app.get("/api/market/quote", async (req, res) => {
   };
 
   marketCache.set(cacheKey, {
-    expiresAt: Date.now() + 3000,
+    expiresAt: Date.now() + 1500,
     payload
   });
 

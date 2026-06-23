@@ -41,7 +41,8 @@ export async function fetchHistoricalGatewayKlines(
     limit: String(limit)
   });
   const response = await fetch(`/api/market/klines?${params.toString()}`, {
-    headers: { Accept: "application/json" }
+    headers: { Accept: "application/json" },
+    signal: AbortSignal.timeout(limit <= 2 ? 3500 : 6500)
   });
 
   if (!response.ok) {
@@ -205,7 +206,7 @@ export function subscribeRealtime(
   };
 
   pollGatewayLatestCandle();
-  timer = setInterval(pollGatewayLatestCandle, symbol.type === "crypto" ? 3000 : 18000);
+  timer = setInterval(pollGatewayLatestCandle, symbol.type === "crypto" ? 2500 : 7000);
 
   return {
     close: () => {
