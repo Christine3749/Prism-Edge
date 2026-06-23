@@ -1,8 +1,8 @@
 import { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
-  appId: 'com.msir.prism.app',
-  appName: 'MSIR Prism',
+  appId: 'com.prismedge.app',
+  appName: 'Prism-Edge',
   webDir: '../../dist',
   server: {
     androidScheme: 'https'

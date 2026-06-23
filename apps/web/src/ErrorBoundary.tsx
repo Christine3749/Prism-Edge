@@ -56,7 +56,7 @@ export class ErrorBoundary extends React.Component<Props, State> {
   }
 
   private handleReset = () => {
-    localStorage.removeItem("msir_prism_lang"); // clear possibly stale lang config
+    localStorage.removeItem("prism_edge_lang"); // clear possibly stale lang config
     window.location.reload();
   };
 

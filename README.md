@@ -1,11 +1,11 @@
-# MSIR Prism｜棱镜先生
+# Prism-Edge｜棱镜先生
 
-MSIR Prism is a cross-platform market analysis terminal. The frontend owns charting and workspace UX; the backend owns market analysis, quant adapters, and future backtesting.
+Prism-Edge is a cross-platform market analysis terminal. The frontend owns charting and workspace UX; the backend owns market analysis, quant adapters, and future backtesting.
 
 ## Structure
 
 ```text
-msir-prism/
+prism-edge/
   apps/
     web/                 # React/Vite frontend
     desktop/             # Tauri shell
@@ -15,7 +15,7 @@ msir-prism/
     quant/               # Quant model adapter layer
   packages/
     shared/              # Shared TS contracts, symbols, intervals, mock data
-    ui/                  # MSIR Prism frontend UI modules
+    ui/                  # Prism-Edge frontend UI modules
   data/
     samples/             # Sample candles for API/model testing
   docs/

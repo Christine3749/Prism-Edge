@@ -6,7 +6,7 @@
     "distDir": "../../dist"
   },
   "package": {
-    "productName": "MSIR Prism",
+    "productName": "Prism-Edge",
     "version": "1.0.0"
   },
   "tauri": {
@@ -16,7 +16,7 @@
     "bundle": {
       "active": true,
       "targets": "all",
-      "identifier": "com.msir.prism.app",
+      "identifier": "com.prismedge.app",
       "icon": [
         "icons/32x32.png",
         "icons/128x128.png",
@@ -30,7 +30,7 @@
     },
     "windows": [
       {
-        "title": "MSIR Prism ｜ 棱镜先生",
+        "title": "Prism-Edge ｜ 棱镜先生",
         "width": 1280,
         "height": 720,
         "resizable": true,

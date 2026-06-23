@@ -1,5 +1,5 @@
 param(
-  [string]$Project = "project-252bf450-dd3c-4d3c-9b2",
+  [string]$Project = "prism-edge-7586",
   [string]$Region = "asia-east1",
   [string]$AppUrl = "https://msirprism.com"
 )
@@ -12,6 +12,6 @@ gcloud builds submit `
   --substitutions "_REGION=$Region,_APP_URL=$AppUrl" `
   .
 
-gcloud run services describe msir-prism-web `
+gcloud run services describe prism-edge-web `
   --region $Region `
   --format "value(status.url)"

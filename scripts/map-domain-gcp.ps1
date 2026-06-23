@@ -1,6 +1,6 @@
 param(
   [string]$Region = "asia-east1",
-  [string]$Service = "msir-prism-web",
+  [string]$Service = "prism-edge-web",
   [string[]]$Domains = @("msirprism.com", "www.msirprism.com")
 )
 

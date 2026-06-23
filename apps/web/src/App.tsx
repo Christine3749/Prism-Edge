@@ -85,12 +85,12 @@ export default function App() {
   const [chartType, setChartType] = useState("candlestick");
 
   const [lang, setLang] = useState<Language>(() => {
-    return (localStorage.getItem("msir_prism_lang") as Language) || "zh";
+    return (localStorage.getItem("prism_edge_lang") as Language) || "zh";
   });
   const t = useTranslation(lang);
 
   useEffect(() => {
-    localStorage.setItem("msir_prism_lang", lang);
+    localStorage.setItem("prism_edge_lang", lang);
   }, [lang]);
 
   const [indicatorsModalOpen, setIndicatorsModalOpen] = useState(false);
@@ -282,6 +282,7 @@ export default function App() {
             onUpdateDrawings={setDrawings}
             settings={settings}
             currentTimeframe={timeframe}
+            chartType={chartType}
           />
 
           {/* Bottom Foldable panel */}

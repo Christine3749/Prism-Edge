@@ -1,7 +1,7 @@
-const DRAW_KEY = "msir_prism_drawings_v2";
-const INDICATOR_KEY = "msir_prism_indicators_v2";
-const SETTING_KEY = "msir_prism_settings_v2";
-const WATCH_KEY = "msir_prism_watchlist_v2";
+const DRAW_KEY = "prism_edge_drawings_v2";
+const INDICATOR_KEY = "prism_edge_indicators_v2";
+const SETTING_KEY = "prism_edge_settings_v2";
+const WATCH_KEY = "prism_edge_watchlist_v2";
 
 export function loadItem<T>(key: string, defaultValue: T): T {
   try {

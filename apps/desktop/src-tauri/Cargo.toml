@@ -1,8 +1,8 @@
 [package]
-name = "msir-prism-desktop"
+name = "prism-edge-desktop"
 version = "1.0.0"
-description = "MSIR Prism｜棱镜先生 跨平台交易分析与量化分析终端"
-authors = ["MSIR Ltd"]
+description = "Prism-Edge｜棱镜先生 跨平台交易分析与量化分析终端"
+authors = ["Prism-Edge"]
 edition = "2021"
 rust-version = "1.57"
 

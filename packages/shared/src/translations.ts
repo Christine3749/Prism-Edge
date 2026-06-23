@@ -3,7 +3,7 @@ export type Language = "en" | "zh" | "tc";
 export const TRANSLATIONS = {
   // Brand
   brandName: {
-    en: "MSIR Prism",
+    en: "Prism-Edge",
     zh: "棱镜先生",
     tc: "稜鏡先生",
   },
@@ -13,9 +13,9 @@ export const TRANSLATIONS = {
     tc: "在市場邊緣，看見清晰優勢。",
   },
   brandTitle: {
-    en: "MSIR Prism | Market Analyst",
-    zh: "MSIR Prism｜棱镜先生",
-    tc: "MSIR Prism｜稜鏡先生",
+    en: "Prism-Edge | Market Analyst",
+    zh: "Prism-Edge｜棱镜先生",
+    tc: "Prism-Edge｜稜鏡先生",
   },
 
   // Panels
@@ -177,9 +177,9 @@ export const TRANSLATIONS = {
 
   // Settings Modal
   terminalSettings: {
-    en: "MSIR Prism Technical Terminals Settings",
-    zh: "MSIR Prism 终端配置面板",
-    tc: "MSIR Prism 終端配置面板",
+    en: "Prism-Edge Technical Terminals Settings",
+    zh: "Prism-Edge 终端配置面板",
+    tc: "Prism-Edge 終端配置面板",
   },
   generalConfig: {
     en: "General Hardware Layout",

@@ -217,7 +217,7 @@ app.get("/api/news", (req, res) => {
 
 async function bootstrap() {
   if (process.env.NODE_ENV !== "production") {
-    console.log("Starting MSIR Prism web server in development mode with Vite middleware...");
+    console.log("Starting Prism-Edge web server in development mode with Vite middleware...");
     const vite = await createViteServer({
       configFile: path.join(process.cwd(), "vite.config.ts"),
       server: { middlewareMode: true },
@@ -234,11 +234,11 @@ async function bootstrap() {
   }
 
   app.listen(PORT, "0.0.0.0", () => {
-    console.log(`MSIR Prism web application running at http://localhost:${PORT}`);
+    console.log(`Prism-Edge web application running at http://localhost:${PORT}`);
     console.log(`Analysis API gateway target: ${API_BASE_URL}`);
   });
 }
 
 bootstrap().catch((err) => {
-  console.error("Failure bootstrapping MSIR Prism web server:", err);
+  console.error("Failure bootstrapping Prism-Edge web server:", err);
 });

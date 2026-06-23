@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState, useCallback } from "react";
-import { createChart, IChartApi, ISeriesApi, LineStyle, UTCTimestamp, CandlestickSeries, LineSeries, HistogramSeries } from "lightweight-charts";
+import { createChart, IChartApi, ISeriesApi, LineStyle, UTCTimestamp, CandlestickSeries, LineSeries, AreaSeries, BarSeries, HistogramSeries } from "lightweight-charts";
 import { 
   MarketSymbol, Candle, IndicatorConfig, DrawingTool, DrawingBase, AppSettings, DrawingPoint
 } from "../../shared/src/types";
@@ -17,6 +17,7 @@ interface ChartContainerProps {
   onUpdateDrawings: (drawings: DrawingBase[]) => void;
   settings: AppSettings;
   currentTimeframe: string;
+  chartType: string;
 }
 
 export default function ChartContainer({
@@ -28,7 +29,8 @@ export default function ChartContainer({
   drawings,
   onUpdateDrawings,
   settings,
-  currentTimeframe
+  currentTimeframe,
+  chartType
 }: ChartContainerProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mainChartRef = useRef<HTMLDivElement>(null);
@@ -82,14 +84,37 @@ export default function ChartContainer({
     }) as any;
 
     let targetSeries: any = null;
-    targetSeries = chart.addSeries(CandlestickSeries, {
-      upColor: settings.upColor,
-      downColor: settings.downColor,
-      borderUpColor: settings.upColor,
-      borderDownColor: settings.downColor,
-      wickUpColor: settings.upColor,
-      wickDownColor: settings.downColor,
-    });
+    if (chartType === "line") {
+      targetSeries = chart.addSeries(LineSeries, {
+        color: "#2962ff",
+        lineWidth: 2,
+        crosshairMarkerVisible: false,
+        lastValueVisible: true,
+        priceLineVisible: true,
+      });
+    } else if (chartType === "area") {
+      targetSeries = chart.addSeries(AreaSeries, {
+        lineColor: "#2962ff",
+        topColor: "rgba(41, 98, 255, 0.28)",
+        bottomColor: "rgba(41, 98, 255, 0.02)",
+        lineWidth: 2,
+      });
+    } else if (chartType === "bars") {
+      targetSeries = chart.addSeries(BarSeries, {
+        upColor: settings.upColor,
+        downColor: settings.downColor,
+        thinBars: false,
+      });
+    } else {
+      targetSeries = chart.addSeries(CandlestickSeries, {
+        upColor: settings.upColor,
+        downColor: settings.downColor,
+        borderUpColor: settings.upColor,
+        borderDownColor: settings.downColor,
+        wickUpColor: settings.upColor,
+        wickDownColor: settings.downColor,
+      });
+    }
 
     setMainSeries(targetSeries);
     setChartInstance(chart);
@@ -129,7 +154,11 @@ export default function ChartContainer({
         low: c.low,
         close: c.close,
       }));
-      targetSeries.setData(chartCandles);
+      const closeLineData = candles.map(c => ({
+        time: c.time as UTCTimestamp,
+        value: c.close,
+      }));
+      targetSeries.setData(chartType === "line" || chartType === "area" ? closeLineData : chartCandles);
 
       if (indicatorConfig.sma.active) {
         const smaData = calculateSMA(candles, indicatorConfig.sma.period);
@@ -263,7 +292,7 @@ export default function ChartContainer({
       if (subChart) subChart.remove();
     };
 
-  }, [candles, indicatorConfig, settings]);
+  }, [candles, indicatorConfig, settings, chartType]);
 
   const getCoordinates = useCallback((pt: DrawingPoint) => {
     if (!chartInstance || !mainSeries) return null;

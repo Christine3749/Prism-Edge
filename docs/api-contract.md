@@ -1,4 +1,4 @@
-# MSIR Prism API Contract
+# Prism-Edge API Contract
 
 ## Health
 
@@ -56,7 +56,7 @@ Response:
   },
   "summary": "当前结构偏多，但接近压力区，注意回撤确认。",
   "meta": {
-    "engine": "msir-mock-quant-v0",
+    "engine": "prism-edge-mock-quant-v0",
     "generatedAt": "2026-06-23T00:00:00+00:00",
     "candleCount": 200
   }

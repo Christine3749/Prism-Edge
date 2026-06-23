@@ -4,16 +4,16 @@
 
 This project deploys as two Cloud Run services:
 
-- `msir-prism-api`: FastAPI quant adapter service.
-- `msir-prism-web`: React/Vite frontend plus Node API gateway.
+- `prism-edge-api`: FastAPI quant adapter service.
+- `prism-edge-web`: React/Vite frontend plus Node API gateway.
 
 Default Cloud Build substitutions:
 
 ```text
 _REGION=asia-east1
 _APP_URL=https://msirprism.com
-_WEB_SERVICE=msir-prism-web
-_API_SERVICE=msir-prism-api
+_WEB_SERVICE=prism-edge-web
+_API_SERVICE=prism-edge-api
 ```
 
 Deploy:
@@ -25,21 +25,21 @@ gcloud builds submit --config cloudbuild.yaml .
 Windows helper:
 
 ```powershell
-.\scripts\deploy-gcp.ps1 -Project project-252bf450-dd3c-4d3c-9b2 -Region asia-east1 -AppUrl https://msirprism.com
+.\scripts\deploy-gcp.ps1 -Project prism-edge-7586 -Region asia-east1 -AppUrl https://msirprism.com
 ```
 
 After deployment, get the web service URL:
 
 ```bash
-gcloud run services describe msir-prism-web --region asia-east1 --format="value(status.url)"
+gcloud run services describe prism-edge-web --region asia-east1 --format="value(status.url)"
 ```
 
 Current deployment:
 
-- Project: `project-252bf450-dd3c-4d3c-9b2`
+- Project: `prism-edge-7586`
 - Region: `asia-east1`
-- Web: `https://msir-prism-web-wcfsv5bdwa-de.a.run.app`
-- API: `https://msir-prism-api-wcfsv5bdwa-de.a.run.app`
+- Web: `https://prism-edge-web-v3kyxd4wea-de.a.run.app`
+- API: `https://prism-edge-api-v3kyxd4wea-de.a.run.app`
 
 ## Cloudflare DNS
 

@@ -1,4 +1,4 @@
-# MSIR Prism Model Contract
+# Prism-Edge Model Contract
 
 The frontend never calls a quant model directly. It sends candles to the backend API, and the backend calls a model adapter in `services/quant`.
 

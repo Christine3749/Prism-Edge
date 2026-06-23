@@ -1,8 +1,8 @@
 substitutions:
   _REGION: asia-east1
-  _REPOSITORY: msir-prism
-  _WEB_SERVICE: msir-prism-web
-  _API_SERVICE: msir-prism-api
+  _REPOSITORY: prism-edge
+  _WEB_SERVICE: prism-edge-web
+  _API_SERVICE: prism-edge-api
   _APP_URL: https://msirprism.com
 
 steps:
@@ -16,7 +16,7 @@ steps:
           gcloud artifacts repositories create ${_REPOSITORY} \
             --repository-format=docker \
             --location=${_REGION} \
-            --description="MSIR Prism container images"
+            --description="Prism-Edge container images"
 
   - name: gcr.io/cloud-builders/docker
     args:

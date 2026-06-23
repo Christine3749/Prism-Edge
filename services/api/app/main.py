@@ -2,11 +2,11 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 
 from services.api.app.schemas import AnalysisRunRequest, AnalysisRunResponse
-from services.quant.msir_prism_quant.engine import run_analysis
+from services.quant.prism_edge_quant.engine import run_analysis
 
 
 app = FastAPI(
-    title="MSIR Prism Quant API",
+    title="Prism-Edge Quant API",
     description="Backend boundary for market analysis, quant adapters, and future backtesting services.",
     version="0.1.0",
 )
@@ -29,8 +29,8 @@ app.add_middleware(
 def health_check():
     return {
         "status": "ok",
-        "service": "msir-prism-api",
-        "quantAdapter": "msir-mock-quant-v0",
+        "service": "prism-edge-api",
+        "quantAdapter": "prism-edge-mock-quant-v0",
     }
 
 

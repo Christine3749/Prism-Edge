@@ -462,7 +462,7 @@ export default function BottomPanel({
                   {analysisServiceFallback && (
                     <div className="flex items-center gap-2 px-2 py-1.5 bg-yellow-500/10 border border-yellow-500/20 rounded text-yellow-300 text-[10px] leading-relaxed">
                       <AlertTriangle className="h-3.5 w-3.5 shrink-0 text-yellow-400" />
-                      <span>{lang === "zh" ? "后端模型服务未连接或不可用，当前显示棱镜本地模拟接口输出。" : lang === "tc" ? "後端模型服務未連接或不可用，當前顯示稜鏡本地模擬接口輸出。" : "Backend model service is unavailable. Local MSIR Prism simulator output is shown."}</span>
+                      <span>{lang === "zh" ? "后端模型服务未连接或不可用，当前显示棱镜本地模拟接口输出。" : lang === "tc" ? "後端模型服務未連接或不可用，當前顯示稜鏡本地模擬接口輸出。" : "Backend model service is unavailable. Local Prism-Edge simulator output is shown."}</span>
                     </div>
                   )}
                   <div className="bg-slate-900 p-3 border border-slate-800 rounded-lg">

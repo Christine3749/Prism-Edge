@@ -8,13 +8,13 @@ interface LogoProps {
 export default function Logo({ className = "h-8", showText = true }: LogoProps) {
   return (
     <div className={`flex items-center gap-2 select-none ${className}`}>
-      {/* MSIR Prism Geometric Refraction SVG Logo */}
+      {/* Prism-Edge Geometric Refraction SVG Logo */}
       <svg
         viewBox="0 0 120 120"
         fill="none"
         xmlns="http://www.w3.org/2000/svg"
         className="w-9 h-9"
-        id="msir-prism-svg-logo"
+        id="prism-edge-svg-logo"
       >
         <defs>
           {/* Cyan to Electric Blue gradient for Left wing of 'M' */}
@@ -112,14 +112,14 @@ export default function Logo({ className = "h-8", showText = true }: LogoProps) 
         <div className="flex flex-col">
           <div className="flex items-center gap-1.5 leading-none">
             <span className="font-sans font-bold text-lg tracking-tight text-white">
-              MSIR <span className="text-cyan-400">Prism</span>
+              Prism<span className="text-cyan-400">-Edge</span>
             </span>
             <span className="text-[10px] font-mono font-medium px-1 py-0.5 rounded bg-cyan-950 text-cyan-400 border border-cyan-800">
               M1+
             </span>
           </div>
           <span className="text-[9px] font-sans text-slate-400 leading-none tracking-widest mt-0.5 uppercase">
-            棱镜先生 • Trading System
+            棱镜先生 • Edge Trading System
           </span>
         </div>
       )}

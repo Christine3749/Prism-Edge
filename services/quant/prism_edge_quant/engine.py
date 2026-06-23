@@ -116,7 +116,7 @@ def run_analysis(
         },
         "summary": summary,
         "meta": {
-            "engine": "msir-mock-quant-v0",
+            "engine": "prism-edge-mock-quant-v0",
             "generatedAt": datetime.now(timezone.utc).isoformat(),
             "candleCount": len(candles),
         },

@@ -51,7 +51,7 @@ export default function SettingsModal({
         
         {/* Header */}
         <div className="px-4 py-3 bg-slate-900 border-b border-slate-800 flex items-center justify-between">
-          <h3 className="font-sans font-bold tracking-tight text-white text-sm uppercase tracking-widest">MSIR Workspace Settings</h3>
+          <h3 className="font-sans font-bold tracking-tight text-white text-sm uppercase tracking-widest">Prism-Edge Workspace Settings</h3>
           <button
             onClick={onClose}
             className="p-1 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 cursor-pointer transition-all"

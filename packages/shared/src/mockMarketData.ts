@@ -1,12 +1,12 @@
 import { MarketSymbol, Candle } from "./types";
 
-// 1. Core Symbol Catalog branded for MSIR Prism | 棱镜先生
+// 1. Core Symbol Catalog branded for Prism-Edge | 棱镜先生
 export const DEFAULT_SYMBOLS: MarketSymbol[] = [
   // Crypto
   { id: "BTC/USDT", symbol: "BTCUSDT", name: "Bitcoin / Tether", type: "crypto", price: 65420.50, change24h: 2.45, volume24h: 1845020000, precision: 2 },
   { id: "ETH/USDT", symbol: "ETHUSDT", name: "Ethereum / Tether", type: "crypto", price: 3450.75, change24h: -1.15, volume24h: 924850000, precision: 2 },
   { id: "SOL/USDT", symbol: "SOLUSDT", name: "Solana / Tether", type: "crypto", price: 142.10, change24h: 5.62, volume24h: 420910000, precision: 2 },
-  { id: "PRISM/USDT", symbol: "PRISMUSDT", name: "MSIR Prism Token", type: "crypto", price: 12.85, change24h: 12.4, volume24h: 89000000, precision: 4 },
+  { id: "PRISM/USDT", symbol: "PRISMUSDT", name: "Prism-Edge Token", type: "crypto", price: 12.85, change24h: 12.4, volume24h: 89000000, precision: 4 },
   // Stock
   { id: "TSLA", symbol: "TSLA", name: "Tesla Motors Inc.", type: "stock", price: 178.45, change24h: 1.84, volume24h: 89450000, precision: 2 },
   { id: "AAPL", symbol: "AAPL", name: "Apple Inc.", type: "stock", price: 214.30, change24h: -0.42, volume24h: 52100000, precision: 2 },
