@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { 
-  TrendingUp, Search, Calendar, BarChart2, Eye, Layout, 
-  Settings, Camera, Bookmark, RefreshCw, AlertCircle, Menu, X, Check, Globe
+  TrendingUp, Search, BarChart2, Eye, Layout,
+  Settings, Camera, Bookmark, RefreshCw, Menu, Globe
 } from "lucide-react";
 import { MarketSymbol, AppSettings } from "../../shared/src/types";
 import { DEFAULT_SYMBOLS } from "../../shared/src/mockMarketData";
@@ -54,10 +54,10 @@ export default function Header({
 
   const timeframes = ["1m", "5m", "15m", "1h", "4h", "1D", "1W", "1M"];
   const chartTypes = [
-    { label: "Candle", value: "candlestick" },
-    { label: "Line", value: "line" },
-    { label: "Area", value: "area" },
-    { label: "Bars", value: "bars" }
+    { label: "Candle", value: "candlestick", icon: <BarChart2 className="h-3.5 w-3.5" /> },
+    { label: "Line", value: "line", icon: <TrendingUp className="h-3.5 w-3.5" /> },
+    { label: "Area", value: "area", icon: <Layout className="h-3.5 w-3.5" /> },
+    { label: "Bars", value: "bars", icon: <BarChart2 className="h-3.5 w-3.5" /> }
   ];
 
   const filteredSymbols = DEFAULT_SYMBOLS.filter(
@@ -67,27 +67,27 @@ export default function Header({
   );
 
   return (
-    <header className="border-b border-slate-800 bg-slate-950 px-3 md:px-4 py-2 flex items-center justify-between text-slate-200 select-none z-50 relative">
+    <header className="h-14 shrink-0 border-b border-slate-800 bg-slate-950 px-3 md:px-4 flex items-center gap-3 text-slate-200 select-none z-50 relative overflow-visible">
       {/* 1. Brand Logo & Name */}
-      <div className="flex items-center gap-2">
-        <Logo showText={true} className="h-8 shrink-0" />
+      <div className="hidden sm:flex w-[220px] min-w-[190px] shrink-0 items-center">
+        <Logo showText={true} className="h-9 shrink-0" />
       </div>
 
       {/* 2. Controls Area (Scrollable/Wrap on Mobile, Spaced on Desktop) */}
-      <div className="flex items-center gap-2 overflow-x-auto no-scrollbar scroll-smooth flex-grow md:justify-start justify-end px-2 md:px-4">
+      <div className="flex min-w-0 flex-1 items-center gap-2 overflow-x-auto no-scrollbar scroll-smooth justify-start">
         
         {/* Symbol Selector Panel */}
         <div className="relative shrink-0">
           <button
             onClick={() => setSearchOpen(!searchOpen)}
-            className="flex items-center gap-1.5 md:gap-2 px-2.5 py-1 md:py-1.5 bg-slate-900 hover:bg-slate-850 border border-slate-800 hover:border-cyan-500/50 rounded-md text-xs md:text-sm text-slate-200 transition-all cursor-pointer font-medium w-32 md:w-44 text-left justify-between"
+            className="flex h-8 items-center gap-1.5 px-2.5 bg-slate-900 hover:bg-slate-800 border border-slate-800 hover:border-cyan-500/50 rounded-md text-xs text-slate-200 transition-all cursor-pointer font-medium w-36 xl:w-44 text-left justify-between"
             id="symbol_search_btn"
           >
             <div className="flex items-center gap-1 md:gap-1.5 truncate">
               <Search className="h-3 md:h-3.5 w-3 md:w-3.5 text-cyan-400" />
               <span className="truncate">{currentSymbol.id}</span>
             </div>
-            <span className="text-[8px] md:text-[9px] px-1 bg-slate-800 text-slate-400 rounded font-mono uppercase">
+            <span className="text-[9px] px-1 bg-slate-800 text-slate-400 rounded font-mono uppercase">
               {currentSymbol.type}
             </span>
           </button>
@@ -151,14 +151,14 @@ export default function Header({
         {/* Live Status indicator */}
         <div className="shrink-0 flex">
           {isLiveBinanceActive ? (
-            <div className="flex items-center gap-1 px-1.5 md:px-2 py-0.5 md:py-1 bg-teal-950/40 border border-teal-800/60 rounded-full" title="Real-time WebSockets connected">
+            <div className="h-7 flex items-center gap-1 px-2 bg-teal-950/40 border border-teal-800/60 rounded-full" title="Real market gateway connected">
               <span className="h-1.5 w-1.5 rounded-full bg-teal-400 animate-pulse"></span>
-              <span className="text-[8px] md:text-[9px] font-mono font-bold text-teal-400 uppercase tracking-widest hidden sm:inline">{t("liveWss")}</span>
+              <span className="text-[9px] font-mono font-bold text-teal-400 uppercase tracking-widest hidden lg:inline">{t("liveWss")}</span>
             </div>
           ) : (
-            <div className="flex items-center gap-1 px-1.5 md:px-2 py-0.5 md:py-1 bg-rose-950/40 border border-rose-800/60 rounded-full" title="High-fidelity simulator engine active">
+            <div className="h-7 flex items-center gap-1 px-2 bg-rose-950/40 border border-rose-800/60 rounded-full" title="Fallback simulator active">
               <span className="h-1.5 w-1.5 rounded-full bg-rose-400"></span>
-              <span className="text-[8px] md:text-[9px] font-mono font-bold text-rose-400 uppercase tracking-widest hidden sm:inline font-semibold">{t("simFeed")}</span>
+              <span className="text-[9px] font-mono font-bold text-rose-400 uppercase tracking-widest hidden lg:inline">{t("simFeed")}</span>
             </div>
           )}
         </div>
@@ -167,12 +167,12 @@ export default function Header({
         <div className="w-px h-5 bg-slate-800 shrink-0 mx-1 hidden sm:block"></div>
 
         {/* Timeframe Slider tab (Horizontal scroll adapts for narrow views) */}
-        <div className="flex items-center bg-slate-900 p-0.5 rounded-md border border-slate-800 shrink-0" id="timeframe_selector_group">
+        <div className="h-8 flex items-center bg-slate-900 p-0.5 rounded-md border border-slate-800 shrink-0" id="timeframe_selector_group">
           {timeframes.map((tf) => (
             <button
               key={tf}
               onClick={() => onTimeframeSelect(tf)}
-              className={`px-1.5 md:px-2 py-0.5 md:py-1 text-[10px] md:text-xs rounded transition-all font-mono font-bold cursor-pointer ${
+              className={`h-6 min-w-7 px-1.5 text-[11px] rounded transition-all font-mono font-bold cursor-pointer ${
                 currentTimeframe === tf
                   ? "bg-cyan-500 text-slate-950 font-extrabold"
                   : "text-slate-400 hover:text-white hover:bg-slate-800"
@@ -186,18 +186,20 @@ export default function Header({
         <div className="w-px h-5 bg-slate-800 shrink-0 mx-1 hidden md:block"></div>
 
         {/* Chart Style Switcher */}
-        <div className="hidden md:flex items-center bg-slate-900 p-0.5 rounded-md border border-slate-800 shrink-0">
+        <div className="hidden md:flex h-8 items-center gap-0.5 bg-slate-900 p-0.5 rounded-md border border-slate-800 shrink-0">
           {chartTypes.map((type) => (
             <button
               key={type.value}
               onClick={() => onChartTypeSelect(type.value)}
-              className={`px-2 py-1 text-xs rounded transition-all font-medium cursor-pointer ${
+              className={`h-6 min-w-7 px-1.5 flex items-center justify-center gap-1.5 text-xs rounded transition-all font-medium cursor-pointer ${
                 chartType === type.value
                   ? "bg-slate-800 text-cyan-400 font-semibold"
                   : "text-slate-400 hover:text-slate-200"
               }`}
+              title={type.label}
             >
-              {type.label}
+              {type.icon}
+              <span className="hidden xl:inline">{type.label}</span>
             </button>
           ))}
         </div>
@@ -207,7 +209,7 @@ export default function Header({
         {/* Technical Indicators Toggle */}
         <button
           onClick={onOpenIndicators}
-          className="hidden lg:flex items-center gap-1.5 px-2.5 py-1 bg-slate-900 hover:bg-slate-850 border border-slate-800 rounded-md text-xs font-semibold hover:text-white cursor-pointer transition-all shrink-0"
+          className="hidden lg:flex h-8 items-center gap-1.5 px-2.5 bg-slate-900 hover:bg-slate-800 border border-slate-800 rounded-md text-xs font-semibold hover:text-white cursor-pointer transition-all shrink-0"
           id="indicators_btn"
         >
           <Eye className="h-3.5 w-3.5 text-cyan-400" />
@@ -216,13 +218,13 @@ export default function Header({
       </div>
 
       {/* 3. Action Utilities (Desktop vs Mobile layout) */}
-      <div className="flex items-center gap-1 md:gap-2 shrink-0">
+      <div className="flex items-center gap-1.5 shrink-0">
         
         {/* Watchlist toggle for mobile/tablet screens */}
         {onToggleWatchlist && (
           <button
             onClick={onToggleWatchlist}
-            className="p-1.5 bg-slate-900 hover:bg-slate-800 border border-slate-800 hover:border-cyan-500/30 rounded-md text-cyan-400 md:hidden cursor-pointer transition-all"
+            className="h-8 w-8 flex items-center justify-center bg-slate-900 hover:bg-slate-800 border border-slate-800 hover:border-cyan-500/30 rounded-md text-cyan-400 md:hidden cursor-pointer transition-all"
             title="Toggle Watchlist Drawer"
           >
             <Menu className="h-4 w-4" />
@@ -232,7 +234,7 @@ export default function Header({
         {/* Indicator modal trigger for tablet (under lg) */}
         <button
           onClick={onOpenIndicators}
-          className="lg:hidden flex items-center justify-center p-1.5 bg-slate-900 hover:bg-slate-800 border border-slate-800 rounded-md text-slate-400 hover:text-white cursor-pointer transition-all"
+          className="lg:hidden h-8 w-8 flex items-center justify-center bg-slate-900 hover:bg-slate-800 border border-slate-800 rounded-md text-slate-400 hover:text-white cursor-pointer transition-all"
           title={t("techIndicators")}
         >
           <Eye className="h-4 w-4 text-cyan-400" />
@@ -241,21 +243,21 @@ export default function Header({
         {/* Workspace Save */}
         <button
           onClick={onSaveWorkspace}
-          className={`flex items-center gap-1 px-2 py-1 md:px-2.5 md:py-1.5 border rounded-md text-[10px] md:text-xs font-bold cursor-pointer transition-all shrink-0 ${
+          className={`h-8 flex items-center gap-1 px-2.5 border rounded-md text-xs font-bold cursor-pointer transition-all shrink-0 ${
             workspaceSaved 
               ? "bg-cyan-950 text-cyan-400 border-cyan-800" 
-              : "bg-slate-900 hover:bg-slate-850 stroke-slate-300 border-slate-800 hover:text-white"
+              : "bg-slate-900 hover:bg-slate-800 stroke-slate-300 border-slate-800 hover:text-white"
           }`}
           title={t("saveLayout")}
         >
           <Bookmark className={`h-3 w-3 md:h-3.5 md:w-3.5 ${workspaceSaved ? "fill-cyan-400 text-cyan-400" : ""}`} />
-          <span className="hidden sm:inline">{workspaceSaved ? t("saved") : t("saveLayout")}</span>
+          <span className="hidden xl:inline">{workspaceSaved ? t("saved") : t("saveLayout")}</span>
         </button>
 
         {/* Reset workspace layout */}
         <button
           onClick={onResetLayout}
-          className="hidden sm:block p-1.5 bg-slate-900 hover:bg-rose-950/20 hover:text-rose-400 border border-slate-800 rounded-md text-slate-450 cursor-pointer transition-all shrink-0"
+          className="hidden sm:flex h-8 w-8 items-center justify-center bg-slate-900 hover:bg-rose-950/20 hover:text-rose-400 border border-slate-800 rounded-md text-slate-400 cursor-pointer transition-all shrink-0"
           title={t("resetDashboard")}
         >
           <RefreshCw className="h-3.5 w-3.5" />
@@ -264,7 +266,7 @@ export default function Header({
         {/* Take rapid screenshot */}
         <button
           onClick={onTakeScreenshot}
-          className="hidden sm:block p-1.5 bg-slate-900 hover:bg-slate-820 border border-slate-800 rounded-md text-slate-450 hover:text-white cursor-pointer transition-all shrink-0"
+          className="hidden sm:flex h-8 w-8 items-center justify-center bg-slate-900 hover:bg-slate-800 border border-slate-800 rounded-md text-slate-400 hover:text-white cursor-pointer transition-all shrink-0"
           title={t("exportSnapshot")}
         >
           <Camera className="h-3.5 w-3.5 text-sky-400" />
@@ -277,7 +279,7 @@ export default function Header({
             else if (lang === "en") onLangChange("tc");
             else onLangChange("zh");
           }}
-          className="flex items-center gap-1 px-2 py-1.5 bg-slate-900 hover:bg-slate-850 border border-slate-800 hover:border-cyan-500/40 rounded-md text-xs font-bold text-cyan-400 cursor-pointer transition-all shrink-0"
+          className="h-8 flex items-center gap-1 px-2 bg-slate-900 hover:bg-slate-800 border border-slate-800 hover:border-cyan-500/40 rounded-md text-xs font-bold text-cyan-400 cursor-pointer transition-all shrink-0"
           title="Switch Language / 切换语言"
         >
           <Globe className="h-3.5 w-3.5" />
@@ -291,7 +293,7 @@ export default function Header({
         {/* Settings modal trigger */}
         <button
           onClick={onOpenSettings}
-          className="p-1.5 bg-slate-900 hover:bg-slate-850 border border-slate-800 hover:border-cyan-500/40 rounded-md text-cyan-400 cursor-pointer transition-all shrink-0"
+          className="h-8 w-8 flex items-center justify-center bg-slate-900 hover:bg-slate-800 border border-slate-800 hover:border-cyan-500/40 rounded-md text-cyan-400 cursor-pointer transition-all shrink-0"
           id="config_modal_btn"
         >
           <Settings className="h-4 w-4 animate-hover-spin" />

@@ -68,6 +68,7 @@ export default function ChartContainer({
         background: { color: settings.solidBackground ? "#020617" : "transparent" },
         textColor: themeColors.text,
         fontFamily: "Inter, sans-serif",
+        attributionLogo: false,
       },
       grid: {
         vertLines: { color: settings.gridLines ? "#1e293b" : "transparent" },
@@ -128,6 +129,7 @@ export default function ChartContainer({
           background: { color: settings.solidBackground ? "#020617" : "transparent" },
           textColor: themeColors.text,
           fontFamily: "Inter, sans-serif",
+          attributionLogo: false,
         },
         grid: {
           vertLines: { color: settings.gridLines ? "#1e293b" : "transparent" },

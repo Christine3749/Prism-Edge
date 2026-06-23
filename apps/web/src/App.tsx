@@ -83,6 +83,7 @@ export default function App() {
   
   const [timeframe, setTimeframe] = useState("1D");
   const [chartType, setChartType] = useState("candlestick");
+  const [watchlistOpen, setWatchlistOpen] = useState(false);
 
   const [lang, setLang] = useState<Language>(() => {
     return (localStorage.getItem("prism_edge_lang") as Language) || "zh";
@@ -134,21 +135,30 @@ export default function App() {
 
   // Sync pricing in our local lists
   const updateSymbolsListPrice = (symbolId: string, nextPrice: number) => {
+    const applyPrice = (sym: MarketSymbol): MarketSymbol => {
+      const firstPrice = sym.price - (sym.price * (sym.change24h / 100));
+      const diff = nextPrice - firstPrice;
+      const nextChange = firstPrice !== 0 ? (diff / firstPrice) * 100 : 0;
+      return {
+        ...sym,
+        price: Number(nextPrice.toFixed(sym.precision)),
+        change24h: Number(nextChange.toFixed(2))
+      };
+    };
+
     setSymbolsList((prev) => 
       prev.map((sym) => {
         if (sym.id === symbolId) {
-          const firstPrice = sym.price - (sym.price * (sym.change24h / 100));
-          const diff = nextPrice - firstPrice;
-          const nextChange = firstPrice !== 0 ? (diff / firstPrice) * 100 : 0;
-          return {
-            ...sym,
-            price: Number(nextPrice.toFixed(sym.precision)),
-            change24h: Number(nextChange.toFixed(2))
-          };
+          return applyPrice(sym);
         }
         return sym;
       })
     );
+
+    setCurrentSymbol((prev) => {
+      if (prev.id !== symbolId) return prev;
+      return applyPrice(prev);
+    });
   };
 
   // Load historical candle data
@@ -163,7 +173,7 @@ export default function App() {
     };
 
     fetchHistory();
-  }, [currentSymbol, timeframe]);
+  }, [currentSymbol.id, timeframe]);
 
   // Bind live spot updating ticking streams
   useEffect(() => {
@@ -211,7 +221,7 @@ export default function App() {
     return () => {
       subscription.close();
     };
-  }, [currentSymbol, timeframe, candles.length]);
+  }, [currentSymbol.id, currentSymbol.symbol, currentSymbol.type, currentSymbol.precision, timeframe, candles.length]);
 
   const handleSaveWorkspace = () => {
     StorageService.saveDrawings(drawings);
@@ -268,6 +278,7 @@ export default function App() {
         isLiveBinanceActive={isLiveBinanceActive}
         lang={lang}
         onLangChange={setLang}
+        onToggleWatchlist={() => setWatchlistOpen((open) => !open)}
       />
 
       {/* 2. Main Terminal Grid Area */}
@@ -314,6 +325,8 @@ export default function App() {
           onSymbolSelect={setCurrentSymbol}
           symbolsList={symbolsList}
           lang={lang}
+          isOpen={watchlistOpen}
+          onClose={() => setWatchlistOpen(false)}
         />
       </div>
 
@@ -346,7 +359,7 @@ export default function App() {
             <div className="flex items-center justify-end gap-3 font-semibold text-xs text-slate-200">
               <button
                 onClick={() => setResetConfirmOpen(false)}
-                className="px-3.5 py-1.5 bg-slate-800 hover:bg-slate-755 border border-slate-700/80 hover:text-white rounded transition-colors cursor-pointer"
+                className="px-3.5 py-1.5 bg-slate-800 hover:bg-slate-700 border border-slate-700/80 hover:text-white rounded transition-colors cursor-pointer"
               >
                 {t("cancel")}
               </button>

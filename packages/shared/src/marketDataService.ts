@@ -1,13 +1,9 @@
 import { MarketSymbol, Candle } from "./types";
 import { generateSimulatedHistoricalKlines, timeframeToSeconds } from "./mockMarketData";
 
-type ImportMetaWithEnv = ImportMeta & {
-  env?: Record<string, string | boolean | undefined>;
-};
-
-function isLiveBinanceEnabled(): boolean {
-  const env = (import.meta as ImportMetaWithEnv).env;
-  return env?.VITE_ENABLE_LIVE_BINANCE === "true" || env?.VITE_ENABLE_LIVE_BINANCE === true;
+interface MarketGatewayResponse {
+  candles: Candle[];
+  source?: string;
 }
 
 // Warning registry to avoid spamming warnings
@@ -25,34 +21,30 @@ export async function fetchHistoricalCryptoKlines(
   timeframe: string,
   limit = 200
 ): Promise<Candle[]> {
-  let interval = "1d";
-  const tfLower = timeframe.toLowerCase();
-  if (tfLower === "1m") interval = "1m";
-  else if (tfLower === "5m") interval = "5m";
-  else if (tfLower === "15m") interval = "15m";
-  else if (tfLower === "1h") interval = "1h";
-  else if (tfLower === "4h") interval = "4h";
-  else if (tfLower === "1d") interval = "1d";
-  else if (tfLower === "1w") interval = "1w";
-  else if (tfLower === "1m" && timeframe.slice(-1) === "M") interval = "1M";
+  const params = new URLSearchParams({
+    symbol: binanceSymbol,
+    interval: timeframe,
+    limit: String(limit)
+  });
+  const response = await fetch(`/api/market/klines?${params.toString()}`, {
+    headers: { Accept: "application/json" }
+  });
 
-  const url = `https://api.binance.com/api/v3/klines?symbol=${binanceSymbol}&interval=${interval}&limit=${limit}`;
-  const response = await fetch(url);
   if (!response.ok) {
-    throw new Error(`Failed loading Binance klines for ${binanceSymbol}`);
+    const detail = await response.text().catch(() => "");
+    throw new Error(`Failed loading market klines for ${binanceSymbol}. ${detail.slice(0, 160)}`);
   }
 
-  const data = await response.json();
-  const candles: Candle[] = data.map((item: any) => ({
-    time: Math.round(Number(item[0]) / 1000), // Open time in seconds
-    open: parseFloat(item[1]),
-    high: parseFloat(item[2]),
-    low: parseFloat(item[3]),
-    close: parseFloat(item[4]),
-    volume: parseFloat(item[5]),
-  }));
+  const data = await response.json() as MarketGatewayResponse;
+  const candles = Array.isArray(data.candles) ? data.candles : [];
 
-  return candles;
+  return candles.filter((candle) => (
+    Number.isFinite(candle.time) &&
+    Number.isFinite(candle.open) &&
+    Number.isFinite(candle.high) &&
+    Number.isFinite(candle.low) &&
+    Number.isFinite(candle.close)
+  ));
 }
 
 export async function loadMarketData(
@@ -60,7 +52,7 @@ export async function loadMarketData(
   timeframe: string
 ): Promise<{ candles: Candle[]; isLiveBinance: boolean }> {
   try {
-    if (symbol.type === "crypto" && isLiveBinanceEnabled()) {
+    if (symbol.type === "crypto") {
       try {
         const hist = await fetchHistoricalCryptoKlines(symbol.symbol, timeframe, 200);
         return { candles: hist, isLiveBinance: true };
@@ -97,14 +89,19 @@ export function subscribeRealtime(
   onTick: (tick: { time: number; open: number; high: number; low: number; close: number; volume: number; isLive: boolean }) => void
 ): { close: () => void } {
   let closed = false;
-  let ws: WebSocket | null = null;
-  let simInterval: any = null;
+  let timer: ReturnType<typeof setInterval> | null = null;
+  let gatewayFailureCount = 0;
 
   const startSimulation = () => {
     if (closed) return;
+    if (timer) {
+      clearInterval(timer);
+      timer = null;
+    }
+
     const simTime = symbol.type === "forex" ? 3000 : 1500;
     let lastClose = symbol.price;
-    simInterval = setInterval(() => {
+    timer = setInterval(() => {
       if (closed) return;
       const secStep = timeframeToSeconds(interval);
       const now = Math.floor(Date.now() / 1000);
@@ -127,60 +124,37 @@ export function subscribeRealtime(
     }, simTime);
   };
 
-    if (symbol.type === "crypto" && isLiveBinanceEnabled()) {
-      try {
-        const bInterval = interval.toLowerCase() === "1d" ? "1d" : interval.toLowerCase();
-      const wsUrl = `wss://stream.binance.com:9443/ws/${symbol.symbol.toLowerCase()}@kline_${bInterval}`;
-      ws = new WebSocket(wsUrl);
+  const pollGatewayLatestCandle = async () => {
+    if (closed) return;
 
-      ws.onmessage = (event) => {
-        if (closed) return;
-        try {
-          const payload = JSON.parse(event.data);
-          if (payload && payload.k) {
-            const k = payload.k;
-            onTick({
-              time: Math.round(k.t / 1000),
-              open: parseFloat(k.o),
-              high: parseFloat(k.h),
-              low: parseFloat(k.l),
-              close: parseFloat(k.c),
-              volume: parseFloat(k.v),
-              isLive: true
-            });
-          }
-        } catch (e) {
-          // Silent json parsing warning
-        }
-      };
+    try {
+      const latest = await fetchHistoricalCryptoKlines(symbol.symbol, interval, 2);
+      const candle = latest[latest.length - 1];
+      if (!candle) throw new Error("Gateway returned an empty candle set.");
 
-      ws.onerror = (err) => {
-        if (closed) return;
-        warnOnce(
-          `ws_${symbol.symbol}`,
-          `[Binance WS Fallback warning] WebSocket connection encountered issue, launching ticking simulation. Details:`,
-          err
-        );
-        if (ws) {
-          try { ws.close(); } catch (ex) {}
-          ws = null;
-        }
-        if (!simInterval) {
-          startSimulation();
-        }
-      };
-
-      ws.onclose = () => {
-        if (closed) return;
-        if (!simInterval) {
-          startSimulation();
-        }
-      };
-
+      gatewayFailureCount = 0;
+      onTick({
+        ...candle,
+        isLive: true
+      });
     } catch (err) {
-      warnOnce(`ws_init_${symbol.symbol}`, "[Binance WS Exception] Initialization exception:", err);
-      startSimulation();
+      gatewayFailureCount += 1;
+      warnOnce(
+        `gateway_poll_${symbol.symbol}`,
+        "[Market gateway polling fallback] Realtime polling failed, simulator will start after repeated failures:",
+        err
+      );
+
+      if (gatewayFailureCount >= 2) {
+        if (closed) return;
+        startSimulation();
+      }
     }
+  };
+
+  if (symbol.type === "crypto") {
+    pollGatewayLatestCandle();
+    timer = setInterval(pollGatewayLatestCandle, 3000);
   } else {
     startSimulation();
   }
@@ -188,13 +162,9 @@ export function subscribeRealtime(
   return {
     close: () => {
       closed = true;
-      if (ws) {
-        try { ws.close(); } catch (e) {}
-        ws = null;
-      }
-      if (simInterval) {
-        clearInterval(simInterval);
-        simInterval = null;
+      if (timer) {
+        clearInterval(timer);
+        timer = null;
       }
     }
   };

@@ -7,13 +7,13 @@ interface LogoProps {
 
 export default function Logo({ className = "h-8", showText = true }: LogoProps) {
   return (
-    <div className={`flex items-center gap-2 select-none ${className}`}>
+    <div className={`flex items-center gap-2 select-none min-w-0 ${className}`}>
       {/* Prism-Edge Geometric Refraction SVG Logo */}
       <svg
         viewBox="0 0 120 120"
         fill="none"
         xmlns="http://www.w3.org/2000/svg"
-        className="w-9 h-9"
+        className="h-full w-auto shrink-0"
         id="prism-edge-svg-logo"
       >
         <defs>
@@ -109,16 +109,16 @@ export default function Logo({ className = "h-8", showText = true }: LogoProps) 
       </svg>
 
       {showText && (
-        <div className="flex flex-col">
+        <div className="flex min-w-0 flex-col">
           <div className="flex items-center gap-1.5 leading-none">
-            <span className="font-sans font-bold text-lg tracking-tight text-white">
+            <span className="font-sans font-bold text-sm tracking-tight text-white whitespace-nowrap">
               Prism<span className="text-cyan-400">-Edge</span>
             </span>
             <span className="text-[10px] font-mono font-medium px-1 py-0.5 rounded bg-cyan-950 text-cyan-400 border border-cyan-800">
               M1+
             </span>
           </div>
-          <span className="text-[9px] font-sans text-slate-400 leading-none tracking-widest mt-0.5 uppercase">
+          <span className="text-[8px] font-sans text-slate-400 leading-none tracking-widest mt-1 uppercase whitespace-nowrap">
             棱镜先生 • Edge Trading System
           </span>
         </div>

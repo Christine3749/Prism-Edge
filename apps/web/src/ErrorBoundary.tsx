@@ -66,7 +66,7 @@ export class ErrorBoundary extends React.Component<Props, State> {
         <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center p-6 text-slate-100 font-sans">
           <div className="max-w-xl w-full bg-slate-900 border border-rose-500/30 rounded-xl p-6 shadow-2xl space-y-5">
             <div className="flex items-center gap-3">
-              <div className="p-2.5 bg-rose-500/10 border border-rose-500/20 text-rose-450 rounded-lg">
+              <div className="p-2.5 bg-rose-500/10 border border-rose-500/20 text-rose-400 rounded-lg">
                 <AlertCircle className="h-6 w-6 text-rose-500" />
               </div>
               <div>

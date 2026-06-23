@@ -32,6 +32,30 @@ interface AnalysisBody {
   indicators?: unknown;
 }
 
+type BinanceKline = [
+  number,
+  string,
+  string,
+  string,
+  string,
+  string,
+  number,
+  string,
+  number,
+  string,
+  string,
+  string
+];
+
+type CoinbaseCandle = [number, number, number, number, number, number];
+
+const BINANCE_ENDPOINTS = [
+  "https://api.binance.com",
+  "https://data-api.binance.vision"
+];
+
+const marketCache = new Map<string, { expiresAt: number; payload: unknown }>();
+
 function clamp(value: number, min: number, max: number) {
   return Math.min(Math.max(value, min), max);
 }
@@ -46,6 +70,146 @@ function roundPrice(value: number, candles: Candle[]) {
   const decimalHint = sample ? String(sample.close).split(".")[1]?.length || 2 : 2;
   const decimals = clamp(decimalHint, 2, 8);
   return Number(value.toFixed(decimals));
+}
+
+function toBinanceInterval(timeframe: string | undefined) {
+  const tf = (timeframe || "1D").trim();
+  if (tf.endsWith("M")) return "1M";
+
+  const normalized = tf.toLowerCase();
+  const supported = new Set(["1m", "3m", "5m", "15m", "30m", "1h", "2h", "4h", "6h", "8h", "12h", "1d", "3d", "1w"]);
+  return supported.has(normalized) ? normalized : "1d";
+}
+
+function toCoinbaseGranularity(interval: string) {
+  switch (interval) {
+    case "1m": return 60;
+    case "5m": return 300;
+    case "15m": return 900;
+    case "1h": return 3600;
+    case "4h": return 21600;
+    case "1d": return 86400;
+    case "1w": return 86400;
+    case "1M": return 86400;
+    default: return 86400;
+  }
+}
+
+function toCoinbaseProductId(symbol: string) {
+  const quotes = ["USDT", "USDC", "USD", "EUR", "BTC", "ETH"];
+  const quote = quotes.find((candidate) => symbol.endsWith(candidate));
+  if (!quote) return symbol;
+  const base = symbol.slice(0, -quote.length);
+  return `${base}-${quote}`;
+}
+
+function parseLimit(rawLimit: unknown) {
+  const parsed = Number(rawLimit || 200);
+  if (!Number.isFinite(parsed)) return 200;
+  return clamp(Math.floor(parsed), 1, 500);
+}
+
+function parseBinanceKlines(data: unknown): Candle[] {
+  if (!Array.isArray(data)) {
+    throw new Error("Binance kline response was not an array.");
+  }
+
+  return (data as BinanceKline[]).map((item) => ({
+    time: Math.round(Number(item[0]) / 1000),
+    open: Number(item[1]),
+    high: Number(item[2]),
+    low: Number(item[3]),
+    close: Number(item[4]),
+    volume: Number(item[5])
+  })).filter((candle) => (
+    Number.isFinite(candle.time) &&
+    Number.isFinite(candle.open) &&
+    Number.isFinite(candle.high) &&
+    Number.isFinite(candle.low) &&
+    Number.isFinite(candle.close)
+  ));
+}
+
+async function fetchBinanceKlines(symbol: string, interval: string, limit: number) {
+  const errors: string[] = [];
+
+  for (const baseUrl of BINANCE_ENDPOINTS) {
+    const url = `${baseUrl}/api/v3/klines?symbol=${encodeURIComponent(symbol)}&interval=${encodeURIComponent(interval)}&limit=${limit}`;
+    try {
+      const response = await fetch(url, { signal: AbortSignal.timeout(4500) });
+      const text = await response.text();
+
+      if (!response.ok) {
+        errors.push(`${baseUrl}: ${response.status} ${text.slice(0, 140)}`);
+        continue;
+      }
+
+      return parseBinanceKlines(JSON.parse(text));
+    } catch (error: any) {
+      errors.push(`${baseUrl}: ${error?.message || String(error)}`);
+    }
+  }
+
+  throw new Error(errors.join(" | ") || "All Binance endpoints failed.");
+}
+
+async function fetchCoinbaseKlines(symbol: string, interval: string, limit: number) {
+  const productId = toCoinbaseProductId(symbol);
+  const granularity = toCoinbaseGranularity(interval);
+  const url = `https://api.exchange.coinbase.com/products/${encodeURIComponent(productId)}/candles?granularity=${granularity}`;
+  const response = await fetch(url, {
+    headers: { "User-Agent": "Prism-Edge market data gateway" },
+    signal: AbortSignal.timeout(4500)
+  });
+  const text = await response.text();
+
+  if (!response.ok) {
+    throw new Error(`Coinbase ${productId}: ${response.status} ${text.slice(0, 140)}`);
+  }
+
+  const data = JSON.parse(text);
+  if (!Array.isArray(data)) {
+    throw new Error(`Coinbase ${productId}: candle response was not an array.`);
+  }
+
+  return (data as CoinbaseCandle[])
+    .map((item) => ({
+      time: Number(item[0]),
+      open: Number(item[3]),
+      high: Number(item[2]),
+      low: Number(item[1]),
+      close: Number(item[4]),
+      volume: Number(item[5])
+    }))
+    .filter((candle) => (
+      Number.isFinite(candle.time) &&
+      Number.isFinite(candle.open) &&
+      Number.isFinite(candle.high) &&
+      Number.isFinite(candle.low) &&
+      Number.isFinite(candle.close)
+    ))
+    .sort((a, b) => a.time - b.time)
+    .slice(-limit);
+}
+
+async function fetchMarketKlines(symbol: string, interval: string, limit: number) {
+  const errors: string[] = [];
+
+  try {
+    const candles = await fetchBinanceKlines(symbol, interval, limit);
+    return { candles, source: "binance" };
+  } catch (error: any) {
+    errors.push(`binance: ${error?.message || String(error)}`);
+  }
+
+  try {
+    const candles = await fetchCoinbaseKlines(symbol, interval, limit);
+    return { candles, source: "coinbase" };
+  } catch (error: any) {
+    errors.push(`coinbase: ${error?.message || String(error)}`);
+  }
+
+  throw new Error(errors.join(" | "));
 }
 
 function computeLocalAnalysis(body: AnalysisBody) {
@@ -128,6 +292,49 @@ app.get("/api/health", async (_req, res) => {
       web: "ok",
       apiBaseUrl: API_BASE_URL,
       message: "FastAPI service is not reachable; Node fallback is active."
+    });
+  }
+});
+
+app.get("/api/market/klines", async (req, res) => {
+  const symbol = String(req.query.symbol || "").trim().toUpperCase();
+  const interval = toBinanceInterval(String(req.query.interval || req.query.timeframe || "1D"));
+  const limit = parseLimit(req.query.limit);
+
+  if (!/^[A-Z0-9]{5,24}$/.test(symbol)) {
+    return res.status(400).json({ error: "Invalid market symbol." });
+  }
+
+  const cacheKey = `${symbol}:${interval}:${limit}`;
+  const cached = marketCache.get(cacheKey);
+  if (cached && cached.expiresAt > Date.now()) {
+    return res.json(cached.payload);
+  }
+
+  try {
+    const { candles, source } = await fetchMarketKlines(symbol, interval, limit);
+    if (candles.length === 0) {
+      return res.status(502).json({ error: "No candle data returned by market source." });
+    }
+
+    const payload = {
+      symbol,
+      interval,
+      source,
+      candles
+    };
+
+    marketCache.set(cacheKey, {
+      expiresAt: Date.now() + (limit <= 2 ? 2000 : 15000),
+      payload
+    });
+
+    return res.json(payload);
+  } catch (error: any) {
+    console.warn(`Market data gateway failed for ${symbol} ${interval}.`, error);
+    return res.status(502).json({
+      error: "Market data gateway unavailable.",
+      detail: error?.message || String(error)
     });
   }
 });

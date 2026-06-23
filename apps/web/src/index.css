@@ -1,4 +1,6 @@
 @import "tailwindcss";
+@source "../../../packages/ui/src";
+@source "../../../packages/shared/src";
 
 @theme {
   --font-sans: "Segoe UI", "Microsoft YaHei", ui-sans-serif, system-ui, sans-serif;
@@ -31,6 +33,14 @@ body {
 
 ::-webkit-scrollbar-thumb:hover {
   background: #374151;
+}
+
+.no-scrollbar {
+  scrollbar-width: none;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
 }
 
 /* Custom CSS helper to style Light Theme aesthetics gracefully if toggled */

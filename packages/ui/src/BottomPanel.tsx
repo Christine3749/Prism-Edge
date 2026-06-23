@@ -42,6 +42,10 @@ export default function BottomPanel({
   const [aiAnalysis, setAiAnalysis] = useState<string>("");
   const [aiLoading, setAiLoading] = useState(false);
   const [analysisServiceFallback, setAnalysisServiceFallback] = useState(false);
+  const bookGridTemplate: React.CSSProperties = {
+    gridTemplateColumns: "minmax(7.5rem, 1fr) minmax(5rem, 0.7fr) minmax(5.5rem, 0.7fr)",
+    columnGap: "0.75rem"
+  };
 
   useEffect(() => {
     const book = generateOrderBook(currentSymbol.price, currentSymbol.precision);
@@ -238,14 +242,14 @@ export default function BottomPanel({
     >
       
       {/* 1. Controller tabs */}
-      <div className="px-3 bg-slate-900 border-b border-slate-850 flex items-center justify-between h-9 select-none shrink-0">
-        <div className="flex items-center gap-1 sm:gap-2">
+      <div className="px-2 sm:px-3 bg-slate-900 border-b border-slate-800 flex items-center justify-between h-10 select-none shrink-0 gap-2">
+        <div className="flex min-w-0 items-center gap-1 overflow-x-auto no-scrollbar">
           <button
             onClick={() => {
               setActiveTab("book");
               setCollapsed(false);
             }}
-            className={`px-2.5 py-2 text-[11px] font-bold flex items-center gap-1.5 transition-all outline-none border-b-2 hover:text-white cursor-pointer ${
+            className={`h-9 px-2.5 text-[11px] font-bold flex items-center gap-1.5 whitespace-nowrap transition-all outline-none border-b-2 hover:text-white cursor-pointer ${
               activeTab === "book" && !collapsed
                 ? "border-cyan-500 text-white bg-slate-950/40"
                 : "border-transparent text-slate-500"
@@ -260,15 +264,14 @@ export default function BottomPanel({
               setActiveTab("trades");
               setCollapsed(false);
             }}
-            className={`px-2.5 py-2 text-[11px] font-bold flex items-center gap-1.5 transition-all outline-none border-b-2 hover:text-white cursor-pointer ${
+            className={`h-9 px-2.5 text-[11px] font-bold flex items-center gap-1.5 whitespace-nowrap transition-all outline-none border-b-2 hover:text-white cursor-pointer ${
               activeTab === "trades" && !collapsed
                 ? "border-cyan-500 text-white bg-slate-950/40"
                 : "border-transparent text-slate-500"
             }`}
           >
             <TrendingUp className="h-3.5 w-3.5 text-cyan-400" />
-            <span className="hidden sm:inline">{t("recentTrades")}</span>
-            <span className="sm:hidden">{t("recentTrades")}</span>
+            <span>{t("recentTrades")}</span>
           </button>
 
           <button
@@ -276,15 +279,14 @@ export default function BottomPanel({
               setActiveTab("news");
               setCollapsed(false);
             }}
-            className={`px-2.5 py-2 text-[11px] font-bold flex items-center gap-1.5 transition-all outline-none border-b-2 hover:text-white cursor-pointer ${
+            className={`h-9 px-2.5 text-[11px] font-bold flex items-center gap-1.5 whitespace-nowrap transition-all outline-none border-b-2 hover:text-white cursor-pointer ${
               activeTab === "news" && !collapsed
                 ? "border-cyan-500 text-white bg-slate-950/40"
                 : "border-transparent text-slate-500"
             }`}
           >
             <BookOpen className="h-3.5 w-3.5 text-cyan-400" />
-            <span className="hidden sm:inline">{t("marketNews")}</span>
-            <span className="sm:hidden">{t("marketNews")}</span>
+            <span>{t("marketNews")}</span>
           </button>
 
           <button
@@ -292,7 +294,7 @@ export default function BottomPanel({
               setActiveTab("ai");
               setCollapsed(false);
             }}
-            className={`px-2.5 py-2 text-[11px] font-extrabold flex items-center gap-1.5 transition-all outline-none border-b-2 hover:text-white cursor-pointer ${
+            className={`h-9 px-2.5 text-[11px] font-extrabold flex items-center gap-1.5 whitespace-nowrap transition-all outline-none border-b-2 hover:text-white cursor-pointer ${
               activeTab === "ai" && !collapsed
                 ? "border-cyan-500 text-white bg-cyan-950/10"
                 : "border-transparent text-slate-400"
@@ -303,9 +305,9 @@ export default function BottomPanel({
           </button>
         </div>
 
-        <div className="flex items-center gap-3">
-          <div className="text-[9px] uppercase font-mono font-bold tracking-widest text-slate-500 hidden sm:block">
-            Terminal Console Center
+        <div className="flex shrink-0 items-center gap-2">
+          <div className="text-[9px] uppercase font-mono font-bold tracking-widest text-slate-500 hidden lg:block">
+            Prism Console
           </div>
           <button 
             onClick={() => setCollapsed(!collapsed)}
@@ -319,27 +321,27 @@ export default function BottomPanel({
 
       {/* 2. Body display, hidden when collapsed */}
       {!collapsed && (
-        <div className="flex-grow p-3 overflow-y-auto min-h-0 bg-slate-950/80">
+        <div className="flex-grow p-2.5 sm:p-3 overflow-y-auto min-h-0 bg-slate-950/80">
           
           {/* Tab 1: Order Book */}
           {activeTab === "book" && (
-            <div className="grid grid-cols-2 gap-3 sm:gap-6 h-full text-[11px] font-mono select-none">
+            <div className="grid grid-cols-1 xl:grid-cols-2 gap-3 sm:gap-6 h-full text-[11px] font-mono select-none">
               {/* direct asks */}
               <div className="flex flex-col">
-                <div className="grid text-slate-500 border-b border-slate-900 pb-1 font-bold text-[9px] uppercase" style={{ gridTemplateColumns: "6.5rem 5.25rem 5.25rem", columnGap: "0.75rem" }}>
-                  <span className="text-left text-rose-455">Ask price</span>
-                  <span className="text-right border-l border-slate-800/70 pl-2">Quantity</span>
-                  <span className="text-right hidden sm:inline border-l border-slate-800/70 pl-2">Total sum</span>
+                <div className="grid text-slate-500 border-b border-slate-900 pb-1 font-bold text-[9px] uppercase" style={bookGridTemplate}>
+                  <span className="text-left text-rose-400">Ask price</span>
+                  <span className="text-right">Quantity</span>
+                  <span className="text-right hidden sm:inline">Total sum</span>
                 </div>
                 <div className="flex-grow overflow-y-auto space-y-0.5 pt-0.5 max-h-40 sm:max-h-none">
                   {orderBook.asks.slice().reverse().map((ask, i) => {
                     const percent = Math.min((ask.total / orderBook.asks[orderBook.asks.length - 1].total) * 100, 100);
                     return (
-                      <div key={i} className="grid relative hover:bg-rose-950/10 py-0.5 pr-1" style={{ gridTemplateColumns: "6.5rem 5.25rem 5.25rem", columnGap: "0.75rem" }}>
+                      <div key={i} className="grid relative hover:bg-rose-950/10 py-0.5 pr-1" style={bookGridTemplate}>
                         <div className="absolute right-0 top-0 bottom-0 bg-rose-500/5 -z-10 transition-all pointer-events-none" style={{ width: `${percent}%` }}></div>
                         <span className="text-left text-rose-400 font-extrabold pl-1">{ask.price.toLocaleString(undefined, { minimumFractionDigits: currentSymbol.precision })}</span>
-                        <span className="text-right text-slate-300 border-l border-slate-900/80 pl-2">{ask.amount}</span>
-                        <span className="text-right text-slate-500 hidden sm:inline border-l border-slate-900/80 pl-2">{ask.total}</span>
+                        <span className="text-right text-slate-300">{ask.amount}</span>
+                        <span className="text-right text-slate-500 hidden sm:inline">{ask.total}</span>
                       </div>
                     );
                   })}
@@ -348,20 +350,20 @@ export default function BottomPanel({
 
               {/* direct bids */}
               <div className="flex flex-col">
-                <div className="grid text-slate-500 border-b border-slate-900 pb-1 font-bold text-[9px] uppercase" style={{ gridTemplateColumns: "6.5rem 5.25rem 5.25rem", columnGap: "0.75rem" }}>
-                  <span className="text-left text-teal-455">Bid price</span>
-                  <span className="text-right border-l border-slate-800/70 pl-2">Quantity</span>
-                  <span className="text-right hidden sm:inline border-l border-slate-800/70 pl-2">Total sum</span>
+                <div className="grid text-slate-500 border-b border-slate-900 pb-1 font-bold text-[9px] uppercase" style={bookGridTemplate}>
+                  <span className="text-left text-teal-400">Bid price</span>
+                  <span className="text-right">Quantity</span>
+                  <span className="text-right hidden sm:inline">Total sum</span>
                 </div>
                 <div className="flex-grow overflow-y-auto space-y-0.5 pt-0.5 max-h-40 sm:max-h-none">
                   {orderBook.bids.map((bid, i) => {
                     const percent = Math.min((bid.total / orderBook.bids[orderBook.bids.length - 1].total) * 100, 100);
                     return (
-                      <div key={i} className="grid relative hover:bg-teal-950/10 py-0.5 pr-1" style={{ gridTemplateColumns: "6.5rem 5.25rem 5.25rem", columnGap: "0.75rem" }}>
+                      <div key={i} className="grid relative hover:bg-teal-950/10 py-0.5 pr-1" style={bookGridTemplate}>
                         <div className="absolute right-0 top-0 bottom-0 bg-teal-500/5 -z-10 transition-all pointer-events-none" style={{ width: `${percent}%` }}></div>
                         <span className="text-left text-teal-400 font-extrabold pl-1">{bid.price.toLocaleString(undefined, { minimumFractionDigits: currentSymbol.precision })}</span>
-                        <span className="text-right text-slate-300 border-l border-slate-900/80 pl-2">{bid.amount}</span>
-                        <span className="text-right text-slate-500 hidden sm:inline border-l border-slate-900/80 pl-2">{bid.total}</span>
+                        <span className="text-right text-slate-300">{bid.amount}</span>
+                        <span className="text-right text-slate-500 hidden sm:inline">{bid.total}</span>
                       </div>
                     );
                   })}
@@ -418,7 +420,7 @@ export default function BottomPanel({
                     const isBullish = item.sentiment === "bullish";
                     const isBearish = item.sentiment === "bearish";
                     return (
-                      <div key={item.id} className="p-2.5 bg-slate-900 border border-slate-800 rounded-lg space-y-1.5 hover:border-slate-755 transition-all flex flex-col justify-between">
+                      <div key={item.id} className="p-2.5 bg-slate-900 border border-slate-800 rounded-lg space-y-1.5 hover:border-slate-700 transition-all flex flex-col justify-between">
                         <div className="space-y-1">
                           <div className="flex items-center justify-between text-[9px]">
                             <span className="text-slate-500 font-semibold">{item.source} • {item.time}</span>
@@ -449,8 +451,8 @@ export default function BottomPanel({
               {aiLoading ? (
                 <div className="flex flex-col items-center justify-center flex-grow py-4 gap-2">
                   <div className="relative">
-                    <span className="h-6 w-6 rounded-full border-2 border-cyan-455 border-t-transparent animate-spin block"></span>
-                    <Sparkles className="h-3.5 w-3.5 text-cyan-430 absolute inset-0 m-auto animate-pulse" />
+                    <span className="h-6 w-6 rounded-full border-2 border-cyan-400 border-t-transparent animate-spin block"></span>
+                    <Sparkles className="h-3.5 w-3.5 text-cyan-400 absolute inset-0 m-auto animate-pulse" />
                   </div>
                   <div className="text-center">
                     <p className="text-[11px] text-white font-bold">{lang === "zh" ? "正在折射多空对称对称率..." : lang === "tc" ? "正在折射多空對稱對稱率..." : "Refracting Technical Symmetries..."}</p>

@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { TrendingUp, DollarSign, Search, Coins, Layers, MessageSquarePlus, X } from "lucide-react";
+import { X } from "lucide-react";
 import { MarketSymbol } from "../../shared/src/types";
 import { Language, useTranslation } from "../../shared/src/translations";
 
@@ -18,7 +18,7 @@ export default function Watchlist({
   onSymbolSelect,
   symbolsList,
   lang,
-  isOpen = true,
+  isOpen = false,
   onClose
 }: WatchlistProps) {
   const t = useTranslation(lang);
@@ -56,12 +56,12 @@ export default function Watchlist({
         </div>
         
         {/* Market filters tab */}
-        <div className="grid grid-cols-4 bg-slate-900 p-0.5 rounded-lg border border-slate-800 text-[10px] md:text-[11px] font-semibold text-slate-400">
+        <div className="grid grid-cols-4 bg-slate-900 p-0.5 rounded-md border border-slate-800 text-[10px] font-semibold text-slate-400">
           {(["all", "crypto", "stock", "forex"] as const).map((cat) => (
             <button
               key={cat}
               onClick={() => setFilter(cat)}
-              className={`py-1 rounded cursor-pointer text-center text-ellipsis overflow-hidden transition-all duration-150 ${
+              className={`py-1 rounded cursor-pointer text-center truncate transition-all duration-150 ${
                 filter === cat
                   ? "bg-slate-800 text-cyan-400 font-bold shadow-md"
                   : "hover:text-white"
@@ -85,20 +85,20 @@ export default function Watchlist({
                 onSymbolSelect(sym);
                 if (onClose) onClose(); // Close on cell select on mobile
               }}
-              className={`px-3 py-2.5 flex items-center justify-between transition-all duration-150 cursor-pointer text-left h-[52px] ${
+              className={`px-3 py-2.5 grid grid-cols-[minmax(0,1fr)_104px] gap-3 items-center transition-all duration-150 cursor-pointer text-left h-[56px] ${
                 isSelected 
                   ? "bg-slate-900 border-l-2 border-cyan-400 text-white" 
                   : "hover:bg-slate-900/60 text-slate-300 hover:text-white"
               }`}
             >
-              <div className="flex flex-col truncate max-w-[140px]">
-                <span className="font-semibold text-xs tracking-tight text-white">{sym.id}</span>
+              <div className="flex min-w-0 flex-col">
+                <span className="font-semibold text-xs tracking-tight text-white truncate">{sym.id}</span>
                 <span className="text-[9px] text-slate-500 truncate">{sym.name}</span>
               </div>
 
               {/* Price action numbers */}
-              <div className="flex flex-col items-end shrink-0 select-none">
-                <span className="font-mono text-xs font-bold text-slate-100">
+              <div className="flex min-w-0 flex-col items-end select-none">
+                <span className="font-mono text-xs font-bold text-slate-100 tabular-nums">
                   {sym.price.toLocaleString(undefined, { 
                     minimumFractionDigits: sym.precision, 
                     maximumFractionDigits: sym.precision 
@@ -147,7 +147,7 @@ export default function Watchlist({
   return (
     <>
       {/* Desktop sidebar view */}
-      <div className="hidden md:flex w-72 border-l border-slate-840 shrink-0 h-full">
+      <div className="hidden md:flex w-[300px] min-w-[300px] xl:w-80 xl:min-w-80 border-l border-slate-800 shrink-0 h-full">
         {content}
       </div>
 

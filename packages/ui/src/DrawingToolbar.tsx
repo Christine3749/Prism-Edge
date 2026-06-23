@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { 
-  ArrowUpRight, Minus, MousePointer, Paintbrush, 
-  Type as TextIcon, Ruler as RulerIcon, Trash2, Edit3, ChevronRight, ChevronLeft
+  ArrowUpRight, Minus, MousePointer,
+  Type as TextIcon, Ruler as RulerIcon, Trash2, ChevronRight, ChevronLeft
 } from "lucide-react";
 import { DrawingTool } from "../../shared/src/types";
 import { Language } from "../../shared/src/translations";
@@ -120,7 +120,7 @@ export default function DrawingToolbar({
   return (
     <>
       {/* Desktop Vertical Layout (Hidden on Mobile) */}
-      <div className={`hidden md:flex flex-col items-center py-4 justify-between bg-slate-950 border-r border-slate-800 transition-all duration-350 z-30 ${collapsed ? "w-4" : "w-12"}`}>
+      <div className={`hidden sm:flex shrink-0 flex-col items-center py-3 justify-between bg-slate-950 border-r border-slate-800 transition-all duration-300 z-30 ${collapsed ? "w-8" : "w-14"}`}>
         {!collapsed ? (
           <>
             {/* Drawing Tools List */}
@@ -132,7 +132,7 @@ export default function DrawingToolbar({
                   <button
                     key={t.id}
                     onClick={() => onSelectTool(t.id)}
-                    className={`w-9 h-9 flex items-center justify-center rounded-lg transition-all duration-150 group relative cursor-pointer ${
+                    className={`w-10 h-10 flex items-center justify-center rounded-md transition-all duration-150 group relative cursor-pointer ${
                       isActive 
                         ? "bg-cyan-500 text-slate-950 shadow-lg font-bold scale-105" 
                         : "text-slate-400 hover:text-white hover:bg-slate-900"
@@ -151,7 +151,7 @@ export default function DrawingToolbar({
             {drawingsCount > 0 && (
               <button
                 onClick={onClearDrawings}
-                className="w-9 h-9 flex flex-col items-center justify-center rounded-lg text-rose-450 bg-rose-500/10 border border-rose-500/10 hover:bg-rose-500 hover:text-slate-950 transition-all cursor-pointer group relative hover:scale-105"
+                className="w-10 h-10 flex flex-col items-center justify-center rounded-md text-rose-400 bg-rose-500/10 border border-rose-500/10 hover:bg-rose-500 hover:text-slate-950 transition-all cursor-pointer group relative hover:scale-105"
                 title={lang === "zh" ? `清除全部 ${drawingsCount} 个绘图` : lang === "tc" ? `清除全部 ${drawingsCount} 個繪圖` : `Clear all ${drawingsCount} drawings`}
                 aria-label={lang === "zh" ? `清除全部 ${drawingsCount} 个绘图` : lang === "tc" ? `清除全部 ${drawingsCount} 個繪圖` : `Clear all ${drawingsCount} drawings`}
               >
@@ -163,7 +163,7 @@ export default function DrawingToolbar({
             {/* Collapse Trigger arrow */}
             <button
               onClick={() => setCollapsed(true)}
-              className="w-7 h-5 flex items-center justify-center rounded hover:bg-slate-900 text-slate-500 hover:text-slate-200 cursor-pointer transition-all mt-4"
+              className="w-8 h-6 flex items-center justify-center rounded hover:bg-slate-900 text-slate-500 hover:text-slate-200 cursor-pointer transition-all mt-4"
               title={lang === "zh" ? "收起侧栏" : lang === "tc" ? "收起側欄" : "Minimize panel"}
             >
               <ChevronLeft className="h-4 w-4" />
@@ -172,7 +172,7 @@ export default function DrawingToolbar({
         ) : (
           <button
             onClick={() => setCollapsed(false)}
-            className="w-4 h-full flex items-center justify-center text-slate-500 hover:text-cyan-400 hover:bg-slate-900/60 cursor-pointer transition-all"
+            className="w-8 h-full flex items-center justify-center text-slate-500 hover:text-cyan-400 hover:bg-slate-900/60 cursor-pointer transition-all"
             title={lang === "zh" ? "展开绘图工具" : lang === "tc" ? "展開繪圖工具" : "Expand Drawing Tools"}
           >
             <ChevronRight className="h-4 w-4" />
@@ -181,7 +181,7 @@ export default function DrawingToolbar({
       </div>
 
       {/* Mobile Floating Horizontal Tool Tray (Visible ONLY on Mobile) */}
-      <div className="md:hidden fixed bottom-14 left-1/2 -translate-x-1/2 bg-slate-950/95 backdrop-blur-md border border-slate-800 px-3 py-1.5 rounded-full flex items-center gap-1.5 shadow-2xl z-40 max-w-[95%] overflow-x-auto no-scrollbar">
+      <div className="sm:hidden fixed bottom-14 left-1/2 -translate-x-1/2 bg-slate-950/95 backdrop-blur-md border border-slate-800 px-3 py-1.5 rounded-full flex items-center gap-1.5 shadow-2xl z-40 max-w-[95%] overflow-x-auto no-scrollbar">
         {tools.map((t) => {
           const isActive = activeTool === t.id;
           const texts = getToolText(t.id);
@@ -201,7 +201,7 @@ export default function DrawingToolbar({
           );
         })}
         {drawingsCount > 0 && (
-          <div className="w-px h-5 bg-slate-850 shrink-0 mx-0.5"></div>
+          <div className="w-px h-5 bg-slate-800 shrink-0 mx-0.5"></div>
         )}
         {drawingsCount > 0 && (
           <button
