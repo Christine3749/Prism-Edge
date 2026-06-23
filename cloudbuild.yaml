@@ -67,7 +67,7 @@ steps:
           --region=${_REGION} \
           --platform=managed \
           --allow-unauthenticated \
-          --set-env-vars=API_BASE_URL=${API_URL},APP_URL=${_APP_URL},VITE_ENABLE_LIVE_BINANCE=false
+          --set-env-vars=API_BASE_URL=$$API_URL,APP_URL=${_APP_URL},VITE_ENABLE_LIVE_BINANCE=false
 
 images:
   - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPOSITORY}/api:$SHORT_SHA
