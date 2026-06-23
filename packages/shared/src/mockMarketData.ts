@@ -41,13 +41,14 @@ export function generateSimulatedHistoricalKlines(
   const candles: Candle[] = [];
   const secStep = timeframeToSeconds(timeframe);
   const now = Math.floor(Date.now() / 1000);
+  const currentIntervalAnchor = Math.floor(now / secStep) * secStep;
   
   let currentPrice = symbol.price;
   const isForex = symbol.type === "forex";
   const volatility = isForex ? 0.0008 : 0.006;
   
   for (let i = count - 1; i >= 0; i--) {
-    const time = now - (i * secStep);
+    const time = currentIntervalAnchor - (i * secStep);
     const cycle = Math.sin(i / 15) * (currentPrice * volatility * 1.5);
     const noise = (Math.random() - 0.49) * (currentPrice * volatility);
     const priceChange = cycle + noise;

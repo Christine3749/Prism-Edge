@@ -3,7 +3,7 @@ import {
   MarketSymbol, Candle, IndicatorConfig, DrawingTool, DrawingBase, AppSettings 
 } from "@shared/types";
 import { 
-  DEFAULT_SYMBOLS, simulateNextTick 
+  DEFAULT_SYMBOLS, timeframeToSeconds
 } from "@shared/mockMarketData";
 import { loadMarketData, subscribeRealtime } from "@shared/marketDataService";
 import { StorageService } from "@shared/storage";
@@ -176,22 +176,35 @@ export default function App() {
         if (prevCandles.length === 0) return prevCandles;
         
         const lastCandle = prevCandles[prevCandles.length - 1];
-        const candleTime = tick.time;
-
-        const updatedCandle: Candle = {
-          time: candleTime,
-          open: tick.open,
-          high: tick.high,
-          low: tick.low,
-          close: tick.close,
-          volume: tick.volume
-        };
+        const secStep = timeframeToSeconds(timeframe);
+        const candleTime = Math.floor(tick.time / secStep) * secStep;
+        const close = Number(tick.close.toFixed(currentSymbol.precision));
 
         if (candleTime > lastCandle.time) {
+          const open = tick.isLive ? tick.open : lastCandle.close;
+          const updatedCandle: Candle = {
+            time: candleTime,
+            open,
+            high: Number(Math.max(open, tick.high, close).toFixed(currentSymbol.precision)),
+            low: Number(Math.min(open, tick.low, close).toFixed(currentSymbol.precision)),
+            close,
+            volume: tick.volume
+          };
           return [...prevCandles.slice(1), updatedCandle];
-        } else {
-          return [...prevCandles.slice(0, -1), updatedCandle];
         }
+
+        if (candleTime < lastCandle.time) {
+          return prevCandles;
+        }
+
+        const updatedCandle: Candle = {
+          ...lastCandle,
+          high: Number(Math.max(lastCandle.high, tick.high, close).toFixed(currentSymbol.precision)),
+          low: Number(Math.min(lastCandle.low, tick.low, close).toFixed(currentSymbol.precision)),
+          close,
+          volume: tick.isLive ? tick.volume : lastCandle.volume + tick.volume
+        };
+        return [...prevCandles.slice(0, -1), updatedCandle];
       });
     });
 

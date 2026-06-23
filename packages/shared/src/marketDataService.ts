@@ -1,5 +1,5 @@
 import { MarketSymbol, Candle } from "./types";
-import { generateSimulatedHistoricalKlines } from "./mockMarketData";
+import { generateSimulatedHistoricalKlines, timeframeToSeconds } from "./mockMarketData";
 
 type ImportMetaWithEnv = ImportMeta & {
   env?: Record<string, string | boolean | undefined>;
@@ -106,13 +106,16 @@ export function subscribeRealtime(
     let lastClose = symbol.price;
     simInterval = setInterval(() => {
       if (closed) return;
+      const secStep = timeframeToSeconds(interval);
+      const now = Math.floor(Date.now() / 1000);
+      const currentIntervalAnchor = Math.floor(now / secStep) * secStep;
       const changePercent = (Math.random() - 0.5) * 0.0015; // smooth simulated ticks
       const nextClose = lastClose * (1 + changePercent);
       const high = Math.max(lastClose, nextClose) * (1 + Math.random() * 0.0003);
       const low = Math.min(lastClose, nextClose) * (1 - Math.random() * 0.0003);
       
       onTick({
-        time: Math.floor(Date.now() / 1000),
+        time: currentIntervalAnchor,
         open: lastClose,
         high,
         low,
