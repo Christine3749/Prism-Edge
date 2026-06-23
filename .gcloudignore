@@ -1,0 +1,12 @@
+.git
+.gitignore
+node_modules/
+dist/
+coverage/
+.env
+.env.local
+**/__pycache__/
+**/*.pyc
+apps/desktop/src-tauri/target/
+apps/android/android/
+dist/chrome-cdp-profile*

@@ -22,6 +22,12 @@ Deploy:
 gcloud builds submit --config cloudbuild.yaml .
 ```
 
+Windows helper:
+
+```powershell
+.\scripts\deploy-gcp.ps1 -Project halfsphere-api -Region asia-east1 -AppUrl https://msirprism.com
+```
+
 After deployment, get the web service URL:
 
 ```bash
