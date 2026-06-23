@@ -1,10 +1,10 @@
-import React, { useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { 
   TrendingUp, Search, BarChart2, Eye, Layout,
   Settings, Camera, Bookmark, RefreshCw, Menu, Globe
 } from "lucide-react";
 import { MarketSymbol, AppSettings, MarketDataStatus } from "../../shared/src/types";
-import { DEFAULT_SYMBOLS } from "../../shared/src/mockMarketData";
+import { searchMarketSymbols } from "../../shared/src/marketCatalog";
 import { Language, useTranslation } from "../../shared/src/translations";
 import Logo from "./Logo";
 
@@ -53,6 +53,7 @@ export default function Header({
   const t = useTranslation(lang);
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [remoteSymbols, setRemoteSymbols] = useState<MarketSymbol[]>([]);
 
   const timeframes = ["1m", "5m", "15m", "1h", "4h", "1D", "1W", "1M"];
   const chartTypes = [
@@ -62,15 +63,52 @@ export default function Header({
     { label: "Bars", value: "bars", icon: <BarChart2 className="h-3.5 w-3.5" /> }
   ];
 
-  const filteredSymbols = DEFAULT_SYMBOLS.filter(
-    (sym) =>
-      sym.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      sym.name.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  useEffect(() => {
+    const query = searchQuery.trim();
+    if (!searchOpen || query.length < 2) {
+      setRemoteSymbols([]);
+      return;
+    }
+
+    const controller = new AbortController();
+    const timer = setTimeout(async () => {
+      try {
+        const params = new URLSearchParams({ q: query, limit: "18" });
+        const response = await fetch(`/api/market/search?${params.toString()}`, {
+          headers: { Accept: "application/json" },
+          signal: controller.signal
+        });
+
+        if (!response.ok) return;
+        const payload = await response.json() as { results?: MarketSymbol[] };
+        setRemoteSymbols(Array.isArray(payload.results) ? payload.results : []);
+      } catch {
+        if (!controller.signal.aborted) {
+          setRemoteSymbols([]);
+        }
+      }
+    }, 220);
+
+    return () => {
+      clearTimeout(timer);
+      controller.abort();
+    };
+  }, [searchOpen, searchQuery]);
+
+  const filteredSymbols = useMemo(() => {
+    const local = searchMarketSymbols(searchQuery, "all", searchQuery.trim() ? 32 : 36);
+    const merged = new Map<string, MarketSymbol>();
+    [...local, ...remoteSymbols].forEach((symbol) => {
+      merged.set(symbol.symbol, symbol);
+    });
+    return Array.from(merged.values()).slice(0, 60);
+  }, [searchQuery, remoteSymbols]);
+
   const feedState = marketStatus?.state || (isLiveBinanceActive ? "live" : "simulated");
   const feedLabel = {
     loading: lang === "zh" ? "载入" : lang === "tc" ? "載入" : "Loading",
     live: t("liveWss"),
+    delayed: lang === "zh" ? "延迟" : lang === "tc" ? "延遲" : "Delayed",
     simulated: t("simFeed"),
     stale: lang === "zh" ? "延迟" : lang === "tc" ? "延遲" : "Stale",
     error: lang === "zh" ? "断线" : lang === "tc" ? "斷線" : "Error"
@@ -78,6 +116,7 @@ export default function Header({
   const feedClass = {
     loading: "bg-sky-950/40 border-sky-800/60 text-sky-400",
     live: "bg-teal-950/40 border-teal-800/60 text-teal-400",
+    delayed: "bg-blue-950/40 border-blue-800/60 text-blue-300",
     simulated: "bg-amber-950/40 border-amber-800/60 text-amber-300",
     stale: "bg-orange-950/40 border-orange-800/60 text-orange-300",
     error: "bg-rose-950/40 border-rose-800/60 text-rose-400"
@@ -85,6 +124,7 @@ export default function Header({
   const dotClass = {
     loading: "bg-sky-400 animate-pulse",
     live: "bg-teal-400 animate-pulse",
+    delayed: "bg-blue-300",
     simulated: "bg-amber-300",
     stale: "bg-orange-300",
     error: "bg-rose-400"
@@ -112,7 +152,7 @@ export default function Header({
               <span className="truncate">{currentSymbol.id}</span>
             </div>
             <span className="text-[9px] px-1 bg-slate-800 text-slate-400 rounded font-mono uppercase">
-              {currentSymbol.type}
+              {currentSymbol.exchange || currentSymbol.market || currentSymbol.type}
             </span>
           </button>
 
@@ -149,12 +189,18 @@ export default function Header({
                       }}
                       className="w-full text-left px-2 py-2 rounded-md hover:bg-slate-800 flex items-center justify-between text-xs md:text-sm transition-all text-slate-300 hover:text-white"
                     >
-                      <div className="flex flex-col">
+                      <div className="flex flex-col min-w-0">
                         <span className="font-semibold text-slate-100">{sym.id}</span>
-                        <span className="text-[10px] text-slate-500">{sym.name}</span>
+                        <span className="text-[10px] text-slate-500 truncate">
+                          {sym.name} · {sym.exchange || sym.market || sym.type}
+                        </span>
                       </div>
                       <div className="flex items-center gap-1.5">
-                        <span className="text-xs font-mono font-medium">${sym.price.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                        <span className="text-xs font-mono font-medium">
+                          {sym.price > 0
+                            ? sym.price.toLocaleString(undefined, { minimumFractionDigits: Math.min(sym.precision, 2), maximumFractionDigits: sym.precision })
+                            : (sym.currency || sym.type).toUpperCase()}
+                        </span>
                         <span className={`text-[9px] px-1.5 py-0.5 rounded font-mono font-bold ${sym.change24h >= 0 ? "bg-emerald-500/10 text-emerald-400" : "bg-rose-500/10 text-rose-400"}`}>
                           {sym.change24h >= 0 ? "+" : ""}{sym.change24h}%
                         </span>

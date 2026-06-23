@@ -2,6 +2,13 @@ import express from "express";
 import path from "path";
 import { createServer as createViteServer } from "vite";
 import dotenv from "dotenv";
+import {
+  MARKET_SYMBOLS,
+  inferMarketSymbolFromInput,
+  resolveMarketSymbol,
+  searchMarketSymbols
+} from "./packages/shared/src/marketCatalog";
+import type { MarketSymbol } from "./packages/shared/src/types";
 
 dotenv.config();
 dotenv.config({ path: ".env.local" });
@@ -45,6 +52,12 @@ interface MarketQuotePayload {
   isLive: boolean;
 }
 
+interface YahooChartPayload {
+  candles: Candle[];
+  source: string;
+  quote?: MarketQuotePayload;
+}
+
 type BinanceKline = [
   number,
   string,
@@ -68,20 +81,19 @@ const BINANCE_ENDPOINTS = [
 ];
 
 const marketCache = new Map<string, { expiresAt: number; payload: unknown }>();
+const MARKET_SYMBOL_RE = /^[A-Z0-9.^=\-/]{1,36}$/;
 
-const FALLBACK_QUOTES: Record<string, Omit<MarketQuotePayload, "source" | "updatedAt" | "isLive">> = {
-  BTCUSDT: { symbol: "BTCUSDT", price: 65420.5, change24h: 2.45, volume24h: 1845020000 },
-  ETHUSDT: { symbol: "ETHUSDT", price: 3450.75, change24h: -1.15, volume24h: 924850000 },
-  SOLUSDT: { symbol: "SOLUSDT", price: 142.1, change24h: 5.62, volume24h: 420910000 },
-  PRISMUSDT: { symbol: "PRISMUSDT", price: 12.85, change24h: 12.4, volume24h: 89000000 },
-  TSLA: { symbol: "TSLA", price: 178.45, change24h: 1.84, volume24h: 89450000 },
-  AAPL: { symbol: "AAPL", price: 214.3, change24h: -0.42, volume24h: 52100000 },
-  NVDA: { symbol: "NVDA", price: 124.8, change24h: 7.15, volume24h: 145200000 },
-  MSFT: { symbol: "MSFT", price: 428.15, change24h: -0.22, volume24h: 22100000 },
-  EURUSD: { symbol: "EURUSD", price: 1.0845, change24h: 0.12, volume24h: 310000000 },
-  USDJPY: { symbol: "USDJPY", price: 158.35, change24h: 0.42, volume24h: 410000000 },
-  GBPUSD: { symbol: "GBPUSD", price: 1.2825, change24h: -0.05, volume24h: 180000000 }
-};
+const FALLBACK_QUOTES: Record<string, Omit<MarketQuotePayload, "source" | "updatedAt" | "isLive">> = Object.fromEntries(
+  MARKET_SYMBOLS.map((symbol) => [
+    symbol.symbol,
+    {
+      symbol: symbol.symbol,
+      price: symbol.price,
+      change24h: symbol.change24h,
+      volume24h: symbol.volume24h
+    }
+  ])
+);
 
 app.use("/api", (_req, res, next) => {
   res.setHeader("Cache-Control", API_CACHE_CONTROL);
@@ -135,6 +147,84 @@ function toCoinbaseProductId(symbol: string) {
   if (!quote) return symbol;
   const base = symbol.slice(0, -quote.length);
   return `${base}-${quote}`;
+}
+
+function normalizeMarketSymbol(symbol: string) {
+  return symbol.trim().toUpperCase().replace(/\s+/g, "");
+}
+
+function isCryptoMarketSymbol(symbol: string) {
+  const profile = resolveMarketSymbol(symbol);
+  if (profile) return profile.type === "crypto";
+  return /^[A-Z0-9]{3,16}USDT$/.test(symbol);
+}
+
+function toYahooSymbol(symbol: string) {
+  const profile = resolveMarketSymbol(symbol) || inferMarketSymbolFromInput(symbol);
+  if (profile?.yahooSymbol) return profile.yahooSymbol;
+
+  const normalized = normalizeMarketSymbol(symbol).replace("/", "");
+  if (/^[A-Z]{6}$/.test(normalized) && !normalized.endsWith("USDT")) {
+    return `${normalized}=X`;
+  }
+  return normalized;
+}
+
+function toYahooInterval(interval: string) {
+  switch (interval) {
+    case "1m": return "1m";
+    case "3m":
+    case "5m": return "5m";
+    case "15m":
+    case "30m": return "15m";
+    case "1h":
+    case "2h":
+    case "4h": return "1h";
+    case "1w": return "1wk";
+    case "1M": return "1mo";
+    default: return "1d";
+  }
+}
+
+function toYahooRange(interval: string, limit: number) {
+  if (interval === "1m") return "1d";
+  if (["3m", "5m", "15m", "30m"].includes(interval)) return "5d";
+  if (["1h", "2h", "4h"].includes(interval)) return "3mo";
+  if (interval === "1w") return limit > 260 ? "10y" : "5y";
+  if (interval === "1M") return "max";
+  return limit > 260 ? "5y" : "1y";
+}
+
+function decimalPrecisionFor(symbol: string, price: number) {
+  const profile = resolveMarketSymbol(symbol) || inferMarketSymbolFromInput(symbol);
+  if (profile) return profile.precision;
+  if (price < 5) return 5;
+  return 2;
+}
+
+function parseYahooCandles(result: any, limit: number): Candle[] {
+  const timestamps = Array.isArray(result?.timestamp) ? result.timestamp : [];
+  const quote = result?.indicators?.quote?.[0] || {};
+  const opens = quote.open || [];
+  const highs = quote.high || [];
+  const lows = quote.low || [];
+  const closes = quote.close || [];
+  const volumes = quote.volume || [];
+
+  return timestamps.map((time: unknown, index: number) => ({
+    time: Number(time),
+    open: Number(opens[index]),
+    high: Number(highs[index]),
+    low: Number(lows[index]),
+    close: Number(closes[index]),
+    volume: Number(volumes[index] || 0)
+  })).filter((candle: Candle) => (
+    Number.isFinite(candle.time) &&
+    Number.isFinite(candle.open) &&
+    Number.isFinite(candle.high) &&
+    Number.isFinite(candle.low) &&
+    Number.isFinite(candle.close)
+  )).slice(-limit);
 }
 
 function parseLimit(rawLimit: unknown) {
@@ -266,32 +356,195 @@ async function fetchCoinbaseKlines(symbol: string, interval: string, limit: numb
     .slice(-limit);
 }
 
+async function fetchYahooChart(symbol: string, interval: string, limit: number): Promise<YahooChartPayload> {
+  const yahooSymbol = toYahooSymbol(symbol);
+  const yahooInterval = toYahooInterval(interval);
+  const range = toYahooRange(interval, limit);
+  const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(yahooSymbol)}?interval=${encodeURIComponent(yahooInterval)}&range=${encodeURIComponent(range)}&includePrePost=false&events=div%2Csplits`;
+
+  const response = await fetch(url, {
+    headers: {
+      Accept: "application/json",
+      "User-Agent": "Prism-Edge market data gateway"
+    },
+    signal: AbortSignal.timeout(6500)
+  });
+  const text = await response.text();
+
+  if (!response.ok) {
+    throw new Error(`Yahoo ${yahooSymbol}: ${response.status} ${text.slice(0, 140)}`);
+  }
+
+  const data = JSON.parse(text);
+  const chartError = data?.chart?.error;
+  if (chartError) {
+    throw new Error(`Yahoo ${yahooSymbol}: ${chartError.description || chartError.code || "chart error"}`);
+  }
+
+  const result = data?.chart?.result?.[0];
+  if (!result) {
+    throw new Error(`Yahoo ${yahooSymbol}: empty chart response.`);
+  }
+
+  const candles = parseYahooCandles(result, limit);
+  if (candles.length === 0) {
+    throw new Error(`Yahoo ${yahooSymbol}: no candle rows.`);
+  }
+
+  const meta = result.meta || {};
+  const last = candles[candles.length - 1];
+  const price = Number(meta.regularMarketPrice ?? last.close);
+  const previousCandle = candles.length > 1 ? candles[candles.length - 2] : undefined;
+  const previousClose = Number(meta.previousClose ?? previousCandle?.close ?? meta.chartPreviousClose);
+  const rawVolume = Number(meta.regularMarketVolume ?? last.volume ?? 0);
+  const precision = decimalPrecisionFor(symbol, price);
+  const change24h = previousClose ? ((price - previousClose) / previousClose) * 100 : 0;
+
+  return {
+    candles,
+    source: "yahoo-delayed",
+    quote: {
+      symbol,
+      price: Number(price.toFixed(precision)),
+      change24h: Number(change24h.toFixed(2)),
+      volume24h: Number.isFinite(rawVolume) ? rawVolume : 0,
+      source: "yahoo-delayed",
+      updatedAt: Date.now(),
+      isLive: false
+    }
+  };
+}
+
+async function fetchYahooQuote(symbol: string): Promise<MarketQuotePayload> {
+  const result = await fetchYahooChart(symbol, "1d", 5);
+  if (!result.quote) {
+    throw new Error(`Yahoo ${symbol}: quote missing from chart payload.`);
+  }
+  return result.quote;
+}
+
+function mapYahooSearchQuote(quote: any): MarketSymbol | null {
+  const rawSymbol = String(quote?.symbol || "").trim().toUpperCase();
+  if (!rawSymbol || !MARKET_SYMBOL_RE.test(rawSymbol)) return null;
+
+  const known = resolveMarketSymbol(rawSymbol);
+  if (known) return known;
+
+  const inferred = inferMarketSymbolFromInput(rawSymbol);
+  const quoteType = String(quote?.quoteType || "").toUpperCase();
+  const exchange = String(quote?.exchange || inferred?.exchange || quote?.exchDisp || "Yahoo");
+  const name = String(quote?.longname || quote?.shortname || quote?.name || inferred?.name || `${rawSymbol} Market Instrument`);
+  const type = quoteType === "CURRENCY" ? "forex" : quoteType === "CRYPTOCURRENCY" ? "crypto" : "stock";
+  const market: MarketSymbol["market"] = inferred?.market || (rawSymbol.endsWith(".HK") ? "hk" : rawSymbol.endsWith(".SZ") || rawSymbol.endsWith(".SS") ? "cn" : type === "forex" ? "forex" : type === "crypto" ? "crypto" : "us");
+
+  return {
+    id: inferred?.id || rawSymbol,
+    symbol: inferred?.symbol || rawSymbol,
+    name,
+    type,
+    market,
+    exchange,
+    currency: inferred?.currency || String(quote?.currency || (market === "hk" ? "HKD" : market === "cn" ? "CNY" : "USD")),
+    dataProvider: "yahoo",
+    yahooSymbol: inferred?.yahooSymbol || rawSymbol,
+    price: Number(quote?.regularMarketPrice || inferred?.price || 0),
+    change24h: Number(quote?.regularMarketChangePercent || 0),
+    volume24h: Number(quote?.regularMarketVolume || 0),
+    precision: inferred?.precision || (type === "forex" ? 5 : 2)
+  };
+}
+
+async function fetchYahooSearch(query: string, limit: number): Promise<MarketSymbol[]> {
+  const url = `https://query2.finance.yahoo.com/v1/finance/search?q=${encodeURIComponent(query)}&quotesCount=${limit}&newsCount=0&listsCount=0&enableFuzzyQuery=true`;
+  const response = await fetch(url, {
+    headers: {
+      Accept: "application/json",
+      "User-Agent": "Prism-Edge market search gateway"
+    },
+    signal: AbortSignal.timeout(5000)
+  });
+  const text = await response.text();
+
+  if (!response.ok) {
+    throw new Error(`Yahoo search: ${response.status} ${text.slice(0, 140)}`);
+  }
+
+  const data = JSON.parse(text);
+  return (Array.isArray(data?.quotes) ? data.quotes : [])
+    .map(mapYahooSearchQuote)
+    .filter(Boolean)
+    .slice(0, limit) as MarketSymbol[];
+}
+
 async function fetchMarketKlines(symbol: string, interval: string, limit: number) {
   const errors: string[] = [];
+  const cryptoSymbol = isCryptoMarketSymbol(symbol);
 
-  try {
-    const candles = await fetchBinanceKlines(symbol, interval, limit);
-    return { candles, source: "binance" };
-  } catch (error: any) {
-    errors.push(`binance: ${error?.message || String(error)}`);
+  if (cryptoSymbol) {
+    try {
+      const candles = await fetchBinanceKlines(symbol, interval, limit);
+      return { candles, source: "binance" };
+    } catch (error: any) {
+      errors.push(`binance: ${error?.message || String(error)}`);
+    }
+
+    try {
+      const candles = await fetchCoinbaseKlines(symbol, interval, limit);
+      return { candles, source: "coinbase" };
+    } catch (error: any) {
+      errors.push(`coinbase: ${error?.message || String(error)}`);
+    }
   }
 
   try {
-    const candles = await fetchCoinbaseKlines(symbol, interval, limit);
-    return { candles, source: "coinbase" };
+    const payload = await fetchYahooChart(symbol, interval, limit);
+    return { candles: payload.candles, source: payload.source };
   } catch (error: any) {
-    errors.push(`coinbase: ${error?.message || String(error)}`);
+    errors.push(`yahoo: ${error?.message || String(error)}`);
   }
 
   throw new Error(errors.join(" | "));
 }
 
 async function fetchMarketQuote(symbol: string): Promise<MarketQuotePayload> {
+  const errors: string[] = [];
+  let yahooAttempted = false;
+
+  if (isCryptoMarketSymbol(symbol)) {
+    try {
+      return await fetchBinanceQuote(symbol);
+    } catch (error: any) {
+      errors.push(`binance: ${error?.message || String(error)}`);
+    }
+  } else {
+    try {
+      yahooAttempted = true;
+      return await fetchYahooQuote(symbol);
+    } catch (error: any) {
+      errors.push(`yahoo: ${error?.message || String(error)}`);
+    }
+  }
+
   try {
-    return await fetchBinanceQuote(symbol);
-  } catch (error) {
+    if (yahooAttempted) throw new Error("Yahoo already attempted.");
+    return await fetchYahooQuote(symbol);
+  } catch (error: any) {
+    if (!yahooAttempted) errors.push(`yahoo: ${error?.message || String(error)}`);
     const fallback = FALLBACK_QUOTES[symbol];
-    if (!fallback) throw error;
+    if (!fallback) {
+      const inferred = inferMarketSymbolFromInput(symbol);
+      if (!inferred) throw new Error(errors.join(" | "));
+
+      return {
+        symbol: inferred.symbol,
+        price: inferred.price,
+        change24h: inferred.change24h,
+        volume24h: inferred.volume24h,
+        source: "simulated",
+        updatedAt: Date.now(),
+        isLive: false
+      };
+    }
 
     const noise = 1 + (Math.random() - 0.5) * 0.002;
     return {
@@ -389,11 +642,11 @@ app.get("/api/health", async (_req, res) => {
 });
 
 app.get("/api/market/klines", async (req, res) => {
-  const symbol = String(req.query.symbol || "").trim().toUpperCase();
+  const symbol = normalizeMarketSymbol(String(req.query.symbol || ""));
   const interval = toBinanceInterval(String(req.query.interval || req.query.timeframe || "1D"));
   const limit = parseLimit(req.query.limit);
 
-  if (!/^[A-Z0-9]{5,24}$/.test(symbol)) {
+  if (!MARKET_SYMBOL_RE.test(symbol)) {
     return res.status(400).json({ error: "Invalid market symbol." });
   }
 
@@ -435,11 +688,11 @@ app.get("/api/market/quote", async (req, res) => {
   const rawSymbols = String(req.query.symbols || req.query.symbol || "").toUpperCase();
   const symbols = rawSymbols
     .split(",")
-    .map((item) => item.trim())
+    .map((item) => normalizeMarketSymbol(item))
     .filter(Boolean)
     .slice(0, 30);
 
-  if (symbols.length === 0 || symbols.some((symbol) => !/^[A-Z0-9]{2,24}$/.test(symbol))) {
+  if (symbols.length === 0 || symbols.some((symbol) => !MARKET_SYMBOL_RE.test(symbol))) {
     return res.status(400).json({ error: "Invalid market symbol list." });
   }
 
@@ -461,6 +714,43 @@ app.get("/api/market/quote", async (req, res) => {
   });
 
   return res.json(payload);
+});
+
+app.get("/api/market/search", async (req, res) => {
+  const query = String(req.query.q || req.query.query || "").trim();
+  const market = String(req.query.market || "all").trim().toLowerCase();
+  const rawLimit = Number(req.query.limit || 30);
+  const limit = Number.isFinite(rawLimit) ? clamp(rawLimit, 1, 80) : 30;
+
+  const localResults = searchMarketSymbols(query, market, Math.ceil(limit / 2));
+  const merged = new Map<string, MarketSymbol>();
+  localResults.forEach((symbol) => merged.set(symbol.symbol, symbol));
+
+  if (query.length >= 2) {
+    try {
+      const remoteResults = await fetchYahooSearch(query, limit);
+      remoteResults.forEach((symbol) => {
+        const matchesMarket = market === "all" || symbol.market === market || symbol.type === market;
+        if (matchesMarket && !merged.has(symbol.symbol)) {
+          merged.set(symbol.symbol, symbol);
+        }
+      });
+    } catch (error) {
+      console.warn(`Market search remote provider failed for "${query}".`, error);
+    }
+  }
+
+  const exact = inferMarketSymbolFromInput(query);
+  if (exact && !merged.has(exact.symbol)) {
+    merged.set(exact.symbol, exact);
+  }
+
+  const results = Array.from(merged.values()).slice(0, limit);
+  return res.json({
+    results,
+    count: results.length,
+    source: query.length >= 2 ? "catalog+yahoo" : "catalog"
+  });
 });
 
 app.post("/api/analysis/run", async (req, res) => {

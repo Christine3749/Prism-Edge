@@ -532,9 +532,13 @@ export default function ChartContainer({
         </div>
       )}
 
-      {dataState === "stale" && (
-        <div className="pointer-events-none absolute inset-x-0 top-16 z-20 mx-auto flex w-fit items-center gap-2 rounded border border-orange-500/20 bg-slate-950/80 px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest text-orange-300 shadow-lg backdrop-blur-sm">
-          Data delayed · {marketStatus?.source || "gateway"}
+      {(dataState === "stale" || dataState === "delayed") && (
+        <div className={`pointer-events-none absolute inset-x-0 top-16 z-20 mx-auto flex w-fit items-center gap-2 rounded border bg-slate-950/80 px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest shadow-lg backdrop-blur-sm ${
+          dataState === "stale"
+            ? "border-orange-500/20 text-orange-300"
+            : "border-blue-500/20 text-blue-300"
+        }`}>
+          {dataState === "stale" ? "Data delayed" : "Delayed market feed"} · {marketStatus?.source || "gateway"}
         </div>
       )}
 

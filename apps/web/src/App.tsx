@@ -201,6 +201,20 @@ export default function App() {
     return enabled;
   };
 
+  const getFeedState = (source: string, isLive: boolean): MarketDataStatus["state"] => {
+    if (isLive) return "live";
+    if (source.toLowerCase().includes("yahoo")) return "delayed";
+    return "simulated";
+  };
+
+  const handleSymbolSelect = (symbol: MarketSymbol) => {
+    setCurrentSymbol(symbol);
+    setSymbolsList((prev) => {
+      if (prev.some((item) => item.symbol === symbol.symbol)) return prev;
+      return [symbol, ...prev].slice(0, 60);
+    });
+  };
+
   const refreshQuotes = async (quiet = false) => {
     try {
       const quotes = await fetchMarketQuotes(symbolsListRef.current);
@@ -208,13 +222,18 @@ export default function App() {
 
       const activeQuote = quotes.find((quote) => quote.symbol === currentSymbol.symbol);
       if (activeQuote) {
+        const state = getFeedState(activeQuote.source, activeQuote.isLive);
         lastMarketUpdateRef.current = activeQuote.updatedAt || Date.now();
         setIsLiveBinanceActive(activeQuote.isLive);
         setMarketStatus({
-          state: activeQuote.isLive ? "live" : "simulated",
+          state,
           source: activeQuote.source,
           updatedAt: lastMarketUpdateRef.current,
-          message: activeQuote.isLive ? "Real market quote stream." : "Fallback simulated quote."
+          message: activeQuote.isLive
+            ? "Real market quote stream."
+            : state === "delayed"
+              ? "Delayed market quote from public market provider."
+              : "Fallback simulated quote."
         });
       }
     } catch (err) {
@@ -249,11 +268,16 @@ export default function App() {
       setCandles(result.candles);
       setIsLiveBinanceActive(result.isLiveBinance);
       lastMarketUpdateRef.current = result.updatedAt;
+      const state = getFeedState(result.source, result.isLiveBinance);
       setMarketStatus({
-        state: result.isLiveBinance ? "live" : "simulated",
+        state,
         source: result.source,
         updatedAt: result.updatedAt,
-        message: result.isLiveBinance ? "Real candle gateway connected." : "Fallback simulator active."
+        message: result.isLiveBinance
+          ? "Real candle gateway connected."
+          : state === "delayed"
+            ? "Delayed candle gateway connected."
+            : "Fallback simulator active."
       });
     };
 
@@ -328,11 +352,17 @@ export default function App() {
     const subscription = subscribeRealtime(currentSymbol, timeframe, (tick) => {
       updateSymbolsListPrice(currentSymbol.id, tick.close);
       lastMarketUpdateRef.current = Date.now();
+      const source = tick.source || (tick.isLive ? marketStatus.source : "simulated");
+      const state = getFeedState(source, tick.isLive);
       setMarketStatus((prev) => ({
-        state: tick.isLive ? "live" : "simulated",
-        source: tick.isLive ? (prev.source === "simulated" ? "binance" : prev.source) : "simulated",
+        state,
+        source: tick.source || (tick.isLive ? (prev.source === "simulated" ? "binance" : prev.source) : "simulated"),
         updatedAt: lastMarketUpdateRef.current,
-        message: tick.isLive ? "Realtime candle gateway connected." : "Fallback simulator active."
+        message: tick.isLive
+          ? "Realtime candle gateway connected."
+          : state === "delayed"
+            ? "Delayed candle gateway connected."
+            : "Fallback simulator active."
       }));
 
       setCandles((prevCandles) => {
@@ -416,7 +446,7 @@ export default function App() {
       {/* 1. Header Toolbar */}
       <Header
         currentSymbol={currentSymbol}
-        onSymbolSelect={setCurrentSymbol}
+        onSymbolSelect={handleSymbolSelect}
         currentTimeframe={timeframe}
         onTimeframeSelect={setTimeframe}
         chartType={chartType}
@@ -480,7 +510,7 @@ export default function App() {
         {/* Right Watchlist list panel */}
         <Watchlist
           currentSymbol={currentSymbol}
-          onSymbolSelect={setCurrentSymbol}
+          onSymbolSelect={handleSymbolSelect}
           symbolsList={symbolsList}
           lang={lang}
           marketStatus={marketStatus}

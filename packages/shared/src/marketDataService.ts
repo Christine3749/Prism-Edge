@@ -26,8 +26,17 @@ export async function fetchHistoricalCryptoKlines(
   timeframe: string,
   limit = 200
 ): Promise<Candle[]> {
+  const result = await fetchHistoricalGatewayKlines(binanceSymbol, timeframe, limit);
+  return result.candles;
+}
+
+export async function fetchHistoricalGatewayKlines(
+  symbol: string,
+  timeframe: string,
+  limit = 200
+): Promise<{ candles: Candle[]; source: string }> {
   const params = new URLSearchParams({
-    symbol: binanceSymbol,
+    symbol,
     interval: timeframe,
     limit: String(limit)
   });
@@ -37,19 +46,27 @@ export async function fetchHistoricalCryptoKlines(
 
   if (!response.ok) {
     const detail = await response.text().catch(() => "");
-    throw new Error(`Failed loading market klines for ${binanceSymbol}. ${detail.slice(0, 160)}`);
+    throw new Error(`Failed loading market klines for ${symbol}. ${detail.slice(0, 160)}`);
   }
 
   const data = await response.json() as MarketGatewayResponse;
   const candles = Array.isArray(data.candles) ? data.candles : [];
 
-  return candles.filter((candle) => (
+  return {
+    source: data.source || "gateway",
+    candles: candles.filter((candle) => (
     Number.isFinite(candle.time) &&
     Number.isFinite(candle.open) &&
     Number.isFinite(candle.high) &&
     Number.isFinite(candle.low) &&
     Number.isFinite(candle.close)
-  ));
+    ))
+  };
+}
+
+function isLiveGatewaySource(source: string) {
+  const normalized = source.toLowerCase();
+  return normalized.includes("binance") || normalized.includes("coinbase");
 }
 
 export async function loadMarketData(
@@ -57,22 +74,22 @@ export async function loadMarketData(
   timeframe: string
 ): Promise<{ candles: Candle[]; isLiveBinance: boolean; source: string; updatedAt: number }> {
   try {
-    if (symbol.type === "crypto") {
-      try {
-        const hist = await fetchHistoricalCryptoKlines(symbol.symbol, timeframe, 200);
-        return { candles: hist, isLiveBinance: true, source: "binance", updatedAt: Date.now() };
-      } catch (err) {
-        warnOnce(
-          `rest_${symbol.symbol}`,
-          `[Binance REST API call fallback] Failed fetching live data, spawning custom simulation curve. Error details:`,
-          err
-        );
-        const fallback = generateSimulatedHistoricalKlines(symbol, timeframe, 200);
-        return { candles: fallback, isLiveBinance: false, source: "simulated", updatedAt: Date.now() };
-      }
-    } else {
-      const simHist = generateSimulatedHistoricalKlines(symbol, timeframe, 200);
-      return { candles: simHist, isLiveBinance: false, source: "simulated", updatedAt: Date.now() };
+    try {
+      const hist = await fetchHistoricalGatewayKlines(symbol.symbol, timeframe, 200);
+      return {
+        candles: hist.candles,
+        isLiveBinance: isLiveGatewaySource(hist.source),
+        source: hist.source,
+        updatedAt: Date.now()
+      };
+    } catch (err) {
+      warnOnce(
+        `rest_${symbol.symbol}`,
+        `[Market REST gateway fallback] Failed fetching external data, spawning custom simulation curve. Error details:`,
+        err
+      );
+      const fallback = generateSimulatedHistoricalKlines(symbol, timeframe, 200);
+      return { candles: fallback, isLiveBinance: false, source: "simulated", updatedAt: Date.now() };
     }
   } catch (err) {
     warnOnce("load_error_ultimate", "Ultimate market data service load exception:", err);
@@ -119,7 +136,7 @@ export async function fetchMarketQuotes(symbols: MarketSymbol[]): Promise<Market
 export function subscribeRealtime(
   symbol: MarketSymbol,
   interval: string,
-  onTick: (tick: { time: number; open: number; high: number; low: number; close: number; volume: number; isLive: boolean }) => void
+  onTick: (tick: { time: number; open: number; high: number; low: number; close: number; volume: number; isLive: boolean; source?: string }) => void
 ): { close: () => void } {
   let closed = false;
   let timer: ReturnType<typeof setInterval> | null = null;
@@ -151,7 +168,8 @@ export function subscribeRealtime(
         low,
         close: nextClose,
         volume: Math.random() * 8 + 1,
-        isLive: false
+        isLive: false,
+        source: "simulated"
       });
       lastClose = nextClose;
     }, simTime);
@@ -161,14 +179,15 @@ export function subscribeRealtime(
     if (closed) return;
 
     try {
-      const latest = await fetchHistoricalCryptoKlines(symbol.symbol, interval, 2);
-      const candle = latest[latest.length - 1];
+      const latest = await fetchHistoricalGatewayKlines(symbol.symbol, interval, 2);
+      const candle = latest.candles[latest.candles.length - 1];
       if (!candle) throw new Error("Gateway returned an empty candle set.");
 
       gatewayFailureCount = 0;
       onTick({
         ...candle,
-        isLive: true
+        isLive: isLiveGatewaySource(latest.source),
+        source: latest.source
       });
     } catch (err) {
       gatewayFailureCount += 1;
@@ -185,12 +204,8 @@ export function subscribeRealtime(
     }
   };
 
-  if (symbol.type === "crypto") {
-    pollGatewayLatestCandle();
-    timer = setInterval(pollGatewayLatestCandle, 3000);
-  } else {
-    startSimulation();
-  }
+  pollGatewayLatestCandle();
+  timer = setInterval(pollGatewayLatestCandle, symbol.type === "crypto" ? 3000 : 18000);
 
   return {
     close: () => {

@@ -3,13 +3,18 @@ export interface MarketSymbol {
   symbol: string;
   name: string;
   type: "crypto" | "stock" | "forex";
+  market?: "crypto" | "us" | "cn" | "hk" | "forex" | "internal";
+  exchange?: string;
+  currency?: string;
+  dataProvider?: "binance" | "coinbase" | "yahoo" | "simulated" | "manual";
+  yahooSymbol?: string;
   price: number;
   change24h: number;
   volume24h: number;
   precision: number;
 }
 
-export type MarketDataState = "loading" | "live" | "simulated" | "stale" | "error";
+export type MarketDataState = "loading" | "live" | "delayed" | "simulated" | "stale" | "error";
 
 export interface MarketDataStatus {
   state: MarketDataState;

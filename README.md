@@ -67,5 +67,6 @@ Market data flows through the Node gateway:
 
 - `GET /api/market/klines` for candle history.
 - `GET /api/market/quote` for latest quote, 24h change, volume, source, and live/simulated state.
+- `GET /api/market/search` for catalog search plus delayed public market lookup.
 
-Crypto markets use live gateway data when available. Stocks, forex, and internal Prism symbols keep an explicit simulated fallback until dedicated market vendors are connected.
+Crypto markets use live gateway data when available. US stocks, A-shares (`.SS`, `.SZ`), Hong Kong stocks (`.HK`), indexes (`^GSPC`, `^HSI`), and forex can use delayed public market data through the gateway, with an explicit simulated fallback if every public provider is unreachable. A licensed realtime vendor is still required before presenting equities and forex as true realtime trading feeds.

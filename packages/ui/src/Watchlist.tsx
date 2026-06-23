@@ -45,6 +45,8 @@ export default function Watchlist({
   });
   const statusTone = marketStatus?.state === "live"
     ? "text-teal-400"
+    : marketStatus?.state === "delayed"
+      ? "text-blue-300"
     : marketStatus?.state === "stale"
       ? "text-orange-300"
       : marketStatus?.state === "error"
@@ -125,7 +127,9 @@ export default function Watchlist({
             >
               <div className="flex min-w-0 flex-col">
                 <span className="font-semibold text-[11px] tracking-tight text-white truncate">{sym.id}</span>
-                <span className="text-[8px] text-slate-500 truncate">{sym.name}</span>
+                <span className="text-[8px] text-slate-500 truncate">
+                  {sym.name} · {sym.exchange || sym.market || sym.type}
+                </span>
               </div>
 
               {/* Price action numbers */}
@@ -171,7 +175,9 @@ export default function Watchlist({
                 ? (lang === "zh" ? "数据延迟" : lang === "tc" ? "數據延遲" : "Stale Feed")
                 : marketStatus?.state === "live"
                   ? (lang === "zh" ? "真实行情" : lang === "tc" ? "真實行情" : "Live Feed")
-                  : (lang === "zh" ? "模拟保护" : lang === "tc" ? "模擬保護" : "Fallback")}
+                  : marketStatus?.state === "delayed"
+                    ? (lang === "zh" ? "延迟行情" : lang === "tc" ? "延遲行情" : "Delayed")
+                    : (lang === "zh" ? "模拟保护" : lang === "tc" ? "模擬保護" : "Fallback")}
             </span>
           </div>
         </div>
