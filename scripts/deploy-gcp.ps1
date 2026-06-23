@@ -1,5 +1,5 @@
 param(
-  [string]$Project = "halfsphere-api",
+  [string]$Project = "project-252bf450-dd3c-4d3c-9b2",
   [string]$Region = "asia-east1",
   [string]$AppUrl = "https://msirprism.com"
 )

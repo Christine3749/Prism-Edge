@@ -25,7 +25,7 @@ gcloud builds submit --config cloudbuild.yaml .
 Windows helper:
 
 ```powershell
-.\scripts\deploy-gcp.ps1 -Project halfsphere-api -Region asia-east1 -AppUrl https://msirprism.com
+.\scripts\deploy-gcp.ps1 -Project project-252bf450-dd3c-4d3c-9b2 -Region asia-east1 -AppUrl https://msirprism.com
 ```
 
 After deployment, get the web service URL:
@@ -33,6 +33,13 @@ After deployment, get the web service URL:
 ```bash
 gcloud run services describe msir-prism-web --region asia-east1 --format="value(status.url)"
 ```
+
+Current deployment:
+
+- Project: `project-252bf450-dd3c-4d3c-9b2`
+- Region: `asia-east1`
+- Web: `https://msir-prism-web-wcfsv5bdwa-de.a.run.app`
+- API: `https://msir-prism-api-wcfsv5bdwa-de.a.run.app`
 
 ## Cloudflare DNS
 
