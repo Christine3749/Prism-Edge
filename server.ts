@@ -11,6 +11,9 @@ app.use(express.json({ limit: "8mb" }));
 
 const PORT = Number(process.env.PORT || 3000);
 const API_BASE_URL = process.env.API_BASE_URL || "http://127.0.0.1:8000";
+const API_CACHE_CONTROL = "no-store, max-age=0";
+const HTML_CACHE_CONTROL = "no-cache, max-age=0, must-revalidate";
+const STATIC_ASSET_CACHE_CONTROL = "public, max-age=31536000, immutable";
 
 type Trend = "bullish" | "bearish" | "neutral";
 type SignalType = "buy" | "sell" | "watch";
@@ -55,6 +58,13 @@ const BINANCE_ENDPOINTS = [
 ];
 
 const marketCache = new Map<string, { expiresAt: number; payload: unknown }>();
+
+app.use("/api", (_req, res, next) => {
+  res.setHeader("Cache-Control", API_CACHE_CONTROL);
+  res.setHeader("Pragma", "no-cache");
+  res.setHeader("Expires", "0");
+  next();
+});
 
 function clamp(value: number, min: number, max: number) {
   return Math.min(Math.max(value, min), max);
@@ -434,8 +444,26 @@ async function bootstrap() {
   } else {
     console.log("Serving production bundle from dist folder...");
     const distPath = path.join(process.cwd(), "dist");
-    app.use(express.static(distPath));
+
+    app.use("/assets", express.static(path.join(distPath, "assets"), {
+      immutable: true,
+      maxAge: "1y",
+      setHeaders: (res) => {
+        res.setHeader("Cache-Control", STATIC_ASSET_CACHE_CONTROL);
+      }
+    }));
+
+    app.use(express.static(distPath, {
+      index: false,
+      setHeaders: (res) => {
+        res.setHeader("Cache-Control", HTML_CACHE_CONTROL);
+      }
+    }));
+
     app.get("*", (_req, res) => {
+      res.setHeader("Cache-Control", HTML_CACHE_CONTROL);
+      res.setHeader("Pragma", "no-cache");
+      res.setHeader("Expires", "0");
       res.sendFile(path.join(distPath, "index.html"));
     });
   }
