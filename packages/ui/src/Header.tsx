@@ -1,12 +1,12 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React from "react";
 import { 
-  TrendingUp, Search, BarChart2, Eye, Layout,
+  TrendingUp, BarChart2, Eye, Layout,
   Settings, Camera, Bookmark, RefreshCw, Menu, Globe
 } from "lucide-react";
 import { MarketSymbol, AppSettings, MarketDataStatus } from "../../shared/src/types";
-import { searchMarketSymbols } from "../../shared/src/marketCatalog";
 import { Language, useTranslation } from "../../shared/src/translations";
 import Logo from "./Logo";
+import { SymbolSearch } from "./header/SymbolSearch";
 
 interface HeaderProps {
   currentSymbol: MarketSymbol;
@@ -51,10 +51,6 @@ export default function Header({
   onToggleWatchlist
 }: HeaderProps) {
   const t = useTranslation(lang);
-  const [searchOpen, setSearchOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [remoteSymbols, setRemoteSymbols] = useState<MarketSymbol[]>([]);
-
   const timeframes = ["1m", "5m", "15m", "1h", "4h", "1D", "1W", "1M"];
   const chartTypes = [
     { label: "Candle", value: "candlestick", icon: <BarChart2 className="h-3.5 w-3.5" /> },
@@ -62,47 +58,6 @@ export default function Header({
     { label: "Area", value: "area", icon: <Layout className="h-3.5 w-3.5" /> },
     { label: "Bars", value: "bars", icon: <BarChart2 className="h-3.5 w-3.5" /> }
   ];
-
-  useEffect(() => {
-    const query = searchQuery.trim();
-    if (!searchOpen || query.length < 2) {
-      setRemoteSymbols([]);
-      return;
-    }
-
-    const controller = new AbortController();
-    const timer = setTimeout(async () => {
-      try {
-        const params = new URLSearchParams({ q: query, limit: "18" });
-        const response = await fetch(`/api/market/search?${params.toString()}`, {
-          headers: { Accept: "application/json" },
-          signal: controller.signal
-        });
-
-        if (!response.ok) return;
-        const payload = await response.json() as { results?: MarketSymbol[] };
-        setRemoteSymbols(Array.isArray(payload.results) ? payload.results : []);
-      } catch {
-        if (!controller.signal.aborted) {
-          setRemoteSymbols([]);
-        }
-      }
-    }, 220);
-
-    return () => {
-      clearTimeout(timer);
-      controller.abort();
-    };
-  }, [searchOpen, searchQuery]);
-
-  const filteredSymbols = useMemo(() => {
-    const local = searchMarketSymbols(searchQuery, "all", searchQuery.trim() ? 32 : 36);
-    const merged = new Map<string, MarketSymbol>();
-    [...local, ...remoteSymbols].forEach((symbol) => {
-      merged.set(symbol.symbol, symbol);
-    });
-    return Array.from(merged.values()).slice(0, 60);
-  }, [searchQuery, remoteSymbols]);
 
   const feedState = marketStatus?.state || (isLiveBinanceActive ? "live" : "simulated");
   const feedLabel = {
@@ -140,83 +95,7 @@ export default function Header({
       {/* 2. Controls Area (Scrollable/Wrap on Mobile, Spaced on Desktop) */}
       <div className="flex min-w-0 flex-1 items-center gap-2 overflow-x-auto no-scrollbar scroll-smooth justify-start">
         
-        {/* Symbol Selector Panel */}
-        <div className="relative shrink-0">
-          <button
-            onClick={() => setSearchOpen(!searchOpen)}
-            className="flex h-7 items-center gap-1.5 px-2 bg-slate-900 hover:bg-slate-800 border border-slate-800 hover:border-cyan-500/50 rounded text-[11px] text-slate-200 transition-all cursor-pointer font-medium w-32 xl:w-40 text-left justify-between"
-            id="symbol_search_btn"
-          >
-            <div className="flex items-center gap-1 md:gap-1.5 truncate">
-              <Search className="h-3 md:h-3.5 w-3 md:w-3.5 text-cyan-400" />
-              <span className="truncate">{currentSymbol.id}</span>
-            </div>
-            <span className="text-[9px] px-1 bg-slate-800 text-slate-400 rounded font-mono uppercase">
-              {currentSymbol.exchange || currentSymbol.market || currentSymbol.type}
-            </span>
-          </button>
-
-          {searchOpen && (
-            <>
-              <div 
-                className="fixed inset-0 z-40" 
-                onClick={() => setSearchOpen(false)}
-              ></div>
-              <div className="absolute left-0 mt-1.5 w-72 bg-slate-900 border border-slate-800 rounded-lg shadow-2xl p-2 z-50 max-h-96 overflow-y-auto animate-in fade-in slide-in-from-top-2 duration-150">
-                <div className="flex items-center gap-2 px-2 py-1.5 bg-slate-950 border border-slate-800 rounded-md mb-2">
-                  <Search className="h-4 w-4 text-slate-500" />
-                  <input
-                    type="text"
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    placeholder={t("searchAsset")}
-                    className="bg-transparent border-none text-xs md:text-sm text-slate-100 placeholder-slate-500 focus:outline-none w-full"
-                    autoFocus
-                  />
-                </div>
-                
-                <div className="text-[9px] font-bold text-slate-500 px-2 py-1 uppercase tracking-wider">
-                  {t("selectMarkets")}
-                </div>
-                <div className="space-y-0.5">
-                  {filteredSymbols.map((sym) => (
-                    <button
-                      key={sym.id}
-                      onClick={() => {
-                        onSymbolSelect(sym);
-                        setSearchOpen(false);
-                        setSearchQuery("");
-                      }}
-                      className="w-full text-left px-2 py-2 rounded-md hover:bg-slate-800 flex items-center justify-between text-xs md:text-sm transition-all text-slate-300 hover:text-white"
-                    >
-                      <div className="flex flex-col min-w-0">
-                        <span className="font-semibold text-slate-100">{sym.id}</span>
-                        <span className="text-[10px] text-slate-500 truncate">
-                          {sym.name} · {sym.exchange || sym.market || sym.type}
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-1.5">
-                        <span className="text-xs font-mono font-medium">
-                          {sym.price > 0
-                            ? sym.price.toLocaleString(undefined, { minimumFractionDigits: Math.min(sym.precision, 2), maximumFractionDigits: sym.precision })
-                            : (sym.currency || sym.type).toUpperCase()}
-                        </span>
-                        <span className={`text-[9px] px-1.5 py-0.5 rounded font-mono font-bold ${sym.change24h >= 0 ? "bg-emerald-500/10 text-emerald-400" : "bg-rose-500/10 text-rose-400"}`}>
-                          {sym.change24h >= 0 ? "+" : ""}{sym.change24h}%
-                        </span>
-                      </div>
-                    </button>
-                  ))}
-                  {filteredSymbols.length === 0 && (
-                    <div className="text-center text-xs text-slate-500 py-4">
-                      {t("noAssetsFound")}
-                    </div>
-                  )}
-                </div>
-              </div>
-            </>
-          )}
-        </div>
+        <SymbolSearch currentSymbol={currentSymbol} onSymbolSelect={onSymbolSelect} t={t} />
 
         {/* Live Status indicator */}
         <div className="shrink-0 flex">

@@ -1,12 +1,18 @@
-import React, { useEffect, useRef, useState, useCallback } from "react";
-import { createChart, IChartApi, ISeriesApi, LineStyle, UTCTimestamp, CandlestickSeries, LineSeries, AreaSeries, BarSeries, HistogramSeries } from "lightweight-charts";
-import { 
-  MarketSymbol, Candle, IndicatorConfig, DrawingTool, DrawingBase, AppSettings, DrawingPoint,
-  MarketDataStatus, AnalysisRunResponse
+import { useRef } from "react";
+import type {
+  AnalysisRunResponse,
+  AppSettings,
+  Candle,
+  DrawingBase,
+  DrawingTool,
+  IndicatorConfig,
+  MarketDataStatus,
+  MarketSymbol
 } from "../../shared/src/types";
-import { 
-  calculateSMA, calculateEMA, calculateBollingerBands, calculateRSI, calculateMACD, calculateVWAP
-} from "../../shared/src/indicators";
+import { ChartStatusOverlays } from "./chart/ChartStatusOverlays";
+import { ChartWatermark } from "./chart/ChartWatermark";
+import { DrawingOverlay } from "./chart/DrawingOverlay";
+import { useLightweightChart } from "./chart/useLightweightChart";
 
 interface ChartContainerProps {
   currentSymbol: MarketSymbol;
@@ -21,71 +27,6 @@ interface ChartContainerProps {
   chartType: string;
   marketStatus?: MarketDataStatus;
   analysisResult?: AnalysisRunResponse | null;
-}
-
-function ChartWatermark() {
-  return (
-    <div
-      aria-hidden="true"
-      className="pointer-events-none absolute left-4 bottom-7 z-20 flex origin-bottom-left scale-90 items-center gap-1.5 select-none opacity-70 sm:left-5 sm:scale-95"
-      style={{ filter: "drop-shadow(0 2px 1px rgba(0, 0, 0, 0.85))" }}
-    >
-      <svg
-        viewBox="0 0 54 32"
-        fill="none"
-        xmlns="http://www.w3.org/2000/svg"
-        className="h-7 w-auto shrink-0 sm:h-8"
-      >
-        <defs>
-          <linearGradient id="msirWatermarkCyan" x1="3" y1="29" x2="24" y2="3" gradientUnits="userSpaceOnUse">
-            <stop stopColor="#22d3ee" />
-            <stop offset="1" stopColor="#38bdf8" />
-          </linearGradient>
-          <linearGradient id="msirWatermarkViolet" x1="49" y1="29" x2="28" y2="3" gradientUnits="userSpaceOnUse">
-            <stop stopColor="#8b5cf6" />
-            <stop offset="1" stopColor="#a78bfa" />
-          </linearGradient>
-          <linearGradient id="msirWatermarkGlass" x1="27" y1="5" x2="27" y2="28" gradientUnits="userSpaceOnUse">
-            <stop stopColor="#f8fafc" stopOpacity="0.9" />
-            <stop offset="1" stopColor="#94a3b8" stopOpacity="0.35" />
-          </linearGradient>
-        </defs>
-        <path d="M4 29V7h9l7 13" stroke="url(#msirWatermarkCyan)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
-        <path d="M50 29V7h-9l-7 13" stroke="url(#msirWatermarkViolet)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
-        <path d="M27 4 14 28h26L27 4Z" fill="url(#msirWatermarkGlass)" stroke="#f8fafc" strokeWidth="1.8" strokeLinejoin="round" />
-        <path d="M6 7 23 15" stroke="#f8fafc" strokeWidth="2" strokeLinecap="round" opacity="0.95" />
-        <path d="M31 15h17" stroke="#22d3ee" strokeWidth="2.2" strokeLinecap="round" opacity="0.9" />
-        <path d="M31 15 48 22" stroke="#a78bfa" strokeWidth="2.2" strokeLinecap="round" opacity="0.9" />
-        <circle cx="31" cy="15" r="2" fill="#f8fafc" />
-      </svg>
-      <div className="flex items-end gap-1.5 leading-none">
-        <div className="flex items-baseline gap-1 text-[18px] font-black tracking-normal text-white sm:text-[21px]">
-          <span>MSIR</span>
-          <span className="text-cyan-300">Prism</span>
-        </div>
-        <span className="pb-0.5 text-[8px] font-bold tracking-widest text-slate-300 sm:text-[9px]">
-          棱镜先生
-        </span>
-      </div>
-    </div>
-  );
-}
-
-function formatPanelPrice(value: number, precision: number) {
-  if (!Number.isFinite(value)) return "-";
-  return value.toLocaleString(undefined, {
-    minimumFractionDigits: precision,
-    maximumFractionDigits: precision
-  });
-}
-
-function formatCompactVolume(value: number) {
-  if (!Number.isFinite(value)) return "-";
-  const abs = Math.abs(value);
-  if (abs >= 1_000_000_000) return `${(value / 1_000_000_000).toFixed(2)}B`;
-  if (abs >= 1_000_000) return `${(value / 1_000_000).toFixed(2)}M`;
-  if (abs >= 1_000) return `${(value / 1_000).toFixed(2)}K`;
-  return value.toFixed(2);
 }
 
 export default function ChartContainer({
@@ -106,401 +47,20 @@ export default function ChartContainer({
   const mainChartRef = useRef<HTMLDivElement>(null);
   const oscillatorChartRef = useRef<HTMLDivElement>(null);
   const svgRef = useRef<SVGSVGElement>(null);
-
-  const [chartInstance, setChartInstance] = useState<IChartApi | null>(null);
-  const [oscInstance, setOscInstance] = useState<IChartApi | null>(null);
-  const [mainSeries, setMainSeries] = useState<any | null>(null);
-  const [viewState, setViewState] = useState({ scale: 1, rangeOffset: 0 });
-  const [currentDrawing, setCurrentDrawing] = useState<DrawingBase | null>(null);
-  const latestCandle = candles[candles.length - 1];
-  const previousCandle = candles[candles.length - 2];
-  const candleChange = latestCandle && previousCandle ? latestCandle.close - previousCandle.close : 0;
-  const candleChangePercent = latestCandle && previousCandle && previousCandle.close !== 0
-    ? (candleChange / previousCandle.close) * 100
-    : 0;
-  const ohlcTone = candleChange >= 0 ? "text-teal-400" : "text-rose-400";
-  const dataState = marketStatus?.state || (candles.length > 0 ? "live" : "loading");
-
-  useEffect(() => {
-    if (!containerRef.current || !mainChartRef.current) return;
-
-    mainChartRef.current.innerHTML = "";
-    if (oscillatorChartRef.current) oscillatorChartRef.current.innerHTML = "";
-
-    const isOscActive = indicatorConfig.rsi.active || indicatorConfig.macd.active;
-    const containerHeight = Math.max(50, containerRef.current.clientHeight);
-    
-    const mainHeight = Math.max(20, isOscActive ? Math.floor(containerHeight * 0.68) : containerHeight - 4);
-    const oscHeight = isOscActive ? Math.max(20, Math.floor(containerHeight * 0.3)) : 0;
-
-    const themeColors = {
-      bg: settings.solidBackground ? "#0a0e14" : "radial-gradient(circle at top, #0f141c 0%, #080a0f 100%)",
-      text: "#9ca3af",
-      grid: settings.gridLines ? "#1f2937/40" : "#1f293700",
-    };
-
-    const chart = createChart(mainChartRef.current, {
-      width: mainChartRef.current.clientWidth,
-      height: mainHeight,
-      layout: {
-        background: { color: settings.solidBackground ? "#020617" : "transparent" },
-        textColor: themeColors.text,
-        fontFamily: "Inter, ui-monospace, sans-serif",
-        attributionLogo: false,
-      },
-      crosshair: {
-        vertLine: {
-          color: "rgba(148, 163, 184, 0.42)",
-          style: LineStyle.Dashed,
-          labelBackgroundColor: "#0f172a"
-        },
-        horzLine: {
-          color: "rgba(148, 163, 184, 0.42)",
-          style: LineStyle.Dashed,
-          labelBackgroundColor: "#0f172a"
-        }
-      },
-      grid: {
-        vertLines: { color: settings.gridLines ? "rgba(30, 41, 59, 0.62)" : "transparent" },
-        horzLines: { color: settings.gridLines ? "rgba(30, 41, 59, 0.62)" : "transparent" },
-      },
-      timeScale: {
-        borderColor: "#1e293b",
-        timeVisible: true,
-        secondsVisible: false,
-      },
-      rightPriceScale: {
-        borderColor: "#1e293b",
-      },
-    }) as any;
-
-    let targetSeries: any = null;
-    if (chartType === "line") {
-      targetSeries = chart.addSeries(LineSeries, {
-        color: "#2962ff",
-        lineWidth: 2,
-        crosshairMarkerVisible: false,
-        lastValueVisible: true,
-        priceLineVisible: true,
-      });
-    } else if (chartType === "area") {
-      targetSeries = chart.addSeries(AreaSeries, {
-        lineColor: "#2962ff",
-        topColor: "rgba(41, 98, 255, 0.28)",
-        bottomColor: "rgba(41, 98, 255, 0.02)",
-        lineWidth: 2,
-      });
-    } else if (chartType === "bars") {
-      targetSeries = chart.addSeries(BarSeries, {
-        upColor: settings.upColor,
-        downColor: settings.downColor,
-        thinBars: false,
-      });
-    } else {
-      targetSeries = chart.addSeries(CandlestickSeries, {
-        upColor: settings.upColor,
-        downColor: settings.downColor,
-        borderUpColor: settings.upColor,
-        borderDownColor: settings.downColor,
-        wickUpColor: settings.upColor,
-        wickDownColor: settings.downColor,
-      });
-    }
-
-    setMainSeries(targetSeries);
-    setChartInstance(chart);
-
-    let subChart: any = null;
-    if (isOscActive && oscillatorChartRef.current) {
-      subChart = createChart(oscillatorChartRef.current, {
-        width: oscillatorChartRef.current.clientWidth,
-        height: oscHeight,
-        layout: {
-          background: { color: settings.solidBackground ? "#020617" : "transparent" },
-          textColor: themeColors.text,
-          fontFamily: "Inter, sans-serif",
-          attributionLogo: false,
-        },
-        grid: {
-          vertLines: { color: settings.gridLines ? "rgba(30, 41, 59, 0.72)" : "transparent" },
-          horzLines: { color: settings.gridLines ? "rgba(30, 41, 59, 0.72)" : "transparent" },
-        },
-        timeScale: {
-          borderColor: "#1e293b",
-          visible: true,
-        },
-        rightPriceScale: {
-          borderColor: "#1e293b",
-        }
-      }) as any;
-      setOscInstance(subChart);
-    } else {
-      setOscInstance(null);
-    }
-
-    if (candles.length > 0) {
-      const chartCandles = candles.map(c => ({
-        time: c.time as UTCTimestamp,
-        open: c.open,
-        high: c.high,
-        low: c.low,
-        close: c.close,
-      }));
-      const closeLineData = candles.map(c => ({
-        time: c.time as UTCTimestamp,
-        value: c.close,
-      }));
-      targetSeries.setData(chartType === "line" || chartType === "area" ? closeLineData : chartCandles);
-
-      if (indicatorConfig.sma.active) {
-        const smaData = calculateSMA(candles, indicatorConfig.sma.period);
-        if (smaData.length > 0) {
-          const smaLine = chart.addSeries(LineSeries, {
-            color: indicatorConfig.sma.color,
-            lineWidth: 1.5,
-            title: `SMA (${indicatorConfig.sma.period})`
-          });
-          smaLine.setData(smaData as any[]);
-        }
-      }
-
-      if (candles.some((candle) => candle.volume > 0)) {
-        const volumeSeries = chart.addSeries(HistogramSeries, {
-          priceFormat: { type: "volume" },
-          priceScaleId: "",
-          lastValueVisible: false,
-          priceLineVisible: false
-        } as any);
-        (volumeSeries as any).priceScale?.().applyOptions({
-          scaleMargins: {
-            top: 0.82,
-            bottom: 0
-          }
-        });
-        volumeSeries.setData(candles.map((candle) => ({
-          time: candle.time as UTCTimestamp,
-          value: candle.volume,
-          color: candle.close >= candle.open ? `${settings.upColor}44` : `${settings.downColor}44`
-        })) as any[]);
-      }
-
-      if (indicatorConfig.ema.active) {
-        const emaData = calculateEMA(candles, indicatorConfig.ema.period);
-        if (emaData.length > 0) {
-          const emaLine = chart.addSeries(LineSeries, {
-            color: indicatorConfig.ema.color,
-            lineWidth: 1.5,
-            title: `EMA (${indicatorConfig.ema.period})`
-          });
-          emaLine.setData(emaData as any[]);
-        }
-      }
-
-      if (indicatorConfig.bollinger.active) {
-        const bollVal = calculateBollingerBands(candles, indicatorConfig.bollinger.period, indicatorConfig.bollinger.multiplier);
-        if (bollVal.basis.length > 0) {
-          const bBasis = chart.addSeries(LineSeries, {
-            color: indicatorConfig.bollinger.colorBasis,
-            lineWidth: 1,
-            lineStyle: LineStyle.Dotted,
-            title: `BOLL Basis (${indicatorConfig.bollinger.period})`
-          });
-          const bUpper = chart.addSeries(LineSeries, {
-            color: indicatorConfig.bollinger.colorUpper,
-            lineWidth: 1.2,
-            title: "BOLL Upper"
-          });
-          const bLower = chart.addSeries(LineSeries, {
-            color: indicatorConfig.bollinger.colorLower,
-            lineWidth: 1.2,
-            title: "BOLL Lower"
-          });
-
-          bBasis.setData(bollVal.basis as any[]);
-          bUpper.setData(bollVal.upper as any[]);
-          bLower.setData(bollVal.lower as any[]);
-        }
-      }
-
-      if (subChart) {
-        if (indicatorConfig.rsi.active) {
-          const rsiData = calculateRSI(candles, indicatorConfig.rsi.period);
-          if (rsiData.length > 0) {
-            const rsiLine = subChart.addSeries(LineSeries, {
-              color: indicatorConfig.rsi.color,
-              lineWidth: 1.5,
-              title: `RSI (${indicatorConfig.rsi.period})`
-            });
-            rsiLine.setData(rsiData as any[]);
-          }
-        } else if (indicatorConfig.macd.active) {
-          const macdVal = calculateMACD(candles, indicatorConfig.macd.fast, indicatorConfig.macd.slow, indicatorConfig.macd.signal);
-          
-          if (macdVal.macd.length > 0) {
-            const mLine = subChart.addSeries(LineSeries, {
-              color: indicatorConfig.macd.colorMacd,
-              lineWidth: 1.2,
-              title: `MACD (${indicatorConfig.macd.fast},${indicatorConfig.macd.slow},${indicatorConfig.macd.signal})`
-            });
-            const sLine = subChart.addSeries(LineSeries, {
-              color: indicatorConfig.macd.colorSignal,
-              lineWidth: 1.2,
-              title: "Signal"
-            });
-            const mHist = subChart.addSeries(HistogramSeries, {
-              title: "Histogram"
-            });
-
-            mLine.setData(macdVal.macd as any[]);
-            sLine.setData(macdVal.signal as any[]);
-
-            const histColored = macdVal.histogram.map(h => ({
-              time: h.time as any,
-              value: h.value,
-              color: h.value >= 0 ? indicatorConfig.macd.colorHistUp : indicatorConfig.macd.colorHistDown
-            }));
-            mHist.setData(histColored);
-          }
-        }
-      }
-    }
-
-    const onMainVisibleChange = () => {
-      const timeScale = chart.timeScale();
-      const visibleRange = timeScale.getVisibleRange();
-      if (subChart && visibleRange) {
-        subChart.timeScale().setVisibleRange(visibleRange);
-      }
-      setViewState({
-        scale: 1,
-        rangeOffset: Math.random()
-      });
-    };
-
-    chart.timeScale().subscribeVisibleTimeRangeChange(onMainVisibleChange);
-
-    const observer = new ResizeObserver((entries) => {
-      for (const entry of entries) {
-        const { width, height } = entry.contentRect;
-        if (width <= 0 || height <= 0) continue;
-        
-        const nextIsOscActive = indicatorConfig.rsi.active || indicatorConfig.macd.active;
-        const nextMainHeight = Math.max(20, nextIsOscActive ? Math.floor(height * 0.68) : height - 4);
-        const nextOscHeight = nextIsOscActive ? Math.max(20, Math.floor(height * 0.3)) : 0;
-
-        chart.resize(width, nextMainHeight);
-        if (subChart) {
-          subChart.resize(width, nextOscHeight);
-        }
-        onMainVisibleChange();
-      }
-    });
-
-    observer.observe(containerRef.current);
-
-    return () => {
-      observer.disconnect();
-      chart.remove();
-      if (subChart) subChart.remove();
-    };
-
-  }, [candles, indicatorConfig, settings, chartType]);
-
-  const getCoordinates = useCallback((pt: DrawingPoint) => {
-    if (!chartInstance || !mainSeries) return null;
-    const x = chartInstance.timeScale().timeToCoordinate(pt.time as UTCTimestamp);
-    const y = mainSeries.priceToCoordinate(pt.price);
-    if (x === null || y === null) return null;
-    return { x, y };
-  }, [chartInstance, mainSeries]);
-
-  const getCoordinatesFromPixels = useCallback((x: number, y: number) => {
-    if (!chartInstance || !mainSeries || !svgRef.current) return null;
-    const rect = svgRef.current.getBoundingClientRect();
-    const relativeX = x - rect.left;
-    const relativeY = y - rect.top;
-    const time = chartInstance.timeScale().coordinateToTime(relativeX);
-    const price = mainSeries.coordinateToPrice(relativeY);
-    if (time === null || price === null) return null;
-    return { time: Number(time), price };
-  }, [chartInstance, mainSeries]);
-
-  const handleMouseDown = (e: React.MouseEvent<SVGSVGElement>) => {
-    if (activeTool === "cursor" || !chartInstance || !mainSeries) return;
-
-    const anchors = getCoordinatesFromPixels(e.clientX, e.clientY);
-    if (!anchors) return;
-
-    const id = Math.random().toString(36).substring(7);
-
-    if (activeTool === "horizalline") {
-      const nextDraw: DrawingBase = {
-        id,
-        type: "horizalline",
-        color: "#fbbf24",
-        strokeWidth: 2,
-        points: [anchors],
-        isCompleted: true
-      };
-      onUpdateDrawings([...drawings, nextDraw]);
-      onSelectTool("cursor");
-    } else {
-      const freshDraw: DrawingBase = {
-        id,
-        type: activeTool,
-        color: activeTool === "ruler" ? "#22d3ee" : "#22d3ee",
-        strokeWidth: 2,
-        points: [anchors, anchors],
-        isCompleted: false
-      };
-      setCurrentDrawing(freshDraw);
-    }
-  };
-
-  const handleMouseMove = (e: React.MouseEvent<SVGSVGElement>) => {
-    if (!currentDrawing || !chartInstance || !mainSeries) return;
-
-    const anchors = getCoordinatesFromPixels(e.clientX, e.clientY);
-    if (!anchors) return;
-
-    setCurrentDrawing({
-      ...currentDrawing,
-      points: [currentDrawing.points[0], anchors]
-    });
-  };
-
-  const handleMouseUp = (e: React.MouseEvent<SVGSVGElement>) => {
-    if (!currentDrawing) return;
-
-    const anchors = getCoordinatesFromPixels(e.clientX, e.clientY);
-    if (anchors) {
-      if (currentDrawing.type === "text") {
-        const userLabel = prompt("Enter text markup details:", "Note mark");
-        if (userLabel) {
-          const finished = {
-            ...currentDrawing,
-            text: userLabel,
-            points: [currentDrawing.points[0]],
-            isCompleted: true
-          };
-          onUpdateDrawings([...drawings, finished]);
-        }
-      } else {
-        const finished = {
-          ...currentDrawing,
-          points: [currentDrawing.points[0], anchors],
-          isCompleted: true
-        };
-        onUpdateDrawings([...drawings, finished]);
-      }
-    }
-
-    setCurrentDrawing(null);
-    onSelectTool("cursor");
-  };
+  const isOscActive = indicatorConfig.rsi.active || indicatorConfig.macd.active;
+  const { chartInstance, mainSeries } = useLightweightChart({
+    containerRef,
+    mainChartRef,
+    oscillatorChartRef,
+    candles,
+    indicatorConfig,
+    settings,
+    chartType,
+    isOscActive
+  });
 
   return (
-    <div 
+    <div
       className="flex-grow flex flex-col relative bg-[#020617] overflow-hidden select-none"
       style={{ minHeight: 180 }}
       ref={containerRef}
@@ -508,346 +68,41 @@ export default function ChartContainer({
     >
       <div className="flex-grow min-h-0 relative" ref={mainChartRef}></div>
 
-      {latestCandle && (
-        <div className="pointer-events-none absolute left-3 top-3 z-20 hidden max-w-[calc(100%-7rem)] items-center gap-2 overflow-hidden rounded border border-slate-800/70 bg-slate-950/70 px-2 py-1 font-mono text-[10px] text-slate-400 shadow-lg backdrop-blur-sm md:flex">
-          <span className="font-bold text-slate-100">{currentSymbol.id}</span>
-          <span className="text-slate-600">•</span>
-          <span>{currentTimeframe}</span>
-          <span>O <b className="font-semibold text-slate-200">{formatPanelPrice(latestCandle.open, currentSymbol.precision)}</b></span>
-          <span>H <b className="font-semibold text-slate-200">{formatPanelPrice(latestCandle.high, currentSymbol.precision)}</b></span>
-          <span>L <b className="font-semibold text-slate-200">{formatPanelPrice(latestCandle.low, currentSymbol.precision)}</b></span>
-          <span>C <b className="font-semibold text-slate-200">{formatPanelPrice(latestCandle.close, currentSymbol.precision)}</b></span>
-          <span className={ohlcTone}>
-            {candleChange >= 0 ? "+" : ""}{formatPanelPrice(candleChange, currentSymbol.precision)}
-            {" "}({candleChange >= 0 ? "+" : ""}{candleChangePercent.toFixed(2)}%)
-          </span>
-          <span>Vol <b className="font-semibold text-slate-200">{formatCompactVolume(latestCandle.volume)}</b></span>
-        </div>
-      )}
+      <ChartStatusOverlays
+        candles={candles}
+        currentSymbol={currentSymbol}
+        currentTimeframe={currentTimeframe}
+        marketStatus={marketStatus}
+      />
 
-      {dataState === "loading" && (
-        <div className="pointer-events-none absolute inset-x-0 top-16 z-20 mx-auto flex w-fit items-center gap-2 rounded border border-sky-500/20 bg-slate-950/80 px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest text-sky-300 shadow-lg backdrop-blur-sm">
-          <span className="h-3 w-3 rounded-full border-2 border-sky-300 border-t-transparent animate-spin"></span>
-          Loading market candles
-        </div>
-      )}
-
-      {(dataState === "stale" || dataState === "delayed") && (
-        <div className={`pointer-events-none absolute inset-x-0 top-16 z-20 mx-auto flex w-fit items-center gap-2 rounded border bg-slate-950/80 px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest shadow-lg backdrop-blur-sm ${
-          dataState === "stale"
-            ? "border-orange-500/20 text-orange-300"
-            : "border-blue-500/20 text-blue-300"
-        }`}>
-          {dataState === "stale" ? "Data delayed" : "Delayed market feed"} · {marketStatus?.source || "gateway"}
-        </div>
-      )}
-
-      <div 
-        className="w-full shrink-0 relative bg-slate-950 border-t border-slate-900" 
+      <div
+        className="w-full shrink-0 relative bg-slate-950 border-t border-slate-900"
         ref={oscillatorChartRef}
         style={{
-          height: (indicatorConfig.rsi.active || indicatorConfig.macd.active) ? "30%" : "0px",
-          display: (indicatorConfig.rsi.active || indicatorConfig.macd.active) ? "block" : "none"
+          height: isOscActive ? "30%" : "0px",
+          display: isOscActive ? "block" : "none"
         }}
       ></div>
 
       <ChartWatermark />
 
-      <svg
-        ref={svgRef}
-        onMouseDown={handleMouseDown}
-        onMouseMove={handleMouseMove}
-        onMouseUp={handleMouseUp}
-        className={`absolute inset-0 w-full cursor-crosshair z-25 pointer-events-auto h-[70%]`}
-        style={{
-          cursor: activeTool === "cursor" ? "default" : "crosshair",
-          pointerEvents: activeTool === "cursor" ? "none" : "auto",
-        }}
-      >
-        {drawings.map((draw) => {
-          if (draw.type === "horizalline" && draw.points[0]) {
-            const coord = getCoordinates(draw.points[0]);
-            if (!coord) return null;
-            return (
-              <g key={draw.id}>
-                <line
-                  x1="0"
-                  y1={coord.y}
-                  x2="5000"
-                  y2={coord.y}
-                  stroke={draw.color}
-                  strokeWidth={draw.strokeWidth}
-                />
-                <text x="12" y={coord.y - 4} fill={draw.color} className="text-[10px] font-mono font-bold">
-                  {draw.points[0].price.toFixed(currentSymbol.precision)}
-                </text>
-              </g>
-            );
-          }
+      <DrawingOverlay
+        svgRef={svgRef}
+        containerRef={containerRef}
+        chartInstance={chartInstance}
+        mainSeries={mainSeries}
+        activeTool={activeTool}
+        onSelectTool={onSelectTool}
+        drawings={drawings}
+        onUpdateDrawings={onUpdateDrawings}
+        currentSymbol={currentSymbol}
+        analysisResult={analysisResult}
+        overlayHeight={isOscActive ? "70%" : "100%"}
+      />
 
-          if (draw.type === "trendline" || draw.type === "ray") {
-            const coord1 = getCoordinates(draw.points[0]);
-            const coord2 = getCoordinates(draw.points[1]);
-            if (!coord1 || !coord2) return null;
-
-            let x2Val: number = coord2.x as number;
-            let y2Val: number = coord2.y as number;
-
-            if (draw.type === "ray") {
-              const dx = coord2.x - coord1.x;
-              const dy = coord2.y - coord1.y;
-              x2Val = coord1.x + dx * 200;
-              // Project ray infinitely towards edge
-              y2Val = coord1.y + dy * 200;
-            }
-
-            return (
-              <line
-                key={draw.id}
-                x1={coord1.x}
-                y1={coord1.y}
-                x2={x2Val}
-                y2={y2Val}
-                stroke={draw.color}
-                strokeWidth={draw.strokeWidth}
-              />
-            );
-          }
-
-          if (draw.type === "fibonacci") {
-            const coord1 = getCoordinates(draw.points[0]);
-            const coord2 = getCoordinates(draw.points[1]);
-            if (!coord1 || !coord2) return null;
-
-            const dy = coord2.y - coord1.y;
-            const priceDy = draw.points[1].price - draw.points[0].price;
-
-            const ratios = [
-              { label: "1.000", ratio: 0, color: "#f43f5e" },
-              { label: "0.618", ratio: 0.382, color: "#fb7185" },
-              { label: "0.500", ratio: 0.5, color: "#f472b6" },
-              { label: "0.382", ratio: 0.618, color: "#06b6d4" },
-              { label: "0.236", ratio: 0.764, color: "#2dd4bf" },
-              { label: "0.000", ratio: 1, color: "#10b981" }
-            ];
-
-            return (
-              <g key={draw.id}>
-                {ratios.map((r, ri) => {
-                  const currY = coord1.y + dy * r.ratio;
-                  const currPrice = draw.points[0].price + priceDy * (1 - r.ratio);
-                  return (
-                    <g key={ri}>
-                      <line
-                        x1={Math.min(coord1.x, coord2.x)}
-                        y1={currY}
-                        x2={Math.max(coord1.x, coord2.x) + 200}
-                        y2={currY}
-                        stroke={r.color}
-                        strokeWidth={1}
-                        strokeDasharray="4 3"
-                      />
-                      <text
-                        x={Math.max(coord1.x, coord2.x) + 4}
-                        y={currY - 2}
-                        fill={r.color}
-                        className="text-[9px] font-mono font-extrabold"
-                      >
-                        {r.label} - {currPrice.toFixed(currentSymbol.precision)}
-                      </text>
-                    </g>
-                  );
-                })}
-              </g>
-            );
-          }
-
-          if (draw.type === "text" && draw.text) {
-            const coord = getCoordinates(draw.points[0]);
-            if (!coord) return null;
-            return (
-              <g key={draw.id}>
-                <rect 
-                  x={coord.x} 
-                  y={coord.y - 15} 
-                  width={draw.text.length * 7 + 10} 
-                  height="20" 
-                  rx="4" 
-                  fill="#020617" 
-                  stroke="#fbbf24" 
-                  strokeWidth="1"
-                />
-                <text x={coord.x + 5} y={coord.y} fill="#fbbf24" className="text-[10px] font-bold font-sans">
-                  {draw.text}
-                </text>
-              </g>
-            );
-          }
-
-          if (draw.type === "ruler") {
-            const coord1 = getCoordinates(draw.points[0]);
-            const coord2 = getCoordinates(draw.points[1]);
-            if (!coord1 || !coord2) return null;
-
-            const deltaPrice = draw.points[1].price - draw.points[0].price;
-            const deltaPercent = ((deltaPrice / draw.points[0].price) * 100).toFixed(2);
-            const midX = (coord1.x + coord2.x) / 2;
-            const midY = (coord1.y + coord2.y) / 2;
-
-            return (
-              <g key={draw.id}>
-                <rect
-                  x={Math.min(coord1.x, coord2.x)}
-                  y={Math.min(coord1.y, coord2.y)}
-                  width={Math.abs(coord2.x - coord1.x)}
-                  height={Math.abs(coord2.y - coord1.y)}
-                  fill="#06b6d4"
-                  fillOpacity="0.06"
-                  stroke="#06b6d4"
-                  strokeWidth="1.5"
-                  strokeDasharray="4,4"
-                />
-                <g transform={`translate(${midX - 58}, ${midY - 14})`}>
-                  <rect width="116" height="28" rx="6" fill="#020617" stroke="#06b6d4" strokeWidth="1" />
-                  <text x="58" y="11" fill="#e2e8f0" textAnchor="middle" className="text-[9px] font-mono font-bold select-none">
-                    Change: {deltaPrice > 0 ? "+" : ""}{deltaPrice.toFixed(currentSymbol.precision)}
-                  </text>
-                  <text x="58" y="21" fill="#06b6d4" textAnchor="middle" className="text-[9px] font-mono font-black select-none">
-                     Percent: {deltaPercent}%
-                  </text>
-                </g>
-              </g>
-            );
-          }
-
-          return null;
-        })}
-
-        {analysisResult?.levels.support.map((level, index) => {
-          if (!mainSeries) return null;
-          const y = mainSeries.priceToCoordinate(level);
-          if (y === null) return null;
-          return (
-            <g key={`support-${level}-${index}`}>
-              <line x1="0" y1={y} x2="5000" y2={y} stroke="#14b8a6" strokeWidth="1" strokeDasharray="6 5" opacity="0.55" />
-              <text x="12" y={y - 5} fill="#2dd4bf" className="text-[9px] font-mono font-bold">
-                S {level.toFixed(currentSymbol.precision)}
-              </text>
-            </g>
-          );
-        })}
-
-        {analysisResult?.levels.resistance.map((level, index) => {
-          if (!mainSeries) return null;
-          const y = mainSeries.priceToCoordinate(level);
-          if (y === null) return null;
-          return (
-            <g key={`resistance-${level}-${index}`}>
-              <line x1="0" y1={y} x2="5000" y2={y} stroke="#fb7185" strokeWidth="1" strokeDasharray="6 5" opacity="0.55" />
-              <text x="12" y={y - 5} fill="#fb7185" className="text-[9px] font-mono font-bold">
-                R {level.toFixed(currentSymbol.precision)}
-              </text>
-            </g>
-          );
-        })}
-
-        {analysisResult?.signals.map((signal, index) => {
-          const coord = getCoordinates({ time: signal.time, price: signal.price });
-          if (!coord) return null;
-          const isBuy = signal.type === "buy";
-          const isSell = signal.type === "sell";
-          const color = isBuy ? "#22c55e" : isSell ? "#f43f5e" : "#f59e0b";
-          const label = isBuy ? "BUY" : isSell ? "SELL" : "WATCH";
-          const labelWidth = label.length * 7 + 10;
-          const shouldFlipLabel = coord.x > ((containerRef.current?.clientWidth || 0) - labelWidth - 36);
-          const labelX = shouldFlipLabel ? coord.x - labelWidth - 8 : coord.x + 8;
-          const textX = shouldFlipLabel ? labelX + 5 : coord.x + 13;
-          return (
-            <g key={`signal-${signal.time}-${index}`}>
-              <circle cx={coord.x} cy={coord.y} r="6" fill="#020617" stroke={color} strokeWidth="2" />
-              <path
-                d={isSell
-                  ? `M ${coord.x - 4} ${coord.y - 1} L ${coord.x} ${coord.y + 4} L ${coord.x + 4} ${coord.y - 1}`
-                  : `M ${coord.x - 4} ${coord.y + 1} L ${coord.x} ${coord.y - 4} L ${coord.x + 4} ${coord.y + 1}`}
-                fill="none"
-                stroke={color}
-                strokeWidth="1.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-              <rect x={labelX} y={coord.y - 11} width={labelWidth} height="18" rx="4" fill="#020617" stroke={color} strokeWidth="1" opacity="0.96" />
-              <text x={textX} y={coord.y + 2} fill={color} className="text-[9px] font-mono font-black">
-                {label}
-              </text>
-            </g>
-          );
-        })}
-
-        {currentDrawing && (() => {
-          if (currentDrawing.type === "horizalline") return null;
-
-          const coord1 = getCoordinates(currentDrawing.points[0]);
-          const coord2 = getCoordinates(currentDrawing.points[1]);
-          if (!coord1 || !coord2) return null;
-
-          if (currentDrawing.type === "trendline" || currentDrawing.type === "ray") {
-            return (
-              <line
-                x1={coord1.x}
-                y1={coord1.y}
-                x2={coord2.x}
-                y2={coord2.y}
-                stroke={currentDrawing.color}
-                strokeWidth={currentDrawing.strokeWidth}
-              />
-            );
-          }
-
-          if (currentDrawing.type === "fibonacci") {
-            const dy = coord2.y - coord1.y;
-            return (
-              <g>
-                <line x1={coord1.x} y1={coord1.y} x2={coord2.x} y2={coord2.y} stroke="#ff0055" strokeWidth="1" />
-                <line x1={coord1.x} y1={coord1.y} x2={coord2.x} y2={coord1.y} stroke={currentDrawing.color} strokeWidth="1" />
-                <line x1={coord1.x} y1={coord1.y + dy * 0.382} x2={coord2.x} y2={coord1.y + dy * 0.382} stroke={currentDrawing.color} strokeWidth="1" />
-                <line x1={coord1.x} y1={coord1.y + dy * 0.5} x2={coord2.x} y2={coord1.y + dy * 0.5} stroke={currentDrawing.color} strokeWidth="1" />
-                <line x1={coord1.x} y1={coord1.y + dy * 0.618} x2={coord2.x} y2={coord1.y + dy * 0.618} stroke={currentDrawing.color} strokeWidth="1" />
-                <line x1={coord1.x} y1={coord2.y} x2={coord2.x} y2={coord2.y} stroke={currentDrawing.color} strokeWidth="1" />
-              </g>
-            );
-          }
-
-          if (currentDrawing.type === "ruler") {
-            const deltaPrice = currentDrawing.points[1].price - currentDrawing.points[0].price;
-            const deltaPercent = ((deltaPrice / currentDrawing.points[0].price) * 100).toFixed(2);
-            return (
-              <g>
-                <rect
-                  x={Math.min(coord1.x, coord2.x)}
-                  y={Math.min(coord1.y, coord2.y)}
-                  width={Math.abs(coord2.x - coord1.x)}
-                  height={Math.abs(coord2.y - coord1.y)}
-                  fill="#06b6d4"
-                  fillOpacity="0.08"
-                  stroke="#06b6d4"
-                  strokeWidth="1"
-                  strokeDasharray="4,4"
-                />
-                <text x={(coord1.x + coord2.x) / 2} y={(coord1.y + coord2.y) / 2} fill="#06b6d4" className="text-[10px] bg-slate-950 px-1 font-mono font-bold">
-                  {deltaPercent}%
-                </text>
-              </g>
-            );
-          }
-
-          return null;
-        })()}
-      </svg>
-      
       <div className="absolute right-3 top-3 text-[9px] font-mono text-slate-500 bg-slate-950/70 px-2 py-0.5 rounded border border-slate-800/70 select-none z-20 uppercase tracking-widest hidden xl:block">
         Focus: {currentSymbol.id} • {currentTimeframe}
       </div>
-
     </div>
   );
 }
