@@ -232,7 +232,7 @@ export default function BottomPanel({
   };
 
   return (
-    <div className={`border-t border-slate-800 bg-slate-950 flex flex-col justify-between shrink-0 z-30 transition-all duration-300 ${collapsed ? "h-9" : "h-64 sm:h-72"}`}>
+    <div className={`border-t border-slate-800 bg-slate-950 flex flex-col justify-between shrink-0 z-30 transition-all duration-300 ${collapsed ? "h-9" : "h-[28vh] min-h-36 max-h-72"}`}>
       
       {/* 1. Controller tabs */}
       <div className="px-3 bg-slate-900 border-b border-slate-850 flex items-center justify-between h-9 select-none shrink-0">

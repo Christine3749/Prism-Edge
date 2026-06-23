@@ -360,7 +360,7 @@ export default function ChartContainer({
 
   return (
     <div 
-      className="flex-grow flex flex-col relative bg-[#020617] overflow-hidden min-h-0 select-none" 
+      className="flex-grow flex flex-col relative bg-[#020617] overflow-hidden min-h-[180px] select-none" 
       ref={containerRef}
       id="chart_canvas_zone"
     >
