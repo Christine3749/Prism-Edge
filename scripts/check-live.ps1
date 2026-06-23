@@ -24,11 +24,18 @@ function Test-Url {
   }
 }
 
-$webUrl = gcloud run services describe prism-edge-web `
-  --region $Region `
-  --project $Project `
-  --format "value(status.url)"
+$webUrl = ""
+try {
+  $webUrl = gcloud run services describe prism-edge-web `
+    --region $Region `
+    --project $Project `
+    --format "value(status.url)"
+} catch {
+  Write-Host "Could not resolve Cloud Run URL through gcloud: $($_.Exception.Message)" -ForegroundColor Yellow
+}
 
 Test-Url "$Domain/?v=live-check"
 Test-Url "$Domain/api/market/quote?symbols=BTCUSDT,ETHUSDT"
-Test-Url "$webUrl/?v=live-check"
+if ($webUrl) {
+  Test-Url "$webUrl/?v=live-check"
+}
