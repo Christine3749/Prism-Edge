@@ -46,3 +46,9 @@ If you map the custom domain in Google Cloud Run, Cloud Run will provide DNS rec
 - `www.msirprism.com`
 
 Use proxied DNS only after the Cloud Run domain mapping is verified.
+
+Create Cloud Run domain mappings and print the DNS records:
+
+```powershell
+.\scripts\map-domain-gcp.ps1 -Region asia-east1
+```
