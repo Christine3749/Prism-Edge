@@ -3,19 +3,19 @@ import { MarketSymbol, Candle } from "./types";
 // 1. Core Symbol Catalog branded for Prism-Edge | 棱镜先生
 export const DEFAULT_SYMBOLS: MarketSymbol[] = [
   // Crypto
-  { id: "BTC/USDT", symbol: "BTCUSDT", name: "Bitcoin / Tether", type: "crypto", price: 65420.50, change24h: 2.45, volume24h: 1845020000, precision: 2 },
-  { id: "ETH/USDT", symbol: "ETHUSDT", name: "Ethereum / Tether", type: "crypto", price: 3450.75, change24h: -1.15, volume24h: 924850000, precision: 2 },
-  { id: "SOL/USDT", symbol: "SOLUSDT", name: "Solana / Tether", type: "crypto", price: 142.10, change24h: 5.62, volume24h: 420910000, precision: 2 },
-  { id: "PRISM/USDT", symbol: "PRISMUSDT", name: "Prism-Edge Token", type: "crypto", price: 12.85, change24h: 12.4, volume24h: 89000000, precision: 4 },
+  { id: "BTC/USDT", symbol: "BTCUSDT", name: "Bitcoin / Tether", type: "crypto", market: "crypto", exchange: "Binance", currency: "USDT", dataProvider: "binance", price: 65420.50, change24h: 2.45, volume24h: 1845020000, precision: 2 },
+  { id: "ETH/USDT", symbol: "ETHUSDT", name: "Ethereum / Tether", type: "crypto", market: "crypto", exchange: "Binance", currency: "USDT", dataProvider: "binance", price: 3450.75, change24h: -1.15, volume24h: 924850000, precision: 2 },
+  { id: "SOL/USDT", symbol: "SOLUSDT", name: "Solana / Tether", type: "crypto", market: "crypto", exchange: "Binance", currency: "USDT", dataProvider: "binance", price: 142.10, change24h: 5.62, volume24h: 420910000, precision: 2 },
+  { id: "PRISM/USDT", symbol: "PRISMUSDT", name: "Prism-Edge Token", type: "crypto", market: "internal", exchange: "Prism", currency: "USDT", dataProvider: "simulated", price: 12.85, change24h: 12.4, volume24h: 89000000, precision: 4 },
   // Stock
-  { id: "TSLA", symbol: "TSLA", name: "Tesla Motors Inc.", type: "stock", price: 178.45, change24h: 1.84, volume24h: 89450000, precision: 2 },
-  { id: "AAPL", symbol: "AAPL", name: "Apple Inc.", type: "stock", price: 214.30, change24h: -0.42, volume24h: 52100000, precision: 2 },
-  { id: "NVDA", symbol: "NVDA", name: "NVIDIA Corporation", type: "stock", price: 124.80, change24h: 7.15, volume24h: 145200000, precision: 2 },
-  { id: "MSFT", symbol: "MSFT", name: "Microsoft Corp.", type: "stock", price: 428.15, change24h: -0.22, volume24h: 22100000, precision: 2 },
+  { id: "TSLA", symbol: "TSLA", name: "Tesla Motors Inc.", type: "stock", market: "us", exchange: "NASDAQ", currency: "USD", dataProvider: "yahoo", price: 178.45, change24h: 1.84, volume24h: 89450000, precision: 2 },
+  { id: "AAPL", symbol: "AAPL", name: "Apple Inc.", type: "stock", market: "us", exchange: "NASDAQ", currency: "USD", dataProvider: "yahoo", price: 214.30, change24h: -0.42, volume24h: 52100000, precision: 2 },
+  { id: "NVDA", symbol: "NVDA", name: "NVIDIA Corporation", type: "stock", market: "us", exchange: "NASDAQ", currency: "USD", dataProvider: "yahoo", price: 124.80, change24h: 7.15, volume24h: 145200000, precision: 2 },
+  { id: "MSFT", symbol: "MSFT", name: "Microsoft Corp.", type: "stock", market: "us", exchange: "NASDAQ", currency: "USD", dataProvider: "yahoo", price: 428.15, change24h: -0.22, volume24h: 22100000, precision: 2 },
   // Forex
-  { id: "EUR/USD", symbol: "EURUSD", name: "Euro / US Dollar", type: "forex", price: 1.0845, change24h: 0.12, volume24h: 310000000, precision: 5 },
-  { id: "USD/JPY", symbol: "USDJPY", name: "US Dollar / Japanese Yen", type: "forex", price: 158.35, change24h: 0.42, volume24h: 410000000, precision: 3 },
-  { id: "GBP/USD", symbol: "GBPUSD", name: "Pound Sterling / US Dollar", type: "forex", price: 1.2825, change24h: -0.05, volume24h: 180000000, precision: 5 }
+  { id: "EUR/USD", symbol: "EURUSD", name: "Euro / US Dollar", type: "forex", market: "forex", exchange: "FX", currency: "USD", dataProvider: "yahoo", yahooSymbol: "EURUSD=X", price: 1.0845, change24h: 0.12, volume24h: 310000000, precision: 5 },
+  { id: "USD/JPY", symbol: "USDJPY", name: "US Dollar / Japanese Yen", type: "forex", market: "forex", exchange: "FX", currency: "JPY", dataProvider: "yahoo", yahooSymbol: "USDJPY=X", price: 158.35, change24h: 0.42, volume24h: 410000000, precision: 3 },
+  { id: "GBP/USD", symbol: "GBPUSD", name: "Pound Sterling / US Dollar", type: "forex", market: "forex", exchange: "FX", currency: "USD", dataProvider: "yahoo", yahooSymbol: "GBPUSD=X", price: 1.2825, change24h: -0.05, volume24h: 180000000, precision: 5 }
 ];
 
 // Helper to convert timeframes into seconds

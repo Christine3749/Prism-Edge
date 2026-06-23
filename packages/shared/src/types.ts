@@ -8,6 +8,9 @@ export interface MarketSymbol {
   currency?: string;
   dataProvider?: "binance" | "coinbase" | "yahoo" | "simulated" | "manual";
   yahooSymbol?: string;
+  lastSource?: string;
+  lastDataState?: MarketDataState;
+  lastUpdatedAt?: number;
   price: number;
   change24h: number;
   volume24h: number;

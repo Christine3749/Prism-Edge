@@ -6,6 +6,7 @@ import {
 import { 
   DEFAULT_SYMBOLS, timeframeToSeconds
 } from "@shared/mockMarketData";
+import { resolveMarketSymbol } from "@shared/marketCatalog";
 import { fetchMarketQuotes, loadMarketData, subscribeRealtime } from "@shared/marketDataService";
 import { StorageService } from "@shared/storage";
 
@@ -54,15 +55,33 @@ const DEFAULT_APP_SETTINGS: AppSettings = {
   autoSaveLayout: true
 };
 
+function enrichMarketSymbol(symbol: MarketSymbol): MarketSymbol {
+  const catalogSymbol = resolveMarketSymbol(symbol.symbol) || resolveMarketSymbol(symbol.id);
+  if (!catalogSymbol) return symbol;
+  return {
+    ...catalogSymbol,
+    ...symbol,
+    market: symbol.market || catalogSymbol.market,
+    exchange: symbol.exchange || catalogSymbol.exchange,
+    currency: symbol.currency || catalogSymbol.currency,
+    dataProvider: symbol.dataProvider || catalogSymbol.dataProvider,
+    yahooSymbol: symbol.yahooSymbol || catalogSymbol.yahooSymbol
+  };
+}
+
+function loadHydratedWatchlist() {
+  return StorageService.loadWatchlist(DEFAULT_SYMBOLS).map(enrichMarketSymbol);
+}
+
 export default function App() {
   // Sync load from cache
   const [currentSymbol, setCurrentSymbol] = useState<MarketSymbol>(() => {
-    const list = StorageService.loadWatchlist(DEFAULT_SYMBOLS);
+    const list = loadHydratedWatchlist();
     return list[0] || DEFAULT_SYMBOLS[0];
   });
   
   const [symbolsList, setSymbolsList] = useState<MarketSymbol[]>(() => {
-    return StorageService.loadWatchlist(DEFAULT_SYMBOLS);
+    return loadHydratedWatchlist();
   });
   
   const [candles, setCandles] = useState<Candle[]>([]);
@@ -147,7 +166,11 @@ export default function App() {
   }, [settings, settings.autoSaveLayout]);
 
   // Sync pricing in our local lists
-  const updateSymbolsListPrice = (symbolId: string, nextPrice: number) => {
+  const updateSymbolsListPrice = (
+    symbolId: string,
+    nextPrice: number,
+    feed?: { source: string; state: MarketDataStatus["state"]; updatedAt: number }
+  ) => {
     const applyPrice = (sym: MarketSymbol): MarketSymbol => {
       const firstPrice = sym.price - (sym.price * (sym.change24h / 100));
       const diff = nextPrice - firstPrice;
@@ -155,7 +178,10 @@ export default function App() {
       return {
         ...sym,
         price: Number(nextPrice.toFixed(sym.precision)),
-        change24h: Number(nextChange.toFixed(2))
+        change24h: Number(nextChange.toFixed(2)),
+        lastSource: feed?.source || sym.lastSource,
+        lastDataState: feed?.state || sym.lastDataState,
+        lastUpdatedAt: feed?.updatedAt || sym.lastUpdatedAt
       };
     };
 
@@ -175,11 +201,15 @@ export default function App() {
   };
 
   const applyQuote = (quote: MarketQuote) => {
+    const state = getFeedState(quote.source, quote.isLive);
     const applyToSymbol = (sym: MarketSymbol): MarketSymbol => ({
       ...sym,
       price: Number(quote.price.toFixed(sym.precision)),
       change24h: Number(quote.change24h.toFixed(2)),
-      volume24h: Math.round(quote.volume24h)
+      volume24h: Math.round(quote.volume24h),
+      lastSource: quote.source,
+      lastDataState: state,
+      lastUpdatedAt: quote.updatedAt
     });
 
     setSymbolsList((prev) => prev.map((sym) => (
@@ -208,10 +238,11 @@ export default function App() {
   };
 
   const handleSymbolSelect = (symbol: MarketSymbol) => {
-    setCurrentSymbol(symbol);
+    const hydrated = enrichMarketSymbol(symbol);
+    setCurrentSymbol(hydrated);
     setSymbolsList((prev) => {
-      if (prev.some((item) => item.symbol === symbol.symbol)) return prev;
-      return [symbol, ...prev].slice(0, 60);
+      if (prev.some((item) => item.symbol === hydrated.symbol)) return prev;
+      return [hydrated, ...prev].slice(0, 60);
     });
   };
 
@@ -350,10 +381,14 @@ export default function App() {
     if (candles.length === 0) return;
 
     const subscription = subscribeRealtime(currentSymbol, timeframe, (tick) => {
-      updateSymbolsListPrice(currentSymbol.id, tick.close);
       lastMarketUpdateRef.current = Date.now();
       const source = tick.source || (tick.isLive ? marketStatus.source : "simulated");
       const state = getFeedState(source, tick.isLive);
+      updateSymbolsListPrice(currentSymbol.id, tick.close, {
+        source,
+        state,
+        updatedAt: lastMarketUpdateRef.current
+      });
       setMarketStatus((prev) => ({
         state,
         source: tick.source || (tick.isLive ? (prev.source === "simulated" ? "binance" : prev.source) : "simulated"),

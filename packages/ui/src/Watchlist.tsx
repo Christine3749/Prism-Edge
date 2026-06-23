@@ -24,18 +24,25 @@ export default function Watchlist({
   onClose
 }: WatchlistProps) {
   const t = useTranslation(lang);
-  const [filter, setFilter] = useState<"all" | "crypto" | "stock" | "forex">("all");
+  type WatchlistFilter = "all" | "crypto" | "us" | "cn" | "hk" | "forex";
+  const [filter, setFilter] = useState<WatchlistFilter>("all");
   const [query, setQuery] = useState("");
 
   const categoryTranslationMap = {
     all: t("allMarkets"),
-    crypto: lang === "zh" ? "数字货币" : lang === "tc" ? "數字貨幣" : "Crypto",
-    stock: lang === "zh" ? "传统股票" : lang === "tc" ? "傳統股票" : "Stocks",
-    forex: lang === "zh" ? "外汇汇率" : lang === "tc" ? "外匯匯率" : "Forex"
+    crypto: "Crypto",
+    us: lang === "zh" ? "美股" : lang === "tc" ? "美股" : "US",
+    cn: lang === "zh" ? "A股" : lang === "tc" ? "A股" : "A-Share",
+    hk: lang === "zh" ? "港股" : lang === "tc" ? "港股" : "HK",
+    forex: lang === "zh" ? "外汇" : lang === "tc" ? "外匯" : "FX"
   };
 
   const filteredSymbols = symbolsList.filter((sym) => {
-    const matchesFilter = filter === "all" || sym.type === filter;
+    const symbolMarket = sym.market || sym.type;
+    const matchesFilter = filter === "all" ||
+      (filter === "crypto" && (symbolMarket === "crypto" || sym.type === "crypto")) ||
+      (filter === "forex" && (symbolMarket === "forex" || sym.type === "forex")) ||
+      symbolMarket === filter;
     const normalizedQuery = query.trim().toLowerCase();
     const matchesQuery = normalizedQuery.length === 0 ||
       sym.id.toLowerCase().includes(normalizedQuery) ||
@@ -52,6 +59,30 @@ export default function Watchlist({
       : marketStatus?.state === "error"
         ? "text-rose-400"
         : "text-amber-300";
+  const feedToneMap = {
+    live: "border-teal-500/20 bg-teal-500/10 text-teal-300",
+    delayed: "border-blue-500/20 bg-blue-500/10 text-blue-300",
+    stale: "border-orange-500/20 bg-orange-500/10 text-orange-300",
+    error: "border-rose-500/20 bg-rose-500/10 text-rose-300",
+    simulated: "border-amber-500/20 bg-amber-500/10 text-amber-300",
+    loading: "border-sky-500/20 bg-sky-500/10 text-sky-300"
+  };
+  const feedLabelMap = {
+    live: "LIVE",
+    delayed: "DELAY",
+    stale: "STALE",
+    error: "ERR",
+    simulated: "SIM",
+    loading: "LOAD"
+  };
+
+  const getSymbolFeedState = (symbol: MarketSymbol, selected: boolean): MarketDataStatus["state"] => {
+    if (selected && marketStatus?.state) return marketStatus.state;
+    if (symbol.lastDataState) return symbol.lastDataState;
+    if (symbol.dataProvider === "binance" || symbol.dataProvider === "coinbase") return "live";
+    if (symbol.dataProvider === "yahoo") return "delayed";
+    return "simulated";
+  };
 
   const content = (
     <div className="w-full flex flex-col h-full select-none justify-between bg-slate-950 text-slate-200">
@@ -73,12 +104,12 @@ export default function Watchlist({
         </div>
         
         {/* Market filters tab */}
-        <div className="grid grid-cols-4 bg-slate-900 p-0.5 rounded border border-slate-800 text-[9px] font-semibold text-slate-400">
-          {(["all", "crypto", "stock", "forex"] as const).map((cat) => (
+        <div className="flex gap-0.5 overflow-x-auto no-scrollbar bg-slate-900 p-0.5 rounded border border-slate-800 text-[9px] font-semibold text-slate-400">
+          {(["all", "crypto", "us", "cn", "hk", "forex"] as const).map((cat) => (
             <button
               key={cat}
               onClick={() => setFilter(cat)}
-              className={`py-0.5 rounded cursor-pointer text-center truncate transition-all duration-150 ${
+              className={`min-w-10 px-1.5 py-0.5 rounded cursor-pointer text-center truncate transition-all duration-150 ${
                 filter === cat
                   ? "bg-slate-800 text-cyan-400 font-bold shadow-md"
                   : "hover:text-white"
@@ -97,7 +128,7 @@ export default function Watchlist({
             className="min-w-0 flex-1 bg-transparent text-[10px] text-slate-200 placeholder:text-slate-600 focus:outline-none"
           />
           <span className={`shrink-0 text-[8px] font-mono font-bold uppercase tracking-widest ${statusTone}`}>
-            {marketStatus?.source || "feed"}
+            {filteredSymbols.length}
           </span>
         </div>
         <div className="mt-2 grid grid-cols-[minmax(0,1fr)_76px_52px] gap-2 px-0.5 text-[8px] font-bold uppercase tracking-widest text-slate-600">
@@ -112,6 +143,11 @@ export default function Watchlist({
         {filteredSymbols.map((sym) => {
           const isSelected = sym.id === currentSymbol.id;
           const isUp = sym.change24h >= 0;
+          const feedState = getSymbolFeedState(sym, isSelected);
+          const feedTone = feedToneMap[feedState];
+          const sourceLabel = isSelected && marketStatus?.source
+            ? marketStatus.source
+            : sym.lastSource || sym.dataProvider || sym.exchange || sym.type;
           return (
             <div
               key={sym.id}
@@ -127,9 +163,17 @@ export default function Watchlist({
             >
               <div className="flex min-w-0 flex-col">
                 <span className="font-semibold text-[11px] tracking-tight text-white truncate">{sym.id}</span>
-                <span className="text-[8px] text-slate-500 truncate">
-                  {sym.name} · {sym.exchange || sym.market || sym.type}
-                </span>
+                <div className="flex min-w-0 items-center gap-1">
+                  <span className="truncate text-[8px] text-slate-500">
+                    {sym.name} · {sym.exchange || sym.market || sym.type}
+                  </span>
+                  <span
+                    title={`${sourceLabel} · ${feedState}`}
+                    className={`shrink-0 rounded border px-1 py-[1px] font-mono text-[7px] font-black leading-none ${feedTone}`}
+                  >
+                    {feedLabelMap[feedState]}
+                  </span>
+                </div>
               </div>
 
               {/* Price action numbers */}
