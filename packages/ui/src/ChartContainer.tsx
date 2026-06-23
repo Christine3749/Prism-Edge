@@ -24,14 +24,14 @@ function ChartWatermark() {
   return (
     <div
       aria-hidden="true"
-      className="pointer-events-none absolute left-3 bottom-8 z-20 flex origin-bottom-left scale-90 items-center gap-2 select-none opacity-90 sm:left-5 sm:scale-100"
+      className="pointer-events-none absolute left-4 bottom-7 z-20 flex origin-bottom-left scale-90 items-center gap-1.5 select-none opacity-70 sm:left-5 sm:scale-95"
       style={{ filter: "drop-shadow(0 2px 1px rgba(0, 0, 0, 0.85))" }}
     >
       <svg
         viewBox="0 0 54 32"
         fill="none"
         xmlns="http://www.w3.org/2000/svg"
-        className="h-9 w-auto shrink-0"
+        className="h-7 w-auto shrink-0 sm:h-8"
       >
         <defs>
           <linearGradient id="msirWatermarkCyan" x1="3" y1="29" x2="24" y2="3" gradientUnits="userSpaceOnUse">
@@ -55,17 +55,34 @@ function ChartWatermark() {
         <path d="M31 15 48 22" stroke="#a78bfa" strokeWidth="2.2" strokeLinecap="round" opacity="0.9" />
         <circle cx="31" cy="15" r="2" fill="#f8fafc" />
       </svg>
-      <div className="flex items-end gap-2 leading-none">
-        <div className="flex items-baseline gap-1 text-[22px] font-black tracking-normal text-white sm:text-[26px]">
+      <div className="flex items-end gap-1.5 leading-none">
+        <div className="flex items-baseline gap-1 text-[18px] font-black tracking-normal text-white sm:text-[21px]">
           <span>MSIR</span>
           <span className="text-cyan-300">Prism</span>
         </div>
-        <span className="pb-0.5 text-[10px] font-bold tracking-widest text-slate-300 sm:text-xs">
+        <span className="pb-0.5 text-[8px] font-bold tracking-widest text-slate-300 sm:text-[9px]">
           棱镜先生
         </span>
       </div>
     </div>
   );
+}
+
+function formatPanelPrice(value: number, precision: number) {
+  if (!Number.isFinite(value)) return "-";
+  return value.toLocaleString(undefined, {
+    minimumFractionDigits: precision,
+    maximumFractionDigits: precision
+  });
+}
+
+function formatCompactVolume(value: number) {
+  if (!Number.isFinite(value)) return "-";
+  const abs = Math.abs(value);
+  if (abs >= 1_000_000_000) return `${(value / 1_000_000_000).toFixed(2)}B`;
+  if (abs >= 1_000_000) return `${(value / 1_000_000).toFixed(2)}M`;
+  if (abs >= 1_000) return `${(value / 1_000).toFixed(2)}K`;
+  return value.toFixed(2);
 }
 
 export default function ChartContainer({
@@ -90,6 +107,13 @@ export default function ChartContainer({
   const [mainSeries, setMainSeries] = useState<any | null>(null);
   const [viewState, setViewState] = useState({ scale: 1, rangeOffset: 0 });
   const [currentDrawing, setCurrentDrawing] = useState<DrawingBase | null>(null);
+  const latestCandle = candles[candles.length - 1];
+  const previousCandle = candles[candles.length - 2];
+  const candleChange = latestCandle && previousCandle ? latestCandle.close - previousCandle.close : 0;
+  const candleChangePercent = latestCandle && previousCandle && previousCandle.close !== 0
+    ? (candleChange / previousCandle.close) * 100
+    : 0;
+  const ohlcTone = candleChange >= 0 ? "text-teal-400" : "text-rose-400";
 
   useEffect(() => {
     if (!containerRef.current || !mainChartRef.current) return;
@@ -119,16 +143,16 @@ export default function ChartContainer({
         attributionLogo: false,
       },
       grid: {
-        vertLines: { color: settings.gridLines ? "#1e293b" : "transparent" },
-        horzLines: { color: settings.gridLines ? "#1e293b" : "transparent" },
+        vertLines: { color: settings.gridLines ? "rgba(30, 41, 59, 0.72)" : "transparent" },
+        horzLines: { color: settings.gridLines ? "rgba(30, 41, 59, 0.72)" : "transparent" },
       },
       timeScale: {
-        borderColor: "#334155",
+        borderColor: "#1e293b",
         timeVisible: true,
         secondsVisible: false,
       },
       rightPriceScale: {
-        borderColor: "#334155",
+        borderColor: "#1e293b",
       },
     }) as any;
 
@@ -180,15 +204,15 @@ export default function ChartContainer({
           attributionLogo: false,
         },
         grid: {
-          vertLines: { color: settings.gridLines ? "#1e293b" : "transparent" },
-          horzLines: { color: settings.gridLines ? "#1e293b" : "transparent" },
+          vertLines: { color: settings.gridLines ? "rgba(30, 41, 59, 0.72)" : "transparent" },
+          horzLines: { color: settings.gridLines ? "rgba(30, 41, 59, 0.72)" : "transparent" },
         },
         timeScale: {
-          borderColor: "#334155",
+          borderColor: "#1e293b",
           visible: true,
         },
         rightPriceScale: {
-          borderColor: "#334155",
+          borderColor: "#1e293b",
         }
       }) as any;
       setOscInstance(subChart);
@@ -446,6 +470,23 @@ export default function ChartContainer({
     >
       <div className="flex-grow min-h-0 relative" ref={mainChartRef}></div>
 
+      {latestCandle && (
+        <div className="pointer-events-none absolute left-3 top-3 z-20 hidden max-w-[calc(100%-7rem)] items-center gap-2 overflow-hidden rounded border border-slate-800/70 bg-slate-950/70 px-2 py-1 font-mono text-[10px] text-slate-400 shadow-lg backdrop-blur-sm md:flex">
+          <span className="font-bold text-slate-100">{currentSymbol.id}</span>
+          <span className="text-slate-600">•</span>
+          <span>{currentTimeframe}</span>
+          <span>O <b className="font-semibold text-slate-200">{formatPanelPrice(latestCandle.open, currentSymbol.precision)}</b></span>
+          <span>H <b className="font-semibold text-slate-200">{formatPanelPrice(latestCandle.high, currentSymbol.precision)}</b></span>
+          <span>L <b className="font-semibold text-slate-200">{formatPanelPrice(latestCandle.low, currentSymbol.precision)}</b></span>
+          <span>C <b className="font-semibold text-slate-200">{formatPanelPrice(latestCandle.close, currentSymbol.precision)}</b></span>
+          <span className={ohlcTone}>
+            {candleChange >= 0 ? "+" : ""}{formatPanelPrice(candleChange, currentSymbol.precision)}
+            {" "}({candleChange >= 0 ? "+" : ""}{candleChangePercent.toFixed(2)}%)
+          </span>
+          <span>Vol <b className="font-semibold text-slate-200">{formatCompactVolume(latestCandle.volume)}</b></span>
+        </div>
+      )}
+
       <div 
         className="w-full shrink-0 relative bg-slate-950 border-t border-slate-900" 
         ref={oscillatorChartRef}
@@ -688,7 +729,7 @@ export default function ChartContainer({
         })()}
       </svg>
       
-      <div className="absolute right-3 top-3 text-[9px] font-mono text-slate-500 bg-slate-950/80 px-2 py-0.5 rounded border border-slate-800 select-none z-20 uppercase tracking-widest hidden md:block">
+      <div className="absolute right-3 top-3 text-[9px] font-mono text-slate-500 bg-slate-950/70 px-2 py-0.5 rounded border border-slate-800/70 select-none z-20 uppercase tracking-widest hidden xl:block">
         Focus: {currentSymbol.id} • {currentTimeframe}
       </div>
 

@@ -40,8 +40,8 @@ export default function Watchlist({
     <div className="w-full flex flex-col h-full select-none justify-between bg-slate-950 text-slate-200">
       
       {/* 1. Header & Categories Selector */}
-      <div className="p-3 border-b border-slate-800 shrink-0">
-        <div className="flex justify-between items-center mb-2">
+      <div className="p-2.5 border-b border-slate-800 shrink-0">
+        <div className="flex justify-between items-center mb-1.5">
           <h3 className="text-[10px] font-bold uppercase tracking-widest text-slate-500">
             {t("brandName")} {t("watchlist")}
           </h3>
@@ -56,12 +56,12 @@ export default function Watchlist({
         </div>
         
         {/* Market filters tab */}
-        <div className="grid grid-cols-4 bg-slate-900 p-0.5 rounded-md border border-slate-800 text-[10px] font-semibold text-slate-400">
+        <div className="grid grid-cols-4 bg-slate-900 p-0.5 rounded border border-slate-800 text-[9px] font-semibold text-slate-400">
           {(["all", "crypto", "stock", "forex"] as const).map((cat) => (
             <button
               key={cat}
               onClick={() => setFilter(cat)}
-              className={`py-1 rounded cursor-pointer text-center truncate transition-all duration-150 ${
+              className={`py-0.5 rounded cursor-pointer text-center truncate transition-all duration-150 ${
                 filter === cat
                   ? "bg-slate-800 text-cyan-400 font-bold shadow-md"
                   : "hover:text-white"
@@ -71,10 +71,15 @@ export default function Watchlist({
             </button>
           ))}
         </div>
+        <div className="mt-2 grid grid-cols-[minmax(0,1fr)_76px_52px] gap-2 px-0.5 text-[8px] font-bold uppercase tracking-widest text-slate-600">
+          <span>Symbol</span>
+          <span className="text-right">Last</span>
+          <span className="text-right">Chg%</span>
+        </div>
       </div>
 
       {/* 2. List of assets */}
-      <div className="flex-grow overflow-y-auto divide-y divide-slate-900 space-y-0.5">
+      <div className="flex-grow overflow-y-auto divide-y divide-slate-900">
         {filteredSymbols.map((sym) => {
           const isSelected = sym.id === currentSymbol.id;
           const isUp = sym.change24h >= 0;
@@ -85,33 +90,29 @@ export default function Watchlist({
                 onSymbolSelect(sym);
                 if (onClose) onClose(); // Close on cell select on mobile
               }}
-              className={`px-3 py-2.5 grid grid-cols-[minmax(0,1fr)_104px] gap-3 items-center transition-all duration-150 cursor-pointer text-left h-[56px] ${
+              className={`px-2.5 py-1.5 grid grid-cols-[minmax(0,1fr)_76px_52px] gap-2 items-center transition-all duration-150 cursor-pointer text-left h-[46px] ${
                 isSelected 
                   ? "bg-slate-900 border-l-2 border-cyan-400 text-white" 
                   : "hover:bg-slate-900/60 text-slate-300 hover:text-white"
               }`}
             >
               <div className="flex min-w-0 flex-col">
-                <span className="font-semibold text-xs tracking-tight text-white truncate">{sym.id}</span>
-                <span className="text-[9px] text-slate-500 truncate">{sym.name}</span>
+                <span className="font-semibold text-[11px] tracking-tight text-white truncate">{sym.id}</span>
+                <span className="text-[8px] text-slate-500 truncate">{sym.name}</span>
               </div>
 
               {/* Price action numbers */}
-              <div className="flex min-w-0 flex-col items-end select-none">
-                <span className="font-mono text-xs font-bold text-slate-100 tabular-nums">
-                  {sym.price.toLocaleString(undefined, { 
-                    minimumFractionDigits: sym.precision, 
-                    maximumFractionDigits: sym.precision 
-                  })}
-                </span>
-                <span className={`text-[9px] font-mono leading-none px-1.5 py-0.5 rounded font-bold mt-1 ${
-                  isUp 
-                    ? "bg-teal-950/60 text-teal-400" 
-                    : "bg-rose-950/60 text-rose-400"
-                }`}>
-                  {isUp ? "+" : ""}{sym.change24h.toFixed(2)}%
-                </span>
-              </div>
+              <span className="min-w-0 text-right font-mono text-[11px] font-bold text-slate-100 tabular-nums">
+                {sym.price.toLocaleString(undefined, {
+                  minimumFractionDigits: sym.precision,
+                  maximumFractionDigits: sym.precision
+                })}
+              </span>
+              <span className={`text-right text-[10px] font-mono leading-none font-bold ${
+                isUp ? "text-teal-400" : "text-rose-400"
+              }`}>
+                {isUp ? "+" : ""}{sym.change24h.toFixed(2)}%
+              </span>
             </div>
           );
         })}
@@ -123,13 +124,13 @@ export default function Watchlist({
       </div>
 
       {/* 3. Stat Card Bottom Footer */}
-      <div className="p-3 bg-slate-950 border-t border-slate-900 text-xs space-y-2 shrink-0">
+      <div className="p-2.5 bg-slate-950 border-t border-slate-900 text-xs space-y-1.5 shrink-0">
         <div className="flex justify-between items-center text-[9px] text-slate-500 uppercase tracking-widest">
           <span>{lang === "zh" ? "当前聚焦资产" : lang === "tc" ? "當前聚焦資產" : "Active Asset Focus"}</span>
           <span className="px-1.5 py-0.5 bg-slate-900 text-cyan-400 border border-slate-800 rounded font-mono font-bold">{currentSymbol.type}</span>
         </div>
         
-        <div className="bg-slate-900/40 p-2 rounded border border-slate-900 space-y-1">
+        <div className="bg-slate-900/30 p-2 rounded border border-slate-900 space-y-1">
           <div className="flex justify-between font-mono text-[10px]">
             <span className="text-slate-500 font-sans">{t("volume24h")}:</span>
             <span className="text-slate-300">${(currentSymbol.volume24h).toLocaleString()}</span>
@@ -147,7 +148,7 @@ export default function Watchlist({
   return (
     <>
       {/* Desktop sidebar view */}
-      <div className="hidden md:flex w-[300px] min-w-[300px] xl:w-80 xl:min-w-80 border-l border-slate-800 shrink-0 h-full">
+      <div className="hidden md:flex w-[276px] min-w-[276px] xl:w-[300px] xl:min-w-[300px] border-l border-slate-800 shrink-0 h-full">
         {content}
       </div>
 

@@ -237,25 +237,25 @@ export default function BottomPanel({
 
   return (
     <div
-      className={`border-t border-slate-800 bg-slate-950 flex flex-col justify-between shrink-0 z-30 transition-all duration-300 ${collapsed ? "h-9" : ""}`}
-      style={collapsed ? undefined : { height: "28vh", minHeight: 144, maxHeight: 288 }}
+      className={`border-t border-slate-800 bg-slate-950 flex flex-col justify-between shrink-0 z-30 transition-all duration-300 ${collapsed ? "h-8" : ""}`}
+      style={collapsed ? undefined : { height: "24vh", minHeight: 128, maxHeight: 248 }}
     >
       
       {/* 1. Controller tabs */}
-      <div className="px-2 sm:px-3 bg-slate-900 border-b border-slate-800 flex items-center justify-between h-10 select-none shrink-0 gap-2">
+      <div className="px-2 sm:px-2.5 bg-slate-900 border-b border-slate-800 flex items-center justify-between h-8 select-none shrink-0 gap-2">
         <div className="flex min-w-0 items-center gap-1 overflow-x-auto no-scrollbar">
           <button
             onClick={() => {
               setActiveTab("book");
               setCollapsed(false);
             }}
-            className={`h-9 px-2.5 text-[11px] font-bold flex items-center gap-1.5 whitespace-nowrap transition-all outline-none border-b-2 hover:text-white cursor-pointer ${
+            className={`h-7 px-2 text-[10px] font-bold flex items-center gap-1.5 whitespace-nowrap transition-all outline-none border-b-2 hover:text-white cursor-pointer ${
               activeTab === "book" && !collapsed
                 ? "border-cyan-500 text-white bg-slate-950/40"
                 : "border-transparent text-slate-500"
             }`}
           >
-            <Layers className="h-3.5 w-3.5 text-cyan-400" />
+            <Layers className="h-3 w-3 text-cyan-400" />
             <span>{t("orderBook")}</span>
           </button>
 
@@ -264,13 +264,13 @@ export default function BottomPanel({
               setActiveTab("trades");
               setCollapsed(false);
             }}
-            className={`h-9 px-2.5 text-[11px] font-bold flex items-center gap-1.5 whitespace-nowrap transition-all outline-none border-b-2 hover:text-white cursor-pointer ${
+            className={`h-7 px-2 text-[10px] font-bold flex items-center gap-1.5 whitespace-nowrap transition-all outline-none border-b-2 hover:text-white cursor-pointer ${
               activeTab === "trades" && !collapsed
                 ? "border-cyan-500 text-white bg-slate-950/40"
                 : "border-transparent text-slate-500"
             }`}
           >
-            <TrendingUp className="h-3.5 w-3.5 text-cyan-400" />
+            <TrendingUp className="h-3 w-3 text-cyan-400" />
             <span>{t("recentTrades")}</span>
           </button>
 
@@ -279,13 +279,13 @@ export default function BottomPanel({
               setActiveTab("news");
               setCollapsed(false);
             }}
-            className={`h-9 px-2.5 text-[11px] font-bold flex items-center gap-1.5 whitespace-nowrap transition-all outline-none border-b-2 hover:text-white cursor-pointer ${
+            className={`h-7 px-2 text-[10px] font-bold flex items-center gap-1.5 whitespace-nowrap transition-all outline-none border-b-2 hover:text-white cursor-pointer ${
               activeTab === "news" && !collapsed
                 ? "border-cyan-500 text-white bg-slate-950/40"
                 : "border-transparent text-slate-500"
             }`}
           >
-            <BookOpen className="h-3.5 w-3.5 text-cyan-400" />
+            <BookOpen className="h-3 w-3 text-cyan-400" />
             <span>{t("marketNews")}</span>
           </button>
 
@@ -294,13 +294,13 @@ export default function BottomPanel({
               setActiveTab("ai");
               setCollapsed(false);
             }}
-            className={`h-9 px-2.5 text-[11px] font-extrabold flex items-center gap-1.5 whitespace-nowrap transition-all outline-none border-b-2 hover:text-white cursor-pointer ${
+            className={`h-7 px-2 text-[10px] font-extrabold flex items-center gap-1.5 whitespace-nowrap transition-all outline-none border-b-2 hover:text-white cursor-pointer ${
               activeTab === "ai" && !collapsed
                 ? "border-cyan-500 text-white bg-cyan-950/10"
                 : "border-transparent text-slate-400"
             }`}
           >
-            <Sparkles className="h-3.5 w-3.5 text-cyan-400 animate-pulse" />
+            <Sparkles className="h-3 w-3 text-cyan-400 animate-pulse" />
             <span className="text-cyan-400">{t("aiAnalysis")}</span>
           </button>
         </div>
@@ -321,11 +321,11 @@ export default function BottomPanel({
 
       {/* 2. Body display, hidden when collapsed */}
       {!collapsed && (
-        <div className="flex-grow p-2.5 sm:p-3 overflow-y-auto min-h-0 bg-slate-950/80">
+        <div className="flex-grow p-2 overflow-y-auto min-h-0 bg-slate-950/80">
           
           {/* Tab 1: Order Book */}
           {activeTab === "book" && (
-            <div className="grid grid-cols-1 xl:grid-cols-2 gap-3 sm:gap-6 h-full text-[11px] font-mono select-none">
+            <div className="grid grid-cols-1 xl:grid-cols-2 gap-3 sm:gap-5 h-full text-[10px] font-mono select-none">
               {/* direct asks */}
               <div className="flex flex-col">
                 <div className="grid text-slate-500 border-b border-slate-900 pb-1 font-bold text-[9px] uppercase" style={bookGridTemplate}>
