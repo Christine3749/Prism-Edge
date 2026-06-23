@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { 
   Layers, MessageSquare, TrendingUp, Sparkles, BookOpen, AlertTriangle, Play, ChevronDown, ChevronUp
 } from "lucide-react";
@@ -22,6 +22,7 @@ interface BottomPanelProps {
   timeframe: string;
   lang: Language;
   marketStatus?: MarketDataStatus;
+  analysisResult?: AnalysisRunResponse | null;
   onAnalysisResult?: (result: AnalysisRunResponse | null) => void;
 }
 
@@ -32,11 +33,13 @@ export default function BottomPanel({
   timeframe,
   lang,
   marketStatus,
+  analysisResult,
   onAnalysisResult
 }: BottomPanelProps) {
   const t = useTranslation(lang);
-  const [activeTab, setActiveTab] = useState<"book" | "trades" | "news" | "ai">("book");
+  const [activeTab, setActiveTab] = useState<"book" | "trades" | "news" | "ai">("ai");
   const [collapsed, setCollapsed] = useState(false);
+  const currentSymbolRef = useRef(currentSymbol);
   
   const [orderBook, setOrderBook] = useState<{ bids: OrderBookItem[]; asks: OrderBookItem[] }>({ bids: [], asks: [] });
   const [trades, setTrades] = useState<MarketTrade[]>([]);
@@ -53,31 +56,38 @@ export default function BottomPanel({
   };
 
   useEffect(() => {
+    currentSymbolRef.current = currentSymbol;
+  }, [currentSymbol]);
+
+  useEffect(() => {
     const book = generateOrderBook(currentSymbol.price, currentSymbol.precision);
     const list = generateMarketTrades(currentSymbol.price, currentSymbol.precision, 12);
     setOrderBook(book);
     setTrades(list);
 
+    if (activeTab !== "book" && activeTab !== "trades") return;
+
     const isCrypto = currentSymbol.type === "crypto";
     const tickIntervalSec = isCrypto ? 1500 : 3000;
 
     const interval = setInterval(() => {
+      const liveSymbol = currentSymbolRef.current;
       setOrderBook((prev) => {
-        const noise = (Math.random() - 0.5) * currentSymbol.price * 0.001;
-        const freshPrice = currentSymbol.price + noise;
-        return generateOrderBook(freshPrice, currentSymbol.precision);
+        const noise = (Math.random() - 0.5) * liveSymbol.price * 0.001;
+        const freshPrice = liveSymbol.price + noise;
+        return generateOrderBook(freshPrice, liveSymbol.precision);
       });
 
       setTrades((prev) => {
         const isBuy = Math.random() > 0.46;
-        const tickVal = currentSymbol.price * (1 + (Math.random() - 0.5) * 0.001);
-        const amount = Math.random() * (currentSymbol.price > 1000 ? 0.3 : 15) + 0.01;
+        const tickVal = liveSymbol.price * (1 + (Math.random() - 0.5) * 0.001);
+        const amount = Math.random() * (liveSymbol.price > 1000 ? 0.3 : 15) + 0.01;
         const timeStr = new Date().toTimeString().split(" ")[0];
         
         const nextTrade: MarketTrade = {
           time: timeStr,
-          price: Number(tickVal.toFixed(currentSymbol.precision)),
-          amount: Number(amount.toFixed(currentSymbol.price > 1000 ? 4 : 2)),
+          price: Number(tickVal.toFixed(liveSymbol.precision)),
+          amount: Number(amount.toFixed(liveSymbol.price > 1000 ? 4 : 2)),
           side: isBuy ? "buy" : "sell"
         };
         return [nextTrade, ...prev.slice(0, 11)];
@@ -85,7 +95,7 @@ export default function BottomPanel({
     }, tickIntervalSec);
 
     return () => clearInterval(interval);
-  }, [currentSymbol]);
+  }, [currentSymbol.id, currentSymbol.precision, currentSymbol.type, activeTab]);
 
   const buildIndicatorList = (): AnalysisIndicator[] => {
     const enabled: AnalysisIndicator[] = [];
@@ -123,6 +133,17 @@ export default function BottomPanel({
       data.summary
     ].join("\n");
   };
+
+  useEffect(() => {
+    if (!analysisResult) {
+      setAiAnalysis("");
+      setAnalysisServiceFallback(false);
+      return;
+    }
+
+    setAiAnalysis(formatAnalysisResponse(analysisResult));
+    setAnalysisServiceFallback(Boolean(analysisResult.meta?.engine.includes("fallback")));
+  }, [analysisResult, currentSymbol.id, timeframe, lang]);
 
   useEffect(() => {
     const fetchNews = async () => {

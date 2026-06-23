@@ -1,12 +1,12 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { lazy, Suspense, useState, useEffect, useRef } from "react";
 import { 
   MarketSymbol, Candle, IndicatorConfig, DrawingTool, DrawingBase, AppSettings,
   MarketDataStatus, AnalysisRunResponse, MarketQuote, AnalysisIndicator
 } from "@shared/types";
 import { 
-  DEFAULT_SYMBOLS, timeframeToSeconds
+  timeframeToSeconds
 } from "@shared/mockMarketData";
-import { resolveMarketSymbol } from "@shared/marketCatalog";
+import { DEFAULT_WATCHLIST_SYMBOLS, resolveMarketSymbol, sortMarketSymbols } from "@shared/marketCatalog";
 import { fetchMarketQuotes, loadMarketData, subscribeRealtime } from "@shared/marketDataService";
 import { StorageService } from "@shared/storage";
 
@@ -18,6 +18,8 @@ import BottomPanel from "@ui/BottomPanel";
 import IndicatorsModal from "@ui/IndicatorsModal";
 import SettingsModal from "@ui/SettingsModal";
 import { Language, useTranslation } from "@shared/translations";
+
+const TemporaFlip = lazy(() => import("./tempora/TemporaFlip"));
 
 const DEFAULT_INDICATOR_CONFIG: IndicatorConfig = {
   sma: { active: true, period: 20, color: "#22d3ee" }, // cyan accent
@@ -69,15 +71,44 @@ function enrichMarketSymbol(symbol: MarketSymbol): MarketSymbol {
   };
 }
 
+function stripVolatileSymbolFields(symbol: MarketSymbol): MarketSymbol {
+  const { lastSource, lastDataState, lastUpdatedAt, ...stableSymbol } = symbol;
+  return stableSymbol;
+}
+
+function getWatchlistStorageKey(symbols: MarketSymbol[]): string {
+  return symbols.map((symbol) => symbol.symbol).join("|");
+}
+
 function loadHydratedWatchlist() {
-  return StorageService.loadWatchlist(DEFAULT_SYMBOLS).map(enrichMarketSymbol);
+  const savedSymbols = StorageService.loadWatchlist(DEFAULT_WATCHLIST_SYMBOLS) as MarketSymbol[];
+  const merged = new Map<string, MarketSymbol>();
+
+  DEFAULT_WATCHLIST_SYMBOLS.forEach((symbol) => {
+    merged.set(symbol.symbol, { ...symbol });
+  });
+
+  savedSymbols.map(enrichMarketSymbol).forEach((symbol) => {
+    merged.set(symbol.symbol, symbol);
+  });
+
+  return sortMarketSymbols(Array.from(merged.values())).slice(0, 60);
 }
 
 export default function App() {
+  const isTemporaRoute = window.location.pathname.startsWith("/tempora");
+  return isTemporaRoute ? (
+    <Suspense fallback={null}>
+      <TemporaFlip />
+    </Suspense>
+  ) : <PrismEdgeTerminal />;
+}
+
+function PrismEdgeTerminal() {
   // Sync load from cache
   const [currentSymbol, setCurrentSymbol] = useState<MarketSymbol>(() => {
     const list = loadHydratedWatchlist();
-    return list[0] || DEFAULT_SYMBOLS[0];
+    return list[0] || DEFAULT_WATCHLIST_SYMBOLS[0];
   });
   
   const [symbolsList, setSymbolsList] = useState<MarketSymbol[]>(() => {
@@ -135,15 +166,26 @@ export default function App() {
 
   const wsRef = useRef<WebSocket | null>(null);
   const symbolsListRef = useRef(symbolsList);
+  const currentSymbolRef = useRef(currentSymbol);
   const lastMarketUpdateRef = useRef(Date.now());
+  const quoteRefreshInFlightRef = useRef(false);
+  const watchlistStorageKeyRef = useRef("");
 
   useEffect(() => {
     symbolsListRef.current = symbolsList;
   }, [symbolsList]);
 
+  useEffect(() => {
+    currentSymbolRef.current = currentSymbol;
+  }, [currentSymbol]);
+
   // Sync state modifications to Watchlist Storage
   useEffect(() => {
-    StorageService.saveWatchlist(symbolsList);
+    const storageKey = getWatchlistStorageKey(symbolsList);
+    if (watchlistStorageKeyRef.current === storageKey) return;
+
+    watchlistStorageKeyRef.current = storageKey;
+    StorageService.saveWatchlist(symbolsList.map(stripVolatileSymbolFields));
   }, [symbolsList]);
 
   // Handle auto-save trigger based on setting preference
@@ -200,25 +242,41 @@ export default function App() {
     });
   };
 
-  const applyQuote = (quote: MarketQuote) => {
-    const state = getFeedState(quote.source, quote.isLive);
-    const applyToSymbol = (sym: MarketSymbol): MarketSymbol => ({
+  const applyQuotes = (quotes: MarketQuote[]) => {
+    const quoteMap = new Map(quotes.map((quote) => [quote.symbol, quote]));
+
+    const applyToSymbol = (sym: MarketSymbol): MarketSymbol => {
+      const quote = quoteMap.get(sym.symbol);
+      if (!quote) return sym;
+      const state = getFeedState(quote.source, quote.isLive);
+      const nextPrice = Number(quote.price.toFixed(sym.precision));
+      const nextChange = Number(quote.change24h.toFixed(2));
+      const nextVolume = Math.round(quote.volume24h);
+
+      if (
+        sym.price === nextPrice &&
+        sym.change24h === nextChange &&
+        sym.volume24h === nextVolume &&
+        sym.lastSource === quote.source &&
+        sym.lastDataState === state
+      ) {
+        return sym;
+      }
+
+      return {
       ...sym,
-      price: Number(quote.price.toFixed(sym.precision)),
-      change24h: Number(quote.change24h.toFixed(2)),
-      volume24h: Math.round(quote.volume24h),
+      price: nextPrice,
+      change24h: nextChange,
+      volume24h: nextVolume,
       lastSource: quote.source,
       lastDataState: state,
       lastUpdatedAt: quote.updatedAt
-    });
+      };
+    };
 
-    setSymbolsList((prev) => prev.map((sym) => (
-      sym.symbol === quote.symbol ? applyToSymbol(sym) : sym
-    )));
+    setSymbolsList((prev) => prev.map(applyToSymbol));
 
-    setCurrentSymbol((prev) => (
-      prev.symbol === quote.symbol ? applyToSymbol(prev) : prev
-    ));
+    setCurrentSymbol((prev) => applyToSymbol(prev));
   };
 
   const buildActiveIndicatorList = (): AnalysisIndicator[] => {
@@ -247,35 +305,55 @@ export default function App() {
   };
 
   const refreshQuotes = async (quiet = false) => {
+    if (quoteRefreshInFlightRef.current) return;
+    quoteRefreshInFlightRef.current = true;
+
     try {
       const quotes = await fetchMarketQuotes(symbolsListRef.current);
-      quotes.forEach(applyQuote);
+      applyQuotes(quotes);
 
-      const activeQuote = quotes.find((quote) => quote.symbol === currentSymbol.symbol);
+      const activeSymbol = currentSymbolRef.current;
+      const activeQuote = quotes.find((quote) => quote.symbol === activeSymbol.symbol);
       if (activeQuote) {
         const state = getFeedState(activeQuote.source, activeQuote.isLive);
         lastMarketUpdateRef.current = activeQuote.updatedAt || Date.now();
         setIsLiveBinanceActive(activeQuote.isLive);
-        setMarketStatus({
-          state,
-          source: activeQuote.source,
-          updatedAt: lastMarketUpdateRef.current,
-          message: activeQuote.isLive
-            ? "Real market quote stream."
-            : state === "delayed"
-              ? "Delayed market quote from public market provider."
-              : "Fallback simulated quote."
+        setMarketStatus((prev) => {
+          if (
+            state === "simulated" &&
+            prev.state !== "loading" &&
+            prev.state !== "error" &&
+            prev.state !== "simulated"
+          ) {
+            return {
+              ...prev,
+              updatedAt: lastMarketUpdateRef.current
+            };
+          }
+
+          return {
+            state,
+            source: activeQuote.source,
+            updatedAt: lastMarketUpdateRef.current,
+            message: activeQuote.isLive
+              ? "Real market quote stream."
+              : state === "delayed"
+                ? "Delayed market quote from public market provider."
+                : "Fallback simulated quote."
+          };
         });
       }
     } catch (err) {
       if (!quiet) {
-        setMarketStatus({
+        setMarketStatus((prev) => ({
           state: "error",
-          source: marketStatus.source || "gateway",
+          source: prev.source || "gateway",
           updatedAt: lastMarketUpdateRef.current,
           message: err instanceof Error ? err.message : "Quote gateway unavailable."
-        });
+        }));
       }
+    } finally {
+      quoteRefreshInFlightRef.current = false;
     }
   };
 
@@ -454,7 +532,7 @@ export default function App() {
     StorageService.saveDrawings(drawings);
     StorageService.saveIndicators(indicatorConfig);
     StorageService.saveSettings(settings);
-    StorageService.saveWatchlist(symbolsList);
+    StorageService.saveWatchlist(symbolsList.map(stripVolatileSymbolFields));
 
     setWorkspaceSaved(true);
     setTimeout(() => setWorkspaceSaved(false), 2000);
@@ -469,8 +547,8 @@ export default function App() {
     setDrawings([]);
     setIndicatorConfig(DEFAULT_INDICATOR_CONFIG);
     setSettings(DEFAULT_APP_SETTINGS);
-    setSymbolsList(DEFAULT_SYMBOLS);
-    setCurrentSymbol(DEFAULT_SYMBOLS[0]);
+    setSymbolsList(DEFAULT_WATCHLIST_SYMBOLS.map((symbol) => ({ ...symbol })));
+    setCurrentSymbol({ ...DEFAULT_WATCHLIST_SYMBOLS[0] });
     setTimeframe("1D");
     setChartType("candlestick");
     setResetConfirmOpen(false);
@@ -547,6 +625,7 @@ export default function App() {
             timeframe={timeframe}
             lang={lang}
             marketStatus={marketStatus}
+            analysisResult={analysisResult}
             onAnalysisResult={setAnalysisResult}
           />
         </div>

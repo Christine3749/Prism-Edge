@@ -115,7 +115,8 @@ export async function fetchMarketQuotes(symbols: MarketSymbol[]): Promise<Market
   });
 
   const response = await fetch(`/api/market/quote?${params.toString()}`, {
-    headers: { Accept: "application/json" }
+    headers: { Accept: "application/json" },
+    signal: AbortSignal.timeout(uniqueSymbols.length > 24 ? 6000 : 4500)
   });
 
   if (!response.ok) {
@@ -142,6 +143,7 @@ export function subscribeRealtime(
   let closed = false;
   let timer: ReturnType<typeof setInterval> | null = null;
   let gatewayFailureCount = 0;
+  let gatewayPollInFlight = false;
 
   const startSimulation = () => {
     if (closed) return;
@@ -177,7 +179,8 @@ export function subscribeRealtime(
   };
 
   const pollGatewayLatestCandle = async () => {
-    if (closed) return;
+    if (closed || gatewayPollInFlight) return;
+    gatewayPollInFlight = true;
 
     try {
       const latest = await fetchHistoricalGatewayKlines(symbol.symbol, interval, 2);
@@ -202,6 +205,8 @@ export function subscribeRealtime(
         if (closed) return;
         startSimulation();
       }
+    } finally {
+      gatewayPollInFlight = false;
     }
   };
 

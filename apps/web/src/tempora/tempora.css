@@ -1,0 +1,402 @@
+.tempora-screen {
+  --tempora-bg: #000000;
+  --tempora-card: #050505;
+  --tempora-card-edge: rgba(255, 255, 255, 0.045);
+  --tempora-digit: #d8d8d8;
+  --tempora-muted: rgba(216, 216, 216, 0.58);
+  --tempora-line: rgba(0, 0, 0, 0.78);
+  --tempora-panel: rgba(8, 8, 8, 0.72);
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  min-width: 100vw;
+  min-height: 100vh;
+  overflow: hidden;
+  background: var(--tempora-bg);
+  color: var(--tempora-digit);
+  font-family: "Bahnschrift Condensed", "Arial Narrow", "Roboto Condensed", "Oswald", "Inter Tight", sans-serif;
+  letter-spacing: 0;
+  user-select: none;
+}
+
+.tempora-screen.is-screensaver,
+.tempora-screen.is-screensaver * {
+  cursor: none;
+}
+
+.tempora-clock {
+  --tempora-card-width: min(38.5vw, 560px);
+  --tempora-card-height: min(24vw, 340px);
+  --tempora-card-radius: clamp(16px, 1.8vw, 24px);
+  display: grid;
+  grid-template-columns: repeat(2, var(--tempora-card-width));
+  align-items: center;
+  justify-content: center;
+  gap: clamp(18px, 3.4vw, 64px);
+  width: min(85vw, 1260px);
+  transform: translateZ(0);
+}
+
+.tempora-clock.has-seconds {
+  --tempora-card-width: min(28vw, 430px);
+  --tempora-card-height: min(18vw, 270px);
+  grid-template-columns: repeat(3, var(--tempora-card-width));
+  gap: clamp(12px, 1.8vw, 34px);
+  width: min(92vw, 1420px);
+}
+
+.tempora-card {
+  position: relative;
+  height: var(--tempora-card-height);
+  min-height: 132px;
+  overflow: hidden;
+  border: 1px solid var(--tempora-card-edge);
+  border-radius: var(--tempora-card-radius);
+  background: var(--tempora-card);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.06),
+    inset 0 -18px 38px rgba(0, 0, 0, 0.38),
+    0 18px 42px rgba(0, 0, 0, 0.38);
+  contain: layout paint style;
+  perspective: 1200px;
+  transform: translateZ(0);
+}
+
+.tempora-card::before,
+.tempora-card::after {
+  content: "";
+  position: absolute;
+  z-index: 8;
+  top: calc(50% - 8px);
+  width: clamp(7px, 0.8vw, 12px);
+  height: clamp(16px, 1.4vw, 26px);
+  border-radius: 999px;
+  background: #010101;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.035);
+}
+
+.tempora-card::before {
+  left: clamp(8px, 1.1vw, 18px);
+}
+
+.tempora-card::after {
+  right: clamp(8px, 1.1vw, 18px);
+}
+
+.tempora-slice {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 50%;
+  overflow: hidden;
+  background: #050505;
+  backface-visibility: hidden;
+  transform-style: preserve-3d;
+  will-change: transform, filter;
+}
+
+.tempora-slice-top {
+  top: 0;
+  border-radius: var(--tempora-card-radius) var(--tempora-card-radius) 0 0;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  transform-origin: center bottom;
+  z-index: 2;
+}
+
+.tempora-slice-bottom {
+  bottom: 0;
+  border-radius: 0 0 var(--tempora-card-radius) var(--tempora-card-radius);
+  box-shadow: inset 0 -1px 0 rgba(255, 255, 255, 0.025);
+  transform-origin: center top;
+  z-index: 1;
+}
+
+.tempora-slice.is-animated {
+  z-index: 6;
+}
+
+.tempora-card.is-flipping .tempora-slice-top.is-animated {
+  animation: tempora-flip-top 320ms ease-in-out forwards;
+}
+
+.tempora-card.is-flipping .tempora-slice-bottom.is-animated {
+  animation: tempora-flip-bottom 320ms ease-in-out forwards;
+}
+
+.tempora-slice-value {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 200%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 clamp(18px, 3vw, 48px);
+  color: var(--tempora-digit);
+  font-size: clamp(118px, 20vw, 292px);
+  font-stretch: condensed;
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  letter-spacing: 0;
+  line-height: 0.78;
+  text-align: center;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.08), 0 -1px 0 rgba(0, 0, 0, 0.9);
+}
+
+.tempora-clock.has-seconds .tempora-slice-value {
+  font-size: clamp(86px, 14.7vw, 212px);
+}
+
+.tempora-slice-top .tempora-slice-value {
+  top: 0;
+}
+
+.tempora-slice-bottom .tempora-slice-value {
+  bottom: 0;
+}
+
+.tempora-divider {
+  position: absolute;
+  z-index: 9;
+  left: 0;
+  right: 0;
+  top: 50%;
+  height: clamp(2px, 0.22vw, 3px);
+  background: var(--tempora-line);
+  box-shadow:
+    0 -1px 0 rgba(255, 255, 255, 0.035),
+    0 1px 0 rgba(255, 255, 255, 0.025);
+  transform: translateY(-50%);
+  pointer-events: none;
+}
+
+.tempora-meridiem {
+  position: absolute;
+  z-index: 10;
+  top: clamp(16px, 2vw, 30px);
+  left: clamp(18px, 2.1vw, 34px);
+  color: var(--tempora-muted);
+  font-family: "Segoe UI", "Microsoft YaHei", sans-serif;
+  font-size: clamp(11px, 1.05vw, 18px);
+  font-weight: 700;
+  letter-spacing: 0;
+  line-height: 1;
+}
+
+.tempora-chrome {
+  position: fixed;
+  z-index: 20;
+  top: max(18px, env(safe-area-inset-top));
+  left: max(18px, env(safe-area-inset-left));
+  right: max(18px, env(safe-area-inset-right));
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  opacity: 0;
+  transform: translateY(-8px);
+  transition: opacity 180ms ease, transform 180ms ease;
+  pointer-events: none;
+}
+
+.tempora-chrome.is-visible {
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
+}
+
+.tempora-brand,
+.tempora-controls,
+.tempora-controls button,
+.tempora-segmented {
+  display: flex;
+  align-items: center;
+}
+
+.tempora-brand {
+  gap: 10px;
+  min-width: 0;
+  color: rgba(245, 245, 245, 0.9);
+  font-family: "Segoe UI", "Microsoft YaHei", sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0;
+}
+
+.tempora-brand small {
+  color: rgba(216, 216, 216, 0.46);
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.tempora-controls {
+  gap: 8px;
+  padding: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 8px;
+  background: var(--tempora-panel);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.34);
+}
+
+.tempora-controls button,
+.tempora-segmented button {
+  height: 30px;
+  justify-content: center;
+  gap: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.065);
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.025);
+  color: rgba(232, 232, 232, 0.74);
+  font-family: "Segoe UI", "Microsoft YaHei", sans-serif;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0;
+  transition: background 140ms ease, border-color 140ms ease, color 140ms ease;
+  cursor: pointer;
+}
+
+.tempora-controls > button {
+  min-width: 36px;
+  padding: 0 9px;
+}
+
+.tempora-controls button:hover,
+.tempora-segmented button:hover,
+.tempora-controls button.is-active,
+.tempora-segmented button.is-active {
+  border-color: rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.1);
+  color: #f2f2f2;
+}
+
+.tempora-segmented {
+  gap: 4px;
+  padding: 0;
+}
+
+.tempora-segmented button {
+  min-width: 42px;
+  padding: 0 9px;
+}
+
+.tempora-footer {
+  position: fixed;
+  z-index: 20;
+  left: 0;
+  right: 0;
+  bottom: max(18px, env(safe-area-inset-bottom));
+  display: flex;
+  justify-content: center;
+  color: rgba(216, 216, 216, 0.42);
+  font-family: "Segoe UI", "Microsoft YaHei", sans-serif;
+  font-size: 12px;
+  letter-spacing: 0;
+  opacity: 0;
+  transform: translateY(8px);
+  transition: opacity 180ms ease, transform 180ms ease;
+  pointer-events: none;
+}
+
+.tempora-footer.is-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+@keyframes tempora-flip-top {
+  0% {
+    filter: brightness(1);
+    transform: rotateX(0deg);
+  }
+  48%,
+  100% {
+    filter: brightness(0.46);
+    transform: rotateX(-89deg);
+  }
+}
+
+@keyframes tempora-flip-bottom {
+  0%,
+  48% {
+    filter: brightness(0.5);
+    transform: rotateX(88deg);
+  }
+  100% {
+    filter: brightness(1);
+    transform: rotateX(0deg);
+  }
+}
+
+@media (max-width: 760px) {
+  .tempora-clock {
+    --tempora-card-width: min(43vw, 360px);
+    --tempora-card-height: min(28vw, 220px);
+    width: 94vw;
+    gap: clamp(10px, 3vw, 20px);
+  }
+
+  .tempora-clock.has-seconds {
+    --tempora-card-width: min(30vw, 260px);
+    --tempora-card-height: min(20vw, 176px);
+    width: 96vw;
+    gap: clamp(7px, 1.8vw, 14px);
+  }
+
+  .tempora-slice-value {
+    font-size: clamp(62px, 23vw, 136px);
+    padding: 0 clamp(8px, 2vw, 18px);
+  }
+
+  .tempora-clock.has-seconds .tempora-slice-value {
+    font-size: clamp(42px, 15.2vw, 94px);
+  }
+
+  .tempora-chrome {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .tempora-controls {
+    align-self: stretch;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+
+  .tempora-brand small {
+    display: none;
+  }
+}
+
+@media (max-width: 460px) {
+  .tempora-clock {
+    --tempora-card-width: 44vw;
+    --tempora-card-height: 30vw;
+  }
+
+  .tempora-clock.has-seconds {
+    --tempora-card-width: 30.5vw;
+    --tempora-card-height: 21vw;
+  }
+
+  .tempora-card {
+    min-height: 88px;
+  }
+
+  .tempora-controls button span {
+    display: none;
+  }
+
+  .tempora-segmented button {
+    min-width: 38px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tempora-card.is-flipping .tempora-slice-top.is-animated,
+  .tempora-card.is-flipping .tempora-slice-bottom.is-animated,
+  .tempora-chrome,
+  .tempora-footer {
+    animation: none;
+    transition: none;
+  }
+}

@@ -76,12 +76,15 @@ type BinanceKline = [
 type CoinbaseCandle = [number, number, number, number, number, number];
 
 const BINANCE_ENDPOINTS = [
-  "https://api.binance.com",
-  "https://data-api.binance.vision"
+  "https://data-api.binance.vision",
+  "https://api.binance.com"
 ];
 
 const marketCache = new Map<string, { expiresAt: number; payload: unknown }>();
+const marketRefreshInFlight = new Map<string, Promise<void>>();
 const MARKET_SYMBOL_RE = /^[A-Z0-9.^=\-/]{1,36}$/;
+const QUOTE_CACHE_TTL_MS = 6000;
+const QUOTE_FAST_WAIT_MS = 1600;
 
 const FALLBACK_QUOTES: Record<string, Omit<MarketQuotePayload, "source" | "updatedAt" | "isLive">> = Object.fromEntries(
   MARKET_SYMBOLS.map((symbol) => [
@@ -468,6 +471,59 @@ async function fetchYahooQuote(symbol: string): Promise<MarketQuotePayload> {
   return result.quote;
 }
 
+async function fetchYahooQuoteBatch(symbols: string[]): Promise<Map<string, MarketQuotePayload>> {
+  const normalizedSymbols = Array.from(new Set(symbols.map(normalizeMarketSymbol))).filter(Boolean);
+  if (normalizedSymbols.length === 0) return new Map();
+
+  const yahooSymbols = normalizedSymbols.map(toYahooSymbol);
+  const url = `https://query1.finance.yahoo.com/v7/finance/quote?symbols=${encodeURIComponent(yahooSymbols.join(","))}`;
+  const response = await fetch(url, {
+    headers: {
+      Accept: "application/json",
+      "User-Agent": "Prism-Edge market quote gateway"
+    },
+    signal: AbortSignal.timeout(normalizedSymbols.length > 16 ? 6000 : 4500)
+  });
+  const text = await response.text();
+
+  if (!response.ok) {
+    throw new Error(`Yahoo quote batch: ${response.status} ${text.slice(0, 140)}`);
+  }
+
+  const data = JSON.parse(text);
+  const rows = Array.isArray(data?.quoteResponse?.result) ? data.quoteResponse.result : [];
+  const rowsByYahooSymbol = new Map<string, any>(
+    rows.map((row: any) => [String(row?.symbol || "").toUpperCase(), row])
+  );
+  const now = Date.now();
+  const quotes = new Map<string, MarketQuotePayload>();
+
+  normalizedSymbols.forEach((symbol) => {
+    const yahooSymbol = toYahooSymbol(symbol).toUpperCase();
+    const row = rowsByYahooSymbol.get(yahooSymbol) || rowsByYahooSymbol.get(symbol);
+    if (!row) return;
+
+    const price = Number(row.regularMarketPrice ?? row.postMarketPrice ?? row.preMarketPrice);
+    if (!Number.isFinite(price) || price <= 0) return;
+
+    const change24h = Number(row.regularMarketChangePercent ?? 0);
+    const volume24h = Number(row.regularMarketVolume ?? row.volume ?? 0);
+    const precision = decimalPrecisionFor(symbol, price);
+
+    quotes.set(symbol, {
+      symbol,
+      price: Number(price.toFixed(precision)),
+      change24h: Number((Number.isFinite(change24h) ? change24h : 0).toFixed(2)),
+      volume24h: Number.isFinite(volume24h) ? volume24h : 0,
+      source: "yahoo-delayed",
+      updatedAt: now,
+      isLive: false
+    });
+  });
+
+  return quotes;
+}
+
 function mapYahooSearchQuote(quote: any): MarketSymbol | null {
   const rawSymbol = String(quote?.symbol || "").trim().toUpperCase();
   if (!rawSymbol || !MARKET_SYMBOL_RE.test(rawSymbol)) return null;
@@ -602,6 +658,101 @@ async function fetchMarketQuote(symbol: string): Promise<MarketQuotePayload> {
   }
 }
 
+function buildFallbackQuote(symbol: string): MarketQuotePayload {
+  const fallback = FALLBACK_QUOTES[symbol];
+  if (fallback) {
+    const noise = 1 + (Math.random() - 0.5) * 0.0015;
+    const precision = decimalPrecisionFor(symbol, fallback.price);
+    return {
+      ...fallback,
+      price: Number((fallback.price * noise).toFixed(precision)),
+      source: "simulated",
+      updatedAt: Date.now(),
+      isLive: false
+    };
+  }
+
+  const inferred = inferMarketSymbolFromInput(symbol);
+  if (inferred) {
+    return {
+      symbol: inferred.symbol,
+      price: inferred.price,
+      change24h: inferred.change24h,
+      volume24h: inferred.volume24h,
+      source: "simulated",
+      updatedAt: Date.now(),
+      isLive: false
+    };
+  }
+
+  return {
+    symbol,
+    price: 0,
+    change24h: 0,
+    volume24h: 0,
+    source: "simulated",
+    updatedAt: Date.now(),
+    isLive: false
+  };
+}
+
+function buildFallbackQuotePayload(symbols: string[]) {
+  return {
+    quotes: symbols.map(buildFallbackQuote),
+    updatedAt: Date.now(),
+    fallback: true
+  };
+}
+
+async function fetchMarketQuotePayload(symbols: string[]) {
+  const yahooSymbols = symbols.filter((symbol) => !isCryptoMarketSymbol(symbol));
+  const yahooBatchQuotes = yahooSymbols.length > 1
+    ? await fetchYahooQuoteBatch(yahooSymbols).catch((error) => {
+      console.warn("Yahoo batch quote failed, falling back to per-symbol quotes.", error);
+      return new Map<string, MarketQuotePayload>();
+    })
+    : new Map<string, MarketQuotePayload>();
+
+  const quotes = await Promise.all(symbols.map(async (symbol) => {
+    const batchQuote = yahooBatchQuotes.get(symbol);
+    if (batchQuote) return batchQuote;
+
+    try {
+      return await fetchMarketQuote(symbol);
+    } catch (error) {
+      console.warn(`Quote gateway failed for ${symbol}.`, error);
+      return buildFallbackQuote(symbol);
+    }
+  }));
+
+  return {
+    quotes,
+    updatedAt: Date.now()
+  };
+}
+
+function refreshQuoteCache(cacheKey: string, symbols: string[]) {
+  const existing = marketRefreshInFlight.get(cacheKey);
+  if (existing) return existing;
+
+  const refresh = fetchMarketQuotePayload(symbols)
+    .then((payload) => {
+      marketCache.set(cacheKey, {
+        expiresAt: Date.now() + QUOTE_CACHE_TTL_MS,
+        payload
+      });
+    })
+    .catch((error) => {
+      console.warn(`Background quote refresh failed for ${cacheKey}.`, error);
+    })
+    .finally(() => {
+      marketRefreshInFlight.delete(cacheKey);
+    });
+
+  marketRefreshInFlight.set(cacheKey, refresh);
+  return refresh;
+}
+
 function computeLocalAnalysis(body: AnalysisBody) {
   const symbol = body.symbol || "UNKNOWN";
   const interval = body.interval || body.timeframe || "1D";
@@ -715,7 +866,7 @@ app.get("/api/market/klines", async (req, res) => {
     };
 
     marketCache.set(cacheKey, {
-      expiresAt: Date.now() + (limit <= 2 ? 1000 : 6000),
+      expiresAt: Date.now() + (limit <= 2 ? 1000 : 30000),
       payload
     });
 
@@ -741,20 +892,47 @@ app.get("/api/market/quote", async (req, res) => {
     return res.status(400).json({ error: "Invalid market symbol list." });
   }
 
-  const cacheKey = `quote:${symbols.sort().join(",")}`;
+  const cacheKey = `quote:${[...symbols].sort().join(",")}`;
   const cached = marketCache.get(cacheKey);
   if (cached && cached.expiresAt > Date.now()) {
     return res.json(cached.payload);
   }
 
-  const quotes = await Promise.all(symbols.map((symbol) => fetchMarketQuote(symbol)));
-  const payload = {
-    quotes,
-    updatedAt: Date.now()
-  };
+  if (cached) {
+    refreshQuoteCache(cacheKey, symbols);
+    return res.json(cached.payload);
+  }
+
+  const quotePayloadPromise = fetchMarketQuotePayload(symbols);
+  const payload = await Promise.race([
+    quotePayloadPromise,
+    new Promise<null>((resolve) => setTimeout(() => resolve(null), QUOTE_FAST_WAIT_MS))
+  ]);
+
+  if (!payload) {
+    if (!marketRefreshInFlight.has(cacheKey)) {
+      const refresh = quotePayloadPromise
+        .then((nextPayload) => {
+          marketCache.set(cacheKey, {
+            expiresAt: Date.now() + QUOTE_CACHE_TTL_MS,
+            payload: nextPayload
+          });
+        })
+        .catch((error) => {
+          console.warn(`Background quote refresh failed for ${cacheKey}.`, error);
+        })
+        .finally(() => {
+          marketRefreshInFlight.delete(cacheKey);
+        });
+
+      marketRefreshInFlight.set(cacheKey, refresh);
+    }
+
+    return res.json(buildFallbackQuotePayload(symbols));
+  }
 
   marketCache.set(cacheKey, {
-    expiresAt: Date.now() + 1500,
+    expiresAt: Date.now() + QUOTE_CACHE_TTL_MS,
     payload
   });
 

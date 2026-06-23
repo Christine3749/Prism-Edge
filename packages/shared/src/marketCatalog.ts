@@ -70,6 +70,78 @@ export const MARKET_SYMBOLS: MarketSymbol[] = Array.from(
   ).values()
 );
 
+export const MAINSTREAM_MARKET_ORDER = [
+  "BTCUSDT",
+  "ETHUSDT",
+  "SOLUSDT",
+  "SPY",
+  "QQQ",
+  "^GSPC",
+  "^IXIC",
+  "AAPL",
+  "MSFT",
+  "NVDA",
+  "TSLA",
+  "META",
+  "AMZN",
+  "000001.SS",
+  "399001.SZ",
+  "399006.SZ",
+  "600519.SS",
+  "300750.SZ",
+  "000001.SZ",
+  "600036.SS",
+  "^HSI",
+  "0700.HK",
+  "9988.HK",
+  "3690.HK",
+  "0005.HK",
+  "1299.HK",
+  "EURUSD",
+  "USDJPY",
+  "GBPUSD"
+] as const;
+
+const MAINSTREAM_SYMBOL_RANK = new Map<string, number>(
+  MAINSTREAM_MARKET_ORDER.map((symbol, index) => [symbol, index])
+);
+
+const MARKET_GROUP_RANK: Record<NonNullable<MarketSymbol["market"]>, number> = {
+  crypto: 0,
+  us: 1,
+  cn: 2,
+  hk: 3,
+  forex: 4,
+  internal: 5
+};
+
+function getSymbolRank(symbol: MarketSymbol): number {
+  return MAINSTREAM_SYMBOL_RANK.get(symbol.symbol) ??
+    MAINSTREAM_SYMBOL_RANK.get(symbol.id) ??
+    1000;
+}
+
+function getMarketRank(symbol: MarketSymbol): number {
+  return MARKET_GROUP_RANK[symbol.market || (symbol.type === "forex" ? "forex" : symbol.type === "crypto" ? "crypto" : "us")] ?? 99;
+}
+
+export function sortMarketSymbols(symbols: MarketSymbol[]): MarketSymbol[] {
+  return [...symbols].sort((a, b) => {
+    const symbolRank = getSymbolRank(a) - getSymbolRank(b);
+    if (symbolRank !== 0) return symbolRank;
+
+    const marketRank = getMarketRank(a) - getMarketRank(b);
+    if (marketRank !== 0) return marketRank;
+
+    return a.symbol.localeCompare(b.symbol);
+  });
+}
+
+export const DEFAULT_WATCHLIST_SYMBOLS: MarketSymbol[] = MAINSTREAM_MARKET_ORDER
+  .map((symbol) => MARKET_SYMBOLS.find((item) => item.symbol === symbol || item.id === symbol))
+  .filter((symbol): symbol is MarketSymbol => Boolean(symbol))
+  .map((symbol) => ({ ...symbol }));
+
 export function resolveMarketSymbol(input: string): MarketSymbol | undefined {
   const normalized = normalizeMarketInput(input);
   return MARKET_SYMBOLS.find((symbol) => (
@@ -143,5 +215,5 @@ export function searchMarketSymbols(query: string, market: string = "all", limit
     matches.unshift(inferred);
   }
 
-  return matches.slice(0, limit);
+  return sortMarketSymbols(matches).slice(0, limit);
 }
