@@ -1,0 +1,15 @@
+{
+  "name": "msir-prism-desktop",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "tauri": "tauri"
+  },
+  "dependencies": {
+    "@tauri-apps/api": "^1.5.3"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "^1.5.11"
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "symbol": "BTC/USDT",
+  "interval": "1h",
+  "candles": [
+    { "time": 1719200000, "open": 65000, "high": 65500, "low": 64800, "close": 65200, "volume": 1234 },
+    { "time": 1719203600, "open": 65200, "high": 65850, "low": 65120, "close": 65790, "volume": 1420 },
+    { "time": 1719207200, "open": 65790, "high": 66100, "low": 65510, "close": 65940, "volume": 1388 },
+    { "time": 1719210800, "open": 65940, "high": 66020, "low": 65280, "close": 65440, "volume": 1605 },
+    { "time": 1719214400, "open": 65440, "high": 66320, "low": 65370, "close": 66280, "volume": 1811 }
+  ],
+  "indicators": ["SMA", "EMA", "RSI", "MACD"]
+}

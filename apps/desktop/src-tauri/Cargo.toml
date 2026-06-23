@@ -1,0 +1,21 @@
+[package]
+name = "msir-prism-desktop"
+version = "1.0.0"
+description = "MSIR Prism｜棱镜先生 跨平台交易分析与量化分析终端"
+authors = ["MSIR Ltd"]
+edition = "2021"
+rust-version = "1.57"
+
+[build-dependencies]
+tauri-build = { version = "1.5", features = [] }
+
+[dependencies]
+serde_json = "1.0"
+serde = { version = "1.0", features = ["derive"] }
+tauri = { version = "1.5", features = [ "shell-all", "api-all" ] }
+
+[features]
+# by default Tauri runs in production mode
+# when building a dev version run `cargo build --no-default-features`
+default = [ "custom-protocol" ]
+custom-protocol = [ "tauri/custom-protocol" ]

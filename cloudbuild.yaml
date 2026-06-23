@@ -1,0 +1,74 @@
+substitutions:
+  _REGION: asia-east1
+  _REPOSITORY: msir-prism
+  _WEB_SERVICE: msir-prism-web
+  _API_SERVICE: msir-prism-api
+  _APP_URL: https://msirprism.com
+
+steps:
+  - name: gcr.io/google.com/cloudsdktool/cloud-sdk:slim
+    entrypoint: bash
+    args:
+      - -lc
+      - |
+        gcloud services enable run.googleapis.com artifactregistry.googleapis.com cloudbuild.googleapis.com
+        gcloud artifacts repositories describe ${_REPOSITORY} --location=${_REGION} >/dev/null 2>&1 || \
+          gcloud artifacts repositories create ${_REPOSITORY} \
+            --repository-format=docker \
+            --location=${_REGION} \
+            --description="MSIR Prism container images"
+
+  - name: gcr.io/cloud-builders/docker
+    args:
+      - build
+      - -f
+      - services/api/Dockerfile
+      - -t
+      - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPOSITORY}/api:$SHORT_SHA
+      - .
+
+  - name: gcr.io/cloud-builders/docker
+    args:
+      - build
+      - -f
+      - Dockerfile
+      - -t
+      - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPOSITORY}/web:$SHORT_SHA
+      - .
+
+  - name: gcr.io/cloud-builders/docker
+    args:
+      - push
+      - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPOSITORY}/api:$SHORT_SHA
+
+  - name: gcr.io/cloud-builders/docker
+    args:
+      - push
+      - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPOSITORY}/web:$SHORT_SHA
+
+  - name: gcr.io/google.com/cloudsdktool/cloud-sdk:slim
+    entrypoint: bash
+    args:
+      - -lc
+      - |
+        gcloud run deploy ${_API_SERVICE} \
+          --image=${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPOSITORY}/api:$SHORT_SHA \
+          --region=${_REGION} \
+          --platform=managed \
+          --allow-unauthenticated
+
+        API_URL=$(gcloud run services describe ${_API_SERVICE} \
+          --region=${_REGION} \
+          --platform=managed \
+          --format='value(status.url)')
+
+        gcloud run deploy ${_WEB_SERVICE} \
+          --image=${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPOSITORY}/web:$SHORT_SHA \
+          --region=${_REGION} \
+          --platform=managed \
+          --allow-unauthenticated \
+          --set-env-vars=API_BASE_URL=${API_URL},APP_URL=${_APP_URL},VITE_ENABLE_LIVE_BINANCE=false
+
+images:
+  - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPOSITORY}/api:$SHORT_SHA
+  - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPOSITORY}/web:$SHORT_SHA

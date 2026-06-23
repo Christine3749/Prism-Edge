@@ -1,0 +1,81 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Segoe UI", "Microsoft YaHei", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "Cascadia Mono", "Consolas", ui-monospace, SFMono-Regular, monospace;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  background-color: #0a0e14;
+  color: #f3f4f6;
+  font-family: var(--font-sans);
+  overflow: hidden;
+}
+
+/* Scrollbar layout styles suitable for high density long盯盘 visual eyes */
+::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+
+::-webkit-scrollbar-track {
+  background: #0b0f14;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #1f2937;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #374151;
+}
+
+/* Custom CSS helper to style Light Theme aesthetics gracefully if toggled */
+.light-aesthetics-overrides {
+  background-color: #f8fafc !important;
+  color: #0f172a !important;
+}
+
+.light-aesthetics-overrides header,
+.light-aesthetics-overrides div[id^="drawing_tool"],
+.light-aesthetics-overrides .border-l,
+.light-aesthetics-overrides .border-r,
+.light-aesthetics-overrides .border-t,
+.light-aesthetics-overrides .border-b {
+  border-color: #e2e8f0 !important;
+}
+
+.light-aesthetics-overrides header,
+.light-aesthetics-overrides div,
+.light-aesthetics-overrides aside {
+  background-color: #ffffff !important;
+  color: #334155 !important;
+}
+
+.light-aesthetics-overrides span,
+.light-aesthetics-overrides p,
+.light-aesthetics-overrides th {
+  color: #475569 !important;
+}
+
+.light-aesthetics-overrides h3,
+.light-aesthetics-overrides h4,
+.light-aesthetics-overrides select,
+.light-aesthetics-overrides strong,
+.light-aesthetics-overrides table td {
+  color: #0f172a !important;
+}
+
+.light-aesthetics-overrides select,
+.light-aesthetics-overrides button {
+  background-color: #f1f5f9 !important;
+  border-color: #cbd5e1 !important;
+  color: #0f172a !important;
+}
+
+.light-aesthetics-overrides button:hover {
+  background-color: #e2e8f0 !important;
+}
