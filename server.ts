@@ -84,7 +84,8 @@ const marketCache = new Map<string, { expiresAt: number; payload: unknown }>();
 const marketRefreshInFlight = new Map<string, Promise<void>>();
 const MARKET_SYMBOL_RE = /^[A-Z0-9.^=\-/]{1,36}$/;
 const QUOTE_CACHE_TTL_MS = 6000;
-const QUOTE_FAST_WAIT_MS = 1600;
+const QUOTE_FAST_WAIT_MS = 900;
+const MAX_QUOTE_SYMBOLS = 80;
 
 const FALLBACK_QUOTES: Record<string, Omit<MarketQuotePayload, "source" | "updatedAt" | "isLive">> = Object.fromEntries(
   MARKET_SYMBOLS.map((symbol) => [
@@ -886,7 +887,7 @@ app.get("/api/market/quote", async (req, res) => {
     .split(",")
     .map((item) => normalizeMarketSymbol(item))
     .filter(Boolean)
-    .slice(0, 30);
+    .slice(0, MAX_QUOTE_SYMBOLS);
 
   if (symbols.length === 0 || symbols.some((symbol) => !MARKET_SYMBOL_RE.test(symbol))) {
     return res.status(400).json({ error: "Invalid market symbol list." });

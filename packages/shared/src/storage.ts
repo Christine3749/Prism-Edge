@@ -1,7 +1,8 @@
 const DRAW_KEY = "prism_edge_drawings_v2";
 const INDICATOR_KEY = "prism_edge_indicators_v2";
 const SETTING_KEY = "prism_edge_settings_v2";
-const WATCH_KEY = "prism_edge_watchlist_v2";
+const WATCH_KEY = "prism_edge_watchlist_v3";
+const LEGACY_WATCH_KEYS = ["prism_edge_watchlist_v2"];
 
 export function loadItem<T>(key: string, defaultValue: T): T {
   try {
@@ -29,6 +30,18 @@ export function removeItem(key: string): void {
   }
 }
 
+function loadWatchlist(def: any): any {
+  const current = loadItem<any | null>(WATCH_KEY, null);
+  if (current) return current;
+
+  for (const key of LEGACY_WATCH_KEYS) {
+    const legacy = loadItem<any | null>(key, null);
+    if (legacy) return legacy;
+  }
+
+  return def;
+}
+
 export const StorageService = {
   loadDrawings: (def: any) => loadItem(DRAW_KEY, def),
   saveDrawings: (val: any) => saveItem(DRAW_KEY, val),
@@ -42,7 +55,7 @@ export const StorageService = {
   saveSettings: (val: any) => saveItem(SETTING_KEY, val),
   clearSettings: () => removeItem(SETTING_KEY),
 
-  loadWatchlist: (def: any) => loadItem(WATCH_KEY, def),
+  loadWatchlist,
   saveWatchlist: (val: any) => saveItem(WATCH_KEY, val),
   clearWatchlist: () => removeItem(WATCH_KEY),
 
@@ -51,5 +64,6 @@ export const StorageService = {
     removeItem(INDICATOR_KEY);
     removeItem(SETTING_KEY);
     removeItem(WATCH_KEY);
+    LEGACY_WATCH_KEYS.forEach(removeItem);
   }
 };
