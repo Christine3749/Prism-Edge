@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useRef } from "react";
 import { 
-  MarketSymbol, Candle, IndicatorConfig, DrawingTool, DrawingBase, AppSettings 
+  MarketSymbol, Candle, IndicatorConfig, DrawingTool, DrawingBase, AppSettings,
+  MarketDataStatus, AnalysisRunResponse, MarketQuote, AnalysisIndicator
 } from "@shared/types";
 import { 
   DEFAULT_SYMBOLS, timeframeToSeconds
 } from "@shared/mockMarketData";
-import { loadMarketData, subscribeRealtime } from "@shared/marketDataService";
+import { fetchMarketQuotes, loadMarketData, subscribeRealtime } from "@shared/marketDataService";
 import { StorageService } from "@shared/storage";
 
 import Header from "@ui/Header";
@@ -80,6 +81,12 @@ export default function App() {
   
   const [workspaceSaved, setWorkspaceSaved] = useState(false);
   const [isLiveBinanceActive, setIsLiveBinanceActive] = useState(false);
+  const [marketStatus, setMarketStatus] = useState<MarketDataStatus>({
+    state: "loading",
+    source: "initializing",
+    message: "Preparing market data gateway."
+  });
+  const [analysisResult, setAnalysisResult] = useState<AnalysisRunResponse | null>(null);
   
   const [timeframe, setTimeframe] = useState("1D");
   const [chartType, setChartType] = useState("candlestick");
@@ -108,6 +115,12 @@ export default function App() {
   };
 
   const wsRef = useRef<WebSocket | null>(null);
+  const symbolsListRef = useRef(symbolsList);
+  const lastMarketUpdateRef = useRef(Date.now());
+
+  useEffect(() => {
+    symbolsListRef.current = symbolsList;
+  }, [symbolsList]);
 
   // Sync state modifications to Watchlist Storage
   useEffect(() => {
@@ -161,19 +174,152 @@ export default function App() {
     });
   };
 
+  const applyQuote = (quote: MarketQuote) => {
+    const applyToSymbol = (sym: MarketSymbol): MarketSymbol => ({
+      ...sym,
+      price: Number(quote.price.toFixed(sym.precision)),
+      change24h: Number(quote.change24h.toFixed(2)),
+      volume24h: Math.round(quote.volume24h)
+    });
+
+    setSymbolsList((prev) => prev.map((sym) => (
+      sym.symbol === quote.symbol ? applyToSymbol(sym) : sym
+    )));
+
+    setCurrentSymbol((prev) => (
+      prev.symbol === quote.symbol ? applyToSymbol(prev) : prev
+    ));
+  };
+
+  const buildActiveIndicatorList = (): AnalysisIndicator[] => {
+    const enabled: AnalysisIndicator[] = [];
+    if (indicatorConfig.sma.active) enabled.push("SMA");
+    if (indicatorConfig.ema.active) enabled.push("EMA");
+    if (indicatorConfig.rsi.active) enabled.push("RSI");
+    if (indicatorConfig.macd.active) enabled.push("MACD");
+    if (indicatorConfig.bollinger.active) enabled.push("BOLLINGER");
+    return enabled;
+  };
+
+  const refreshQuotes = async (quiet = false) => {
+    try {
+      const quotes = await fetchMarketQuotes(symbolsListRef.current);
+      quotes.forEach(applyQuote);
+
+      const activeQuote = quotes.find((quote) => quote.symbol === currentSymbol.symbol);
+      if (activeQuote) {
+        lastMarketUpdateRef.current = activeQuote.updatedAt || Date.now();
+        setIsLiveBinanceActive(activeQuote.isLive);
+        setMarketStatus({
+          state: activeQuote.isLive ? "live" : "simulated",
+          source: activeQuote.source,
+          updatedAt: lastMarketUpdateRef.current,
+          message: activeQuote.isLive ? "Real market quote stream." : "Fallback simulated quote."
+        });
+      }
+    } catch (err) {
+      if (!quiet) {
+        setMarketStatus({
+          state: "error",
+          source: marketStatus.source || "gateway",
+          updatedAt: lastMarketUpdateRef.current,
+          message: err instanceof Error ? err.message : "Quote gateway unavailable."
+        });
+      }
+    }
+  };
+
   // Load historical candle data
   useEffect(() => {
+    let cancelled = false;
+
     const fetchHistory = async () => {
       setCandles([]);
       setIsLiveBinanceActive(false);
+      setAnalysisResult(null);
+      setMarketStatus({
+        state: "loading",
+        source: "gateway",
+        message: `Loading ${currentSymbol.id} ${timeframe} candles.`
+      });
 
       const result = await loadMarketData(currentSymbol, timeframe);
+      if (cancelled) return;
+
       setCandles(result.candles);
       setIsLiveBinanceActive(result.isLiveBinance);
+      lastMarketUpdateRef.current = result.updatedAt;
+      setMarketStatus({
+        state: result.isLiveBinance ? "live" : "simulated",
+        source: result.source,
+        updatedAt: result.updatedAt,
+        message: result.isLiveBinance ? "Real candle gateway connected." : "Fallback simulator active."
+      });
     };
 
     fetchHistory();
+
+    return () => {
+      cancelled = true;
+    };
   }, [currentSymbol.id, timeframe]);
+
+  useEffect(() => {
+    refreshQuotes(true);
+    const timer = setInterval(() => refreshQuotes(true), 12000);
+    return () => clearInterval(timer);
+  }, [currentSymbol.symbol]);
+
+  useEffect(() => {
+    if (candles.length < 30) return;
+
+    const controller = new AbortController();
+    const timer = setTimeout(async () => {
+      try {
+        const response = await fetch("/api/analysis/run", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            symbol: currentSymbol.id,
+            interval: timeframe,
+            candles,
+            indicators: buildActiveIndicatorList()
+          }),
+          signal: controller.signal
+        });
+
+        if (!response.ok) return;
+        const data = await response.json() as AnalysisRunResponse;
+        setAnalysisResult(data);
+      } catch {
+        if (!controller.signal.aborted) {
+          setAnalysisResult(null);
+        }
+      }
+    }, 650);
+
+    return () => {
+      clearTimeout(timer);
+      controller.abort();
+    };
+  }, [currentSymbol.id, timeframe, candles.length, indicatorConfig.sma.active, indicatorConfig.ema.active, indicatorConfig.rsi.active, indicatorConfig.macd.active, indicatorConfig.bollinger.active]);
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      const ageMs = Date.now() - lastMarketUpdateRef.current;
+      setMarketStatus((prev) => {
+        if (prev.state === "loading" || prev.state === "error") return prev;
+        if (ageMs <= 22000) return prev;
+        return {
+          ...prev,
+          state: "stale",
+          message: `Market data delayed by ${Math.round(ageMs / 1000)}s.`
+        };
+      });
+    }, 5000);
+
+    return () => clearInterval(timer);
+  }, []);
 
   // Bind live spot updating ticking streams
   useEffect(() => {
@@ -181,6 +327,13 @@ export default function App() {
 
     const subscription = subscribeRealtime(currentSymbol, timeframe, (tick) => {
       updateSymbolsListPrice(currentSymbol.id, tick.close);
+      lastMarketUpdateRef.current = Date.now();
+      setMarketStatus((prev) => ({
+        state: tick.isLive ? "live" : "simulated",
+        source: tick.isLive ? (prev.source === "simulated" ? "binance" : prev.source) : "simulated",
+        updatedAt: lastMarketUpdateRef.current,
+        message: tick.isLive ? "Realtime candle gateway connected." : "Fallback simulator active."
+      }));
 
       setCandles((prevCandles) => {
         if (prevCandles.length === 0) return prevCandles;
@@ -276,6 +429,7 @@ export default function App() {
         onResetLayout={handleResetLayout}
         onTakeScreenshot={handleTakeScreenshot}
         isLiveBinanceActive={isLiveBinanceActive}
+        marketStatus={marketStatus}
         lang={lang}
         onLangChange={setLang}
         onToggleWatchlist={() => setWatchlistOpen((open) => !open)}
@@ -307,6 +461,8 @@ export default function App() {
             settings={settings}
             currentTimeframe={timeframe}
             chartType={chartType}
+            marketStatus={marketStatus}
+            analysisResult={analysisResult}
           />
 
           {/* Bottom Foldable panel */}
@@ -316,6 +472,8 @@ export default function App() {
             activeIndicators={indicatorConfig}
             timeframe={timeframe}
             lang={lang}
+            marketStatus={marketStatus}
+            onAnalysisResult={setAnalysisResult}
           />
         </div>
 
@@ -325,6 +483,7 @@ export default function App() {
           onSymbolSelect={setCurrentSymbol}
           symbolsList={symbolsList}
           lang={lang}
+          marketStatus={marketStatus}
           isOpen={watchlistOpen}
           onClose={() => setWatchlistOpen(false)}
         />

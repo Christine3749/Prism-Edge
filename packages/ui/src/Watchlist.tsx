@@ -1,6 +1,6 @@
 import React, { useState } from "react";
-import { X } from "lucide-react";
-import { MarketSymbol } from "../../shared/src/types";
+import { Search, X } from "lucide-react";
+import { MarketDataStatus, MarketSymbol } from "../../shared/src/types";
 import { Language, useTranslation } from "../../shared/src/translations";
 
 interface WatchlistProps {
@@ -8,6 +8,7 @@ interface WatchlistProps {
   onSymbolSelect: (symbol: MarketSymbol) => void;
   symbolsList: MarketSymbol[];
   lang: Language;
+  marketStatus?: MarketDataStatus;
   // Drawer props for mobile adaptation
   isOpen?: boolean;
   onClose?: () => void;
@@ -18,11 +19,13 @@ export default function Watchlist({
   onSymbolSelect,
   symbolsList,
   lang,
+  marketStatus,
   isOpen = false,
   onClose
 }: WatchlistProps) {
   const t = useTranslation(lang);
   const [filter, setFilter] = useState<"all" | "crypto" | "stock" | "forex">("all");
+  const [query, setQuery] = useState("");
 
   const categoryTranslationMap = {
     all: t("allMarkets"),
@@ -32,9 +35,21 @@ export default function Watchlist({
   };
 
   const filteredSymbols = symbolsList.filter((sym) => {
-    if (filter === "all") return true;
-    return sym.type === filter;
+    const matchesFilter = filter === "all" || sym.type === filter;
+    const normalizedQuery = query.trim().toLowerCase();
+    const matchesQuery = normalizedQuery.length === 0 ||
+      sym.id.toLowerCase().includes(normalizedQuery) ||
+      sym.symbol.toLowerCase().includes(normalizedQuery) ||
+      sym.name.toLowerCase().includes(normalizedQuery);
+    return matchesFilter && matchesQuery;
   });
+  const statusTone = marketStatus?.state === "live"
+    ? "text-teal-400"
+    : marketStatus?.state === "stale"
+      ? "text-orange-300"
+      : marketStatus?.state === "error"
+        ? "text-rose-400"
+        : "text-amber-300";
 
   const content = (
     <div className="w-full flex flex-col h-full select-none justify-between bg-slate-950 text-slate-200">
@@ -70,6 +85,18 @@ export default function Watchlist({
               {categoryTranslationMap[cat]}
             </button>
           ))}
+        </div>
+        <div className="mt-2 flex h-7 items-center gap-1.5 rounded border border-slate-800 bg-slate-950 px-2">
+          <Search className="h-3 w-3 shrink-0 text-cyan-400" />
+          <input
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            placeholder={t("searchAsset")}
+            className="min-w-0 flex-1 bg-transparent text-[10px] text-slate-200 placeholder:text-slate-600 focus:outline-none"
+          />
+          <span className={`shrink-0 text-[8px] font-mono font-bold uppercase tracking-widest ${statusTone}`}>
+            {marketStatus?.source || "feed"}
+          </span>
         </div>
         <div className="mt-2 grid grid-cols-[minmax(0,1fr)_76px_52px] gap-2 px-0.5 text-[8px] font-bold uppercase tracking-widest text-slate-600">
           <span>Symbol</span>
@@ -127,7 +154,9 @@ export default function Watchlist({
       <div className="p-2.5 bg-slate-950 border-t border-slate-900 text-xs space-y-1.5 shrink-0">
         <div className="flex justify-between items-center text-[9px] text-slate-500 uppercase tracking-widest">
           <span>{lang === "zh" ? "当前聚焦资产" : lang === "tc" ? "當前聚焦資產" : "Active Asset Focus"}</span>
-          <span className="px-1.5 py-0.5 bg-slate-900 text-cyan-400 border border-slate-800 rounded font-mono font-bold">{currentSymbol.type}</span>
+          <span className={`px-1.5 py-0.5 bg-slate-900 border border-slate-800 rounded font-mono font-bold ${statusTone}`}>
+            {marketStatus?.state || currentSymbol.type}
+          </span>
         </div>
         
         <div className="bg-slate-900/30 p-2 rounded border border-slate-900 space-y-1">
@@ -137,7 +166,13 @@ export default function Watchlist({
           </div>
           <div className="flex justify-between font-mono text-[10px]">
             <span className="text-slate-500 font-sans">{lang === "zh" ? "棱镜折射率" : lang === "tc" ? "稜鏡折射率" : "Refraction Index"}:</span>
-            <span className="text-cyan-400 font-extrabold uppercase">{lang === "zh" ? "数据良好" : lang === "tc" ? "數據良好" : "Stable Feed"}</span>
+            <span className={`font-extrabold uppercase ${statusTone}`}>
+              {marketStatus?.state === "stale"
+                ? (lang === "zh" ? "数据延迟" : lang === "tc" ? "數據延遲" : "Stale Feed")
+                : marketStatus?.state === "live"
+                  ? (lang === "zh" ? "真实行情" : lang === "tc" ? "真實行情" : "Live Feed")
+                  : (lang === "zh" ? "模拟保护" : lang === "tc" ? "模擬保護" : "Fallback")}
+            </span>
           </div>
         </div>
       </div>

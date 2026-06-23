@@ -9,6 +9,25 @@ export interface MarketSymbol {
   precision: number;
 }
 
+export type MarketDataState = "loading" | "live" | "simulated" | "stale" | "error";
+
+export interface MarketDataStatus {
+  state: MarketDataState;
+  source: string;
+  updatedAt?: number;
+  message?: string;
+}
+
+export interface MarketQuote {
+  symbol: string;
+  price: number;
+  change24h: number;
+  volume24h: number;
+  source: string;
+  updatedAt: number;
+  isLive: boolean;
+}
+
 export interface Candle {
   time: number; // Unix timestamp in seconds
   open: number;

@@ -3,7 +3,7 @@ import {
   TrendingUp, Search, BarChart2, Eye, Layout,
   Settings, Camera, Bookmark, RefreshCw, Menu, Globe
 } from "lucide-react";
-import { MarketSymbol, AppSettings } from "../../shared/src/types";
+import { MarketSymbol, AppSettings, MarketDataStatus } from "../../shared/src/types";
 import { DEFAULT_SYMBOLS } from "../../shared/src/mockMarketData";
 import { Language, useTranslation } from "../../shared/src/translations";
 import Logo from "./Logo";
@@ -23,6 +23,7 @@ interface HeaderProps {
   onResetLayout: () => void;
   onTakeScreenshot: () => void;
   isLiveBinanceActive: boolean;
+  marketStatus?: MarketDataStatus;
   lang: Language;
   onLangChange: (lang: Language) => void;
   // Mobile responsive helper states
@@ -44,6 +45,7 @@ export default function Header({
   onResetLayout,
   onTakeScreenshot,
   isLiveBinanceActive,
+  marketStatus,
   lang,
   onLangChange,
   onToggleWatchlist
@@ -65,6 +67,28 @@ export default function Header({
       sym.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
       sym.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
+  const feedState = marketStatus?.state || (isLiveBinanceActive ? "live" : "simulated");
+  const feedLabel = {
+    loading: lang === "zh" ? "载入" : lang === "tc" ? "載入" : "Loading",
+    live: t("liveWss"),
+    simulated: t("simFeed"),
+    stale: lang === "zh" ? "延迟" : lang === "tc" ? "延遲" : "Stale",
+    error: lang === "zh" ? "断线" : lang === "tc" ? "斷線" : "Error"
+  }[feedState];
+  const feedClass = {
+    loading: "bg-sky-950/40 border-sky-800/60 text-sky-400",
+    live: "bg-teal-950/40 border-teal-800/60 text-teal-400",
+    simulated: "bg-amber-950/40 border-amber-800/60 text-amber-300",
+    stale: "bg-orange-950/40 border-orange-800/60 text-orange-300",
+    error: "bg-rose-950/40 border-rose-800/60 text-rose-400"
+  }[feedState];
+  const dotClass = {
+    loading: "bg-sky-400 animate-pulse",
+    live: "bg-teal-400 animate-pulse",
+    simulated: "bg-amber-300",
+    stale: "bg-orange-300",
+    error: "bg-rose-400"
+  }[feedState];
 
   return (
     <header className="h-12 shrink-0 border-b border-slate-800 bg-slate-950 px-2.5 md:px-3 flex items-center gap-2 text-slate-200 select-none z-50 relative overflow-visible">
@@ -150,17 +174,13 @@ export default function Header({
 
         {/* Live Status indicator */}
         <div className="shrink-0 flex">
-          {isLiveBinanceActive ? (
-            <div className="h-7 flex items-center gap-1 px-2 bg-teal-950/40 border border-teal-800/60 rounded-full" title="Real market gateway connected">
-              <span className="h-1.5 w-1.5 rounded-full bg-teal-400 animate-pulse"></span>
-              <span className="text-[9px] font-mono font-bold text-teal-400 uppercase tracking-widest hidden lg:inline">{t("liveWss")}</span>
-            </div>
-          ) : (
-            <div className="h-7 flex items-center gap-1 px-2 bg-rose-950/40 border border-rose-800/60 rounded-full" title="Fallback simulator active">
-              <span className="h-1.5 w-1.5 rounded-full bg-rose-400"></span>
-              <span className="text-[9px] font-mono font-bold text-rose-400 uppercase tracking-widest hidden lg:inline">{t("simFeed")}</span>
-            </div>
-          )}
+          <div
+            className={`h-7 flex items-center gap-1 px-2 border rounded-full ${feedClass}`}
+            title={`${marketStatus?.source || "gateway"} · ${marketStatus?.message || ""}`}
+          >
+            <span className={`h-1.5 w-1.5 rounded-full ${dotClass}`}></span>
+            <span className="text-[9px] font-mono font-bold uppercase tracking-widest hidden lg:inline">{feedLabel}</span>
+          </div>
         </div>
 
         {/* Divider */}

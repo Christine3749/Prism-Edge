@@ -1,9 +1,14 @@
-import { MarketSymbol, Candle } from "./types";
+import { MarketSymbol, Candle, MarketQuote } from "./types";
 import { generateSimulatedHistoricalKlines, timeframeToSeconds } from "./mockMarketData";
 
 interface MarketGatewayResponse {
   candles: Candle[];
   source?: string;
+}
+
+interface QuoteGatewayResponse {
+  quotes: MarketQuote[];
+  updatedAt?: number;
 }
 
 // Warning registry to avoid spamming warnings
@@ -50,12 +55,12 @@ export async function fetchHistoricalCryptoKlines(
 export async function loadMarketData(
   symbol: MarketSymbol,
   timeframe: string
-): Promise<{ candles: Candle[]; isLiveBinance: boolean }> {
+): Promise<{ candles: Candle[]; isLiveBinance: boolean; source: string; updatedAt: number }> {
   try {
     if (symbol.type === "crypto") {
       try {
         const hist = await fetchHistoricalCryptoKlines(symbol.symbol, timeframe, 200);
-        return { candles: hist, isLiveBinance: true };
+        return { candles: hist, isLiveBinance: true, source: "binance", updatedAt: Date.now() };
       } catch (err) {
         warnOnce(
           `rest_${symbol.symbol}`,
@@ -63,24 +68,52 @@ export async function loadMarketData(
           err
         );
         const fallback = generateSimulatedHistoricalKlines(symbol, timeframe, 200);
-        return { candles: fallback, isLiveBinance: false };
+        return { candles: fallback, isLiveBinance: false, source: "simulated", updatedAt: Date.now() };
       }
     } else {
       const simHist = generateSimulatedHistoricalKlines(symbol, timeframe, 200);
-      return { candles: simHist, isLiveBinance: false };
+      return { candles: simHist, isLiveBinance: false, source: "simulated", updatedAt: Date.now() };
     }
   } catch (err) {
     warnOnce("load_error_ultimate", "Ultimate market data service load exception:", err);
     const fallback = generateSimulatedHistoricalKlines(symbol, timeframe, 200);
-    return { candles: fallback, isLiveBinance: false };
+    return { candles: fallback, isLiveBinance: false, source: "simulated", updatedAt: Date.now() };
   }
 }
 
 export async function getHistoricalCandles(
   symbol: MarketSymbol,
   interval: string
-): Promise<{ candles: Candle[]; isLiveBinance: boolean }> {
+): Promise<{ candles: Candle[]; isLiveBinance: boolean; source: string; updatedAt: number }> {
   return loadMarketData(symbol, interval);
+}
+
+export async function fetchMarketQuotes(symbols: MarketSymbol[]): Promise<MarketQuote[]> {
+  const uniqueSymbols = Array.from(new Set(symbols.map((symbol) => symbol.symbol))).filter(Boolean);
+  if (uniqueSymbols.length === 0) return [];
+
+  const params = new URLSearchParams({
+    symbols: uniqueSymbols.join(",")
+  });
+
+  const response = await fetch(`/api/market/quote?${params.toString()}`, {
+    headers: { Accept: "application/json" }
+  });
+
+  if (!response.ok) {
+    const detail = await response.text().catch(() => "");
+    throw new Error(`Failed loading market quotes. ${detail.slice(0, 160)}`);
+  }
+
+  const data = await response.json() as QuoteGatewayResponse;
+  const quotes = Array.isArray(data.quotes) ? data.quotes : [];
+
+  return quotes.filter((quote) => (
+    typeof quote.symbol === "string" &&
+    Number.isFinite(quote.price) &&
+    Number.isFinite(quote.change24h) &&
+    Number.isFinite(quote.volume24h)
+  ));
 }
 
 export function subscribeRealtime(
@@ -172,5 +205,6 @@ export function subscribeRealtime(
 
 export const safeMarketDataService = {
   getHistoricalCandles,
-  subscribeRealtime
+  subscribeRealtime,
+  fetchMarketQuotes
 };

@@ -41,21 +41,41 @@ Current deployment:
 - Web: `https://prism-edge-web-v3kyxd4wea-de.a.run.app`
 - API: `https://prism-edge-api-v3kyxd4wea-de.a.run.app`
 
-## Cloudflare DNS
+## Cloudflare DNS And Cache
 
 Use Cloudflare for `msirprism.com` DNS.
 
-If you use Cloud Run's generated URL directly, add a redirect/page rule in Cloudflare from `msirprism.com` to the Cloud Run URL.
-
-If you map the custom domain in Google Cloud Run, Cloud Run will provide DNS records. Add those records in Cloudflare DNS for:
+Map the custom domain in Google Cloud Run first. Cloud Run will provide DNS records. Add those records in Cloudflare DNS for:
 
 - `msirprism.com`
 - `www.msirprism.com`
 
-Use proxied DNS only after the Cloud Run domain mapping is verified.
+Recommended DNS mode:
+
+- `msirprism.com`: proxied after Google certificate provisioning is complete.
+- `www.msirprism.com`: DNS only while Google domain mapping is still provisioning; proxied is safe after the origin works on HTTPS.
+- SSL/TLS mode: Full or Full (strict) once Cloud Run certificate is active. A 525 usually means Cloudflare is proxying before the origin certificate path is ready.
+
+Cache policy:
+
+- HTML shell: `Cache-Control: no-cache, max-age=0, must-revalidate`.
+- `/api/*`: `Cache-Control: no-store, max-age=0`.
+- `/assets/*`: `Cache-Control: public, max-age=31536000, immutable`.
+
+When testing Cloudflare changes, use a cache-busting query such as:
+
+```text
+https://msirprism.com/?v=<commit-sha>
+```
 
 Create Cloud Run domain mappings and print the DNS records:
 
 ```powershell
 .\scripts\map-domain-gcp.ps1 -Region asia-east1
+```
+
+Check the live domain, Cloud Run service URL, and cache headers:
+
+```powershell
+.\scripts\check-live.ps1
 ```

@@ -63,4 +63,9 @@ npm run api:check
 
 The frontend calls `POST /api/analysis/run`. During development, the Node web gateway forwards that call to FastAPI through `API_BASE_URL` and falls back to a local same-shape response if the backend is not running.
 
-Live Binance calls are disabled by default so the first development phase stays on controlled sample/simulated data. Set `VITE_ENABLE_LIVE_BINANCE=true` only when you are ready to test real market data.
+Market data flows through the Node gateway:
+
+- `GET /api/market/klines` for candle history.
+- `GET /api/market/quote` for latest quote, 24h change, volume, source, and live/simulated state.
+
+Crypto markets use live gateway data when available. Stocks, forex, and internal Prism symbols keep an explicit simulated fallback until dedicated market vendors are connected.

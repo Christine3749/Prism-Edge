@@ -1,7 +1,8 @@
 import React, { useEffect, useRef, useState, useCallback } from "react";
 import { createChart, IChartApi, ISeriesApi, LineStyle, UTCTimestamp, CandlestickSeries, LineSeries, AreaSeries, BarSeries, HistogramSeries } from "lightweight-charts";
 import { 
-  MarketSymbol, Candle, IndicatorConfig, DrawingTool, DrawingBase, AppSettings, DrawingPoint
+  MarketSymbol, Candle, IndicatorConfig, DrawingTool, DrawingBase, AppSettings, DrawingPoint,
+  MarketDataStatus, AnalysisRunResponse
 } from "../../shared/src/types";
 import { 
   calculateSMA, calculateEMA, calculateBollingerBands, calculateRSI, calculateMACD, calculateVWAP
@@ -18,6 +19,8 @@ interface ChartContainerProps {
   settings: AppSettings;
   currentTimeframe: string;
   chartType: string;
+  marketStatus?: MarketDataStatus;
+  analysisResult?: AnalysisRunResponse | null;
 }
 
 function ChartWatermark() {
@@ -95,7 +98,9 @@ export default function ChartContainer({
   onUpdateDrawings,
   settings,
   currentTimeframe,
-  chartType
+  chartType,
+  marketStatus,
+  analysisResult
 }: ChartContainerProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mainChartRef = useRef<HTMLDivElement>(null);
@@ -114,6 +119,7 @@ export default function ChartContainer({
     ? (candleChange / previousCandle.close) * 100
     : 0;
   const ohlcTone = candleChange >= 0 ? "text-teal-400" : "text-rose-400";
+  const dataState = marketStatus?.state || (candles.length > 0 ? "live" : "loading");
 
   useEffect(() => {
     if (!containerRef.current || !mainChartRef.current) return;
@@ -139,12 +145,24 @@ export default function ChartContainer({
       layout: {
         background: { color: settings.solidBackground ? "#020617" : "transparent" },
         textColor: themeColors.text,
-        fontFamily: "Inter, sans-serif",
+        fontFamily: "Inter, ui-monospace, sans-serif",
         attributionLogo: false,
       },
+      crosshair: {
+        vertLine: {
+          color: "rgba(148, 163, 184, 0.42)",
+          style: LineStyle.Dashed,
+          labelBackgroundColor: "#0f172a"
+        },
+        horzLine: {
+          color: "rgba(148, 163, 184, 0.42)",
+          style: LineStyle.Dashed,
+          labelBackgroundColor: "#0f172a"
+        }
+      },
       grid: {
-        vertLines: { color: settings.gridLines ? "rgba(30, 41, 59, 0.72)" : "transparent" },
-        horzLines: { color: settings.gridLines ? "rgba(30, 41, 59, 0.72)" : "transparent" },
+        vertLines: { color: settings.gridLines ? "rgba(30, 41, 59, 0.62)" : "transparent" },
+        horzLines: { color: settings.gridLines ? "rgba(30, 41, 59, 0.62)" : "transparent" },
       },
       timeScale: {
         borderColor: "#1e293b",
@@ -244,6 +262,26 @@ export default function ChartContainer({
           });
           smaLine.setData(smaData as any[]);
         }
+      }
+
+      if (candles.some((candle) => candle.volume > 0)) {
+        const volumeSeries = chart.addSeries(HistogramSeries, {
+          priceFormat: { type: "volume" },
+          priceScaleId: "",
+          lastValueVisible: false,
+          priceLineVisible: false
+        } as any);
+        (volumeSeries as any).priceScale?.().applyOptions({
+          scaleMargins: {
+            top: 0.82,
+            bottom: 0
+          }
+        });
+        volumeSeries.setData(candles.map((candle) => ({
+          time: candle.time as UTCTimestamp,
+          value: candle.volume,
+          color: candle.close >= candle.open ? `${settings.upColor}44` : `${settings.downColor}44`
+        })) as any[]);
       }
 
       if (indicatorConfig.ema.active) {
@@ -487,6 +525,19 @@ export default function ChartContainer({
         </div>
       )}
 
+      {dataState === "loading" && (
+        <div className="pointer-events-none absolute inset-x-0 top-16 z-20 mx-auto flex w-fit items-center gap-2 rounded border border-sky-500/20 bg-slate-950/80 px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest text-sky-300 shadow-lg backdrop-blur-sm">
+          <span className="h-3 w-3 rounded-full border-2 border-sky-300 border-t-transparent animate-spin"></span>
+          Loading market candles
+        </div>
+      )}
+
+      {dataState === "stale" && (
+        <div className="pointer-events-none absolute inset-x-0 top-16 z-20 mx-auto flex w-fit items-center gap-2 rounded border border-orange-500/20 bg-slate-950/80 px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest text-orange-300 shadow-lg backdrop-blur-sm">
+          Data delayed · {marketStatus?.source || "gateway"}
+        </div>
+      )}
+
       <div 
         className="w-full shrink-0 relative bg-slate-950 border-t border-slate-900" 
         ref={oscillatorChartRef}
@@ -666,6 +717,66 @@ export default function ChartContainer({
           }
 
           return null;
+        })}
+
+        {analysisResult?.levels.support.map((level, index) => {
+          if (!mainSeries) return null;
+          const y = mainSeries.priceToCoordinate(level);
+          if (y === null) return null;
+          return (
+            <g key={`support-${level}-${index}`}>
+              <line x1="0" y1={y} x2="5000" y2={y} stroke="#14b8a6" strokeWidth="1" strokeDasharray="6 5" opacity="0.55" />
+              <text x="12" y={y - 5} fill="#2dd4bf" className="text-[9px] font-mono font-bold">
+                S {level.toFixed(currentSymbol.precision)}
+              </text>
+            </g>
+          );
+        })}
+
+        {analysisResult?.levels.resistance.map((level, index) => {
+          if (!mainSeries) return null;
+          const y = mainSeries.priceToCoordinate(level);
+          if (y === null) return null;
+          return (
+            <g key={`resistance-${level}-${index}`}>
+              <line x1="0" y1={y} x2="5000" y2={y} stroke="#fb7185" strokeWidth="1" strokeDasharray="6 5" opacity="0.55" />
+              <text x="12" y={y - 5} fill="#fb7185" className="text-[9px] font-mono font-bold">
+                R {level.toFixed(currentSymbol.precision)}
+              </text>
+            </g>
+          );
+        })}
+
+        {analysisResult?.signals.map((signal, index) => {
+          const coord = getCoordinates({ time: signal.time, price: signal.price });
+          if (!coord) return null;
+          const isBuy = signal.type === "buy";
+          const isSell = signal.type === "sell";
+          const color = isBuy ? "#22c55e" : isSell ? "#f43f5e" : "#f59e0b";
+          const label = isBuy ? "BUY" : isSell ? "SELL" : "WATCH";
+          const labelWidth = label.length * 7 + 10;
+          const shouldFlipLabel = coord.x > ((containerRef.current?.clientWidth || 0) - labelWidth - 36);
+          const labelX = shouldFlipLabel ? coord.x - labelWidth - 8 : coord.x + 8;
+          const textX = shouldFlipLabel ? labelX + 5 : coord.x + 13;
+          return (
+            <g key={`signal-${signal.time}-${index}`}>
+              <circle cx={coord.x} cy={coord.y} r="6" fill="#020617" stroke={color} strokeWidth="2" />
+              <path
+                d={isSell
+                  ? `M ${coord.x - 4} ${coord.y - 1} L ${coord.x} ${coord.y + 4} L ${coord.x + 4} ${coord.y - 1}`
+                  : `M ${coord.x - 4} ${coord.y + 1} L ${coord.x} ${coord.y - 4} L ${coord.x + 4} ${coord.y + 1}`}
+                fill="none"
+                stroke={color}
+                strokeWidth="1.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+              <rect x={labelX} y={coord.y - 11} width={labelWidth} height="18" rx="4" fill="#020617" stroke={color} strokeWidth="1" opacity="0.96" />
+              <text x={textX} y={coord.y + 2} fill={color} className="text-[9px] font-mono font-black">
+                {label}
+              </text>
+            </g>
+          );
         })}
 
         {currentDrawing && (() => {

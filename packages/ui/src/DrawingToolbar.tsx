@@ -181,7 +181,7 @@ export default function DrawingToolbar({
       </div>
 
       {/* Mobile Floating Horizontal Tool Tray (Visible ONLY on Mobile) */}
-      <div className="sm:hidden fixed bottom-14 left-1/2 -translate-x-1/2 bg-slate-950/95 backdrop-blur-md border border-slate-800 px-3 py-1.5 rounded-full flex items-center gap-1.5 shadow-2xl z-40 max-w-[95%] overflow-x-auto no-scrollbar">
+      <div className="sm:hidden fixed bottom-[calc(24vh+0.75rem)] left-1/2 -translate-x-1/2 bg-slate-950/95 backdrop-blur-md border border-slate-800 px-3 py-1.5 rounded-full flex items-center gap-1.5 shadow-2xl z-40 max-w-[95%] overflow-x-auto no-scrollbar">
         {tools.map((t) => {
           const isActive = activeTool === t.id;
           const texts = getToolText(t.id);

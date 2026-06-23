@@ -35,6 +35,16 @@ interface AnalysisBody {
   indicators?: unknown;
 }
 
+interface MarketQuotePayload {
+  symbol: string;
+  price: number;
+  change24h: number;
+  volume24h: number;
+  source: string;
+  updatedAt: number;
+  isLive: boolean;
+}
+
 type BinanceKline = [
   number,
   string,
@@ -58,6 +68,20 @@ const BINANCE_ENDPOINTS = [
 ];
 
 const marketCache = new Map<string, { expiresAt: number; payload: unknown }>();
+
+const FALLBACK_QUOTES: Record<string, Omit<MarketQuotePayload, "source" | "updatedAt" | "isLive">> = {
+  BTCUSDT: { symbol: "BTCUSDT", price: 65420.5, change24h: 2.45, volume24h: 1845020000 },
+  ETHUSDT: { symbol: "ETHUSDT", price: 3450.75, change24h: -1.15, volume24h: 924850000 },
+  SOLUSDT: { symbol: "SOLUSDT", price: 142.1, change24h: 5.62, volume24h: 420910000 },
+  PRISMUSDT: { symbol: "PRISMUSDT", price: 12.85, change24h: 12.4, volume24h: 89000000 },
+  TSLA: { symbol: "TSLA", price: 178.45, change24h: 1.84, volume24h: 89450000 },
+  AAPL: { symbol: "AAPL", price: 214.3, change24h: -0.42, volume24h: 52100000 },
+  NVDA: { symbol: "NVDA", price: 124.8, change24h: 7.15, volume24h: 145200000 },
+  MSFT: { symbol: "MSFT", price: 428.15, change24h: -0.22, volume24h: 22100000 },
+  EURUSD: { symbol: "EURUSD", price: 1.0845, change24h: 0.12, volume24h: 310000000 },
+  USDJPY: { symbol: "USDJPY", price: 158.35, change24h: 0.42, volume24h: 410000000 },
+  GBPUSD: { symbol: "GBPUSD", price: 1.2825, change24h: -0.05, volume24h: 180000000 }
+};
 
 app.use("/api", (_req, res, next) => {
   res.setHeader("Cache-Control", API_CACHE_CONTROL);
@@ -163,6 +187,46 @@ async function fetchBinanceKlines(symbol: string, interval: string, limit: numbe
   throw new Error(errors.join(" | ") || "All Binance endpoints failed.");
 }
 
+async function fetchBinanceQuote(symbol: string): Promise<MarketQuotePayload> {
+  const errors: string[] = [];
+
+  for (const baseUrl of BINANCE_ENDPOINTS) {
+    const url = `${baseUrl}/api/v3/ticker/24hr?symbol=${encodeURIComponent(symbol)}`;
+    try {
+      const response = await fetch(url, { signal: AbortSignal.timeout(3500) });
+      const text = await response.text();
+
+      if (!response.ok) {
+        errors.push(`${baseUrl}: ${response.status} ${text.slice(0, 120)}`);
+        continue;
+      }
+
+      const data = JSON.parse(text);
+      const price = Number(data.lastPrice);
+      const change24h = Number(data.priceChangePercent);
+      const volume24h = Number(data.quoteVolume || data.volume);
+
+      if (![price, change24h, volume24h].every(Number.isFinite)) {
+        throw new Error("Binance quote response missing numeric fields.");
+      }
+
+      return {
+        symbol,
+        price,
+        change24h,
+        volume24h,
+        source: "binance",
+        updatedAt: Date.now(),
+        isLive: true
+      };
+    } catch (error: any) {
+      errors.push(`${baseUrl}: ${error?.message || String(error)}`);
+    }
+  }
+
+  throw new Error(errors.join(" | ") || "All Binance quote endpoints failed.");
+}
+
 async function fetchCoinbaseKlines(symbol: string, interval: string, limit: number) {
   const productId = toCoinbaseProductId(symbol);
   const granularity = toCoinbaseGranularity(interval);
@@ -220,6 +284,24 @@ async function fetchMarketKlines(symbol: string, interval: string, limit: number
   }
 
   throw new Error(errors.join(" | "));
+}
+
+async function fetchMarketQuote(symbol: string): Promise<MarketQuotePayload> {
+  try {
+    return await fetchBinanceQuote(symbol);
+  } catch (error) {
+    const fallback = FALLBACK_QUOTES[symbol];
+    if (!fallback) throw error;
+
+    const noise = 1 + (Math.random() - 0.5) * 0.002;
+    return {
+      ...fallback,
+      price: Number((fallback.price * noise).toFixed(symbol.includes("USD") && !symbol.endsWith("USDT") ? 5 : 4)),
+      source: "simulated",
+      updatedAt: Date.now(),
+      isLive: false
+    };
+  }
 }
 
 function computeLocalAnalysis(body: AnalysisBody) {
@@ -347,6 +429,38 @@ app.get("/api/market/klines", async (req, res) => {
       detail: error?.message || String(error)
     });
   }
+});
+
+app.get("/api/market/quote", async (req, res) => {
+  const rawSymbols = String(req.query.symbols || req.query.symbol || "").toUpperCase();
+  const symbols = rawSymbols
+    .split(",")
+    .map((item) => item.trim())
+    .filter(Boolean)
+    .slice(0, 30);
+
+  if (symbols.length === 0 || symbols.some((symbol) => !/^[A-Z0-9]{2,24}$/.test(symbol))) {
+    return res.status(400).json({ error: "Invalid market symbol list." });
+  }
+
+  const cacheKey = `quote:${symbols.sort().join(",")}`;
+  const cached = marketCache.get(cacheKey);
+  if (cached && cached.expiresAt > Date.now()) {
+    return res.json(cached.payload);
+  }
+
+  const quotes = await Promise.all(symbols.map((symbol) => fetchMarketQuote(symbol)));
+  const payload = {
+    quotes,
+    updatedAt: Date.now()
+  };
+
+  marketCache.set(cacheKey, {
+    expiresAt: Date.now() + 3000,
+    payload
+  });
+
+  return res.json(payload);
 });
 
 app.post("/api/analysis/run", async (req, res) => {

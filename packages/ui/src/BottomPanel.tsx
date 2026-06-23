@@ -9,7 +9,8 @@ import {
   MarketSymbol,
   Candle,
   OrderBookItem,
-  NewsItem
+  NewsItem,
+  MarketDataStatus
 } from "../../shared/src/types";
 import { generateOrderBook, generateMarketTrades, MarketTrade } from "../../shared/src/mockMarketData";
 import { Language, useTranslation } from "../../shared/src/translations";
@@ -20,6 +21,8 @@ interface BottomPanelProps {
   activeIndicators: any;
   timeframe: string;
   lang: Language;
+  marketStatus?: MarketDataStatus;
+  onAnalysisResult?: (result: AnalysisRunResponse | null) => void;
 }
 
 export default function BottomPanel({
@@ -27,7 +30,9 @@ export default function BottomPanel({
   candles,
   activeIndicators,
   timeframe,
-  lang
+  lang,
+  marketStatus,
+  onAnalysisResult
 }: BottomPanelProps) {
   const t = useTranslation(lang);
   const [activeTab, setActiveTab] = useState<"book" | "trades" | "news" | "ai">("book");
@@ -162,6 +167,7 @@ export default function BottomPanel({
         const data = await response.json() as AnalysisRunResponse & { serviceFallback?: boolean };
         setAiAnalysis(formatAnalysisResponse(data));
         setAnalysisServiceFallback(Boolean(data.serviceFallback || data.meta?.engine.includes("fallback")));
+        onAnalysisResult?.(data);
       } else {
         throw new Error("Analysis failed");
       }
@@ -172,6 +178,7 @@ export default function BottomPanel({
           ? "量化模型接口連接超時。當前使用前端離線保護提示：結構暫按震盪處理，等待突破或回踩確認。"
           : "Quant model interface timeout. Frontend safety fallback: structure is treated as range-bound until breakout or pullback confirmation.");
       setAnalysisServiceFallback(true);
+      onAnalysisResult?.(null);
     } finally {
       setAiLoading(false);
     }
@@ -307,7 +314,7 @@ export default function BottomPanel({
 
         <div className="flex shrink-0 items-center gap-2">
           <div className="text-[9px] uppercase font-mono font-bold tracking-widest text-slate-500 hidden lg:block">
-            Prism Console
+            Prism Console · {marketStatus?.state || "feed"}
           </div>
           <button 
             onClick={() => setCollapsed(!collapsed)}
