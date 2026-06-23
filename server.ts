@@ -20,7 +20,7 @@ const PORT = Number(process.env.PORT || 3000);
 const API_BASE_URL = process.env.API_BASE_URL || "http://127.0.0.1:8000";
 const API_CACHE_CONTROL = "no-store, max-age=0";
 const HTML_CACHE_CONTROL = "no-cache, max-age=0, must-revalidate";
-const STATIC_ASSET_CACHE_CONTROL = "public, max-age=31536000, immutable";
+const STATIC_ASSET_CACHE_CONTROL = "public, max-age=300, stale-while-revalidate=86400";
 
 type Trend = "bullish" | "bearish" | "neutral";
 type SignalType = "buy" | "sell" | "watch";
@@ -1074,8 +1074,7 @@ async function bootstrap() {
     const distPath = path.join(process.cwd(), "dist");
 
     app.use("/assets", express.static(path.join(distPath, "assets"), {
-      immutable: true,
-      maxAge: "1y",
+      maxAge: "5m",
       setHeaders: (res) => {
         res.setHeader("Cache-Control", STATIC_ASSET_CACHE_CONTROL);
       }
