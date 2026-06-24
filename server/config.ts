@@ -3,6 +3,8 @@ import type { MarketQuotePayload } from "./types";
 
 export const PORT = Number(process.env.PORT || 3000);
 export const API_BASE_URL = process.env.API_BASE_URL || "http://127.0.0.1:8000";
+export const INTERNAL_API_KEY = process.env.INTERNAL_API_KEY || "";
+export const ANALYSIS_RATE_LIMIT = Number(process.env.ANALYSIS_RATE_LIMIT || 20);
 export const API_CACHE_CONTROL = "no-store, max-age=0";
 export const HTML_CACHE_CONTROL = "no-cache, max-age=0, must-revalidate";
 export const STATIC_ASSET_CACHE_CONTROL = "public, max-age=300, stale-while-revalidate=86400";

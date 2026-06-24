@@ -6,8 +6,9 @@ import {
 import type { MarketSymbol } from "../packages/shared/src/types";
 import { computeLocalAnalysis } from "./analysisFallback";
 import { computeLocalBacktest } from "./backtestFallback";
-import { API_CACHE_CONTROL, MAX_QUOTE_SYMBOLS } from "./config";
+import { ANALYSIS_RATE_LIMIT, API_CACHE_CONTROL, INTERNAL_API_KEY, MAX_QUOTE_SYMBOLS } from "./config";
 import { clamp } from "./math";
+import { checkRateLimit } from "./rateLimiter";
 import {
   isValidMarketSymbol,
   normalizeMarketSymbol,
@@ -105,6 +106,11 @@ export function registerApiRoutes(app: Express, apiBaseUrl: string) {
   });
 
   app.post("/api/analysis/run", async (req, res) => {
+    const clientIp = String(req.headers["x-forwarded-for"] || req.socket.remoteAddress || "unknown");
+    if (!checkRateLimit(`analysis:${clientIp}`, ANALYSIS_RATE_LIMIT)) {
+      return res.status(429).json({ error: "Rate limit exceeded. Please wait before running another analysis." });
+    }
+
     const upstreamUrl = `${apiBaseUrl}/api/analysis/run`;
 
     try {
@@ -112,7 +118,7 @@ export function registerApiRoutes(app: Express, apiBaseUrl: string) {
       const timeout = setTimeout(() => controller.abort(), 2500);
       const response = await fetch(upstreamUrl, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: buildInternalHeaders(),
         body: JSON.stringify(req.body),
         signal: controller.signal
       });
@@ -165,9 +171,20 @@ export function registerApiRoutes(app: Express, apiBaseUrl: string) {
   });
 }
 
+function buildInternalHeaders(extra: Record<string, string> = {}): Record<string, string> {
+  return {
+    "Content-Type": "application/json",
+    ...(INTERNAL_API_KEY ? { "X-Internal-Key": INTERNAL_API_KEY } : {}),
+    ...extra,
+  };
+}
+
 async function proxyGet(res: any, upstreamUrl: string) {
   try {
-    const response = await fetch(upstreamUrl, { signal: AbortSignal.timeout(2500) });
+    const response = await fetch(upstreamUrl, {
+      headers: INTERNAL_API_KEY ? { "X-Internal-Key": INTERNAL_API_KEY } : {},
+      signal: AbortSignal.timeout(2500),
+    });
     const contentType = response.headers.get("content-type") || "application/json";
     const text = await response.text();
     return res.status(response.status).type(contentType).send(text);
@@ -213,7 +230,7 @@ async function proxyJsonPostOrThrow(
   try {
     const response = await fetch(upstreamUrl, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: buildInternalHeaders(),
       body: JSON.stringify(body),
       signal: AbortSignal.timeout(timeoutMs)
     });

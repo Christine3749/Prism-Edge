@@ -1,10 +1,17 @@
-from fastapi import FastAPI, HTTPException
+import os
+
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 
 from services.api.app.routes.quant import router as quant_router
 from services.api.app.schemas import AnalysisRunRequest, AnalysisRunResponse
 from services.quant.prism_edge_quant.engine import run_analysis
 
+
+INTERNAL_API_KEY = os.getenv("INTERNAL_API_KEY", "")
+
+_PUBLIC_PATHS = {"/api/health", "/docs", "/openapi.json", "/redoc"}
 
 app = FastAPI(
     title="Prism-Edge Quant API",
@@ -28,6 +35,15 @@ app.add_middleware(
 )
 
 
+@app.middleware("http")
+async def verify_internal_key(request: Request, call_next):
+    if not INTERNAL_API_KEY or request.url.path in _PUBLIC_PATHS:
+        return await call_next(request)
+    if request.headers.get("X-Internal-Key", "") != INTERNAL_API_KEY:
+        return JSONResponse({"detail": "Unauthorized"}, status_code=401)
+    return await call_next(request)
+
+
 @app.get("/api/health")
 def health_check():
     return {
@@ -35,6 +51,7 @@ def health_check():
         "service": "prism-edge-api",
         "quantAdapter": "prism-edge-technical-v1",
         "dgwmAdapter": "dgwm-prism-adapter-v0",
+        "auth": "enabled" if INTERNAL_API_KEY else "disabled",
     }
 
 

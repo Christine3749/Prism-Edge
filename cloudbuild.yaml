@@ -4,6 +4,9 @@ substitutions:
   _WEB_SERVICE: prism-edge-web
   _API_SERVICE: prism-edge-api
   _APP_URL: https://msirprism.com
+  # Set via --substitutions on deploy or in Cloud Build trigger variables.
+  # Leave empty to disable internal auth (dev/staging only).
+  _INTERNAL_API_KEY: ""
 
 steps:
   - name: gcr.io/google.com/cloudsdktool/cloud-sdk:slim
@@ -51,16 +54,28 @@ steps:
     args:
       - -lc
       - |
+        # Build env-var flags conditionally so empty values are not passed
+        API_ENV_VARS="DGWM_ROOT="
+        if [ -n "${_INTERNAL_API_KEY}" ]; then
+          API_ENV_VARS="$$API_ENV_VARS,INTERNAL_API_KEY=${_INTERNAL_API_KEY}"
+        fi
+
         gcloud run deploy ${_API_SERVICE} \
           --image=${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPOSITORY}/api:$BUILD_ID \
           --region=${_REGION} \
           --platform=managed \
-          --allow-unauthenticated
+          --allow-unauthenticated \
+          --set-env-vars="$$API_ENV_VARS"
 
         API_URL=$(gcloud run services describe ${_API_SERVICE} \
           --region=${_REGION} \
           --platform=managed \
           --format='value(status.url)')
+
+        WEB_ENV_VARS="API_BASE_URL=$$API_URL,APP_URL=${_APP_URL}"
+        if [ -n "${_INTERNAL_API_KEY}" ]; then
+          WEB_ENV_VARS="$$WEB_ENV_VARS,INTERNAL_API_KEY=${_INTERNAL_API_KEY}"
+        fi
 
         gcloud run deploy ${_WEB_SERVICE} \
           --image=${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPOSITORY}/web:$BUILD_ID \
@@ -69,7 +84,8 @@ steps:
           --allow-unauthenticated \
           --min-instances=1 \
           --cpu-boost \
-          --set-env-vars=API_BASE_URL=$$API_URL,APP_URL=${_APP_URL}
+          --timeout=3600 \
+          --set-env-vars="$$WEB_ENV_VARS"
 
 images:
   - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPOSITORY}/api:$BUILD_ID

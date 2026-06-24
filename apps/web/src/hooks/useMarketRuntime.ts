@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useRef } from "react";
-import { timeframeToSeconds } from "@shared/mockMarketData";
-import { fetchMarketQuotes, loadMarketData, subscribeRealtime } from "@shared/marketDataService";
+import { fetchMarketQuotes, loadMarketData, subscribeRealtime, updateCandlesFromTick } from "@shared/marketDataService";
 import type {
   AnalysisRunResponse,
   Candle,
@@ -255,33 +254,3 @@ export function useMarketRuntime(params: UseMarketRuntimeParams) {
   }, [currentSymbol.id, currentSymbol.symbol, currentSymbol.type, currentSymbol.precision, timeframe, candles.length, updateSymbolsListPrice]);
 }
 
-function updateCandlesFromTick(prevCandles: Candle[], tick: any, precision: number, timeframe: string) {
-  if (prevCandles.length === 0) return prevCandles;
-  const lastCandle = prevCandles[prevCandles.length - 1];
-  const secStep = timeframeToSeconds(timeframe);
-  const candleTime = Math.floor(tick.time / secStep) * secStep;
-  const close = Number(tick.close.toFixed(precision));
-
-  if (candleTime > lastCandle.time) {
-    const open = tick.isLive ? tick.open : lastCandle.close;
-    const updatedCandle: Candle = {
-      time: candleTime,
-      open,
-      high: Number(Math.max(open, tick.high, close).toFixed(precision)),
-      low: Number(Math.min(open, tick.low, close).toFixed(precision)),
-      close,
-      volume: tick.volume
-    };
-    return [...prevCandles.slice(1), updatedCandle];
-  }
-
-  if (candleTime < lastCandle.time) return prevCandles;
-  const updatedCandle: Candle = {
-    ...lastCandle,
-    high: Number(Math.max(lastCandle.high, tick.high, close).toFixed(precision)),
-    low: Number(Math.min(lastCandle.low, tick.low, close).toFixed(precision)),
-    close,
-    volume: tick.isLive ? tick.volume : lastCandle.volume + tick.volume
-  };
-  return [...prevCandles.slice(0, -1), updatedCandle];
-}
