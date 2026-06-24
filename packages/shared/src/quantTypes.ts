@@ -62,6 +62,11 @@ export interface QuantHealth {
   exists: boolean;
   importable: boolean;
   files: Record<string, boolean>;
+  runtime?: {
+    python: string;
+    pythonExists: boolean;
+    registryImportable: boolean;
+  };
 }
 
 export interface QuantBacktestDecision {
@@ -84,4 +89,13 @@ export interface QuantBacktestReport {
   maxDrawdown: number;
   decisions: QuantBacktestDecision[];
   serviceFallback?: boolean;
+}
+
+export interface QuantRuntimeDiagnostic {
+  accepted: boolean;
+  exitCode: number;
+  elapsedMs: number;
+  metrics: Record<string, unknown>;
+  failure: Record<string, unknown>;
+  files: Record<string, string>;
 }

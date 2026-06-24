@@ -2,6 +2,7 @@ import type {
   NetRewardBreakdown,
   QuantDiagnostics,
   QuantRegime,
+  QuantRuntimeDiagnostic,
   TradePermission
 } from "./quantTypes";
 
@@ -14,6 +15,7 @@ export type {
   QuantDiagnostics,
   QuantHealth,
   QuantRegime,
+  QuantRuntimeDiagnostic,
   TradePermission,
   TradePermissionMode
 } from "./quantTypes";
@@ -104,6 +106,7 @@ export interface AnalysisRunResponse {
   netReward?: NetRewardBreakdown;
   tradePermission?: TradePermission;
   diagnostics?: QuantDiagnostics;
+  runtimeDiagnostic?: QuantRuntimeDiagnostic;
   signals: AnalysisSignal[];
   levels: AnalysisLevels;
   summary: string;

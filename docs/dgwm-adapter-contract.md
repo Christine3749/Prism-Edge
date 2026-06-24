@@ -90,7 +90,7 @@ POST /api/quant/state/compile
 POST /api/quant/decision/run
 ```
 
-返回 `AnalysisResult v2` 加：
+默认返回 `AnalysisResult v2` 加：
 
 ```json
 {
@@ -102,6 +102,38 @@ POST /api/quant/decision/run
   "state": {}
 }
 ```
+
+如果请求里加入：
+
+```json
+{
+  "context": {
+    "dgwmRuntime": "diagnostic"
+  }
+}
+```
+
+adapter 会通过 DGWM `.venv` 执行真实：
+
+```text
+python -m cli.quant quant-diagnostic
+```
+
+返回会额外包含：
+
+```json
+{
+  "runtimeDiagnostic": {
+    "accepted": false,
+    "exitCode": 2,
+    "elapsedMs": 7400,
+    "failure": {},
+    "metrics": {}
+  }
+}
+```
+
+如果 DGWM runtime 拒绝当前样本，MSIR Prism 会把拒绝原因写入 `tradePermission.reasons`，并把交易许可降为 `manual_review`。
 
 ### Backtest
 

@@ -1,26 +1,32 @@
-import { Activity, FlaskConical, PlayCircle, ShieldCheck } from "lucide-react";
+import { Activity, FlaskConical, PlayCircle, Radar, ShieldCheck } from "lucide-react";
 import type { ReactNode } from "react";
-import type { QuantBacktestReport, QuantHealth } from "../../../shared/src/types";
+import type { QuantBacktestReport, QuantHealth, QuantRuntimeDiagnostic } from "../../../shared/src/types";
 import type { Language } from "../../../shared/src/translations";
 
 interface QuantLabPanelProps {
   health: QuantHealth | null;
   backtest: QuantBacktestReport | null;
+  runtimeDiagnostic?: QuantRuntimeDiagnostic | null;
   loading: boolean;
+  runtimeLoading: boolean;
   error: string;
   canRun: boolean;
   lang: Language;
   onRunBacktest: () => void;
+  onRunRuntime: () => void;
 }
 
 export function QuantLabPanel({
   health,
   backtest,
+  runtimeDiagnostic,
   loading,
+  runtimeLoading,
   error,
   canRun,
   lang,
-  onRunBacktest
+  onRunBacktest,
+  onRunRuntime
 }: QuantLabPanelProps) {
   const labels = getLabels(lang);
   const acceptedRate = backtest && backtest.sampleCount > 0
@@ -42,14 +48,24 @@ export function QuantLabPanel({
             </div>
           </div>
         </div>
-        <button
-          onClick={onRunBacktest}
-          disabled={!canRun || loading}
-          className="h-7 px-2 rounded border border-cyan-500/40 bg-cyan-500/10 text-cyan-200 text-[10px] font-bold flex items-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-cyan-500/20"
-        >
-          <PlayCircle className="h-3 w-3" />
-          <span>{loading ? labels.running : labels.run}</span>
-        </button>
+        <div className="flex items-center gap-1">
+          <button
+            onClick={onRunRuntime}
+            disabled={!canRun || runtimeLoading}
+            className="h-7 px-2 rounded border border-fuchsia-400/40 bg-fuchsia-500/10 text-fuchsia-200 text-[10px] font-bold flex items-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-fuchsia-500/20"
+          >
+            <Radar className="h-3 w-3" />
+            <span>{runtimeLoading ? labels.runtimeRunning : labels.runtime}</span>
+          </button>
+          <button
+            onClick={onRunBacktest}
+            disabled={!canRun || loading}
+            className="h-7 px-2 rounded border border-cyan-500/40 bg-cyan-500/10 text-cyan-200 text-[10px] font-bold flex items-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-cyan-500/20"
+          >
+            <PlayCircle className="h-3 w-3" />
+            <span>{loading ? labels.running : labels.run}</span>
+          </button>
+        </div>
       </div>
 
       <div className="grid grid-cols-2 lg:grid-cols-5 gap-2">
@@ -72,6 +88,13 @@ export function QuantLabPanel({
             {labels.adapterSource}: {backtest.adapter}
           </span>
           <span>{backtest.serviceFallback ? labels.fallback : labels.dgwm}</span>
+        </div>
+      )}
+
+      {runtimeDiagnostic && (
+        <div className={`text-[10px] rounded px-2 py-1 border ${runtimeDiagnostic.accepted ? "border-emerald-500/20 bg-emerald-500/10 text-emerald-200" : "border-fuchsia-500/20 bg-fuchsia-500/10 text-fuchsia-100"}`}>
+          {labels.runtime}: {runtimeDiagnostic.accepted ? labels.acceptedRuntime : labels.rejectedRuntime}
+          <span className="text-slate-400"> · {runtimeDiagnostic.elapsedMs}ms</span>
         </div>
       )}
 
@@ -113,6 +136,10 @@ function getLabels(lang: Language) {
     pending: zh ? "等待适配器状态" : "Waiting for adapter status",
     run: zh ? "跑回测" : "Backtest",
     running: zh ? "回测中" : "Running",
+    runtime: zh ? "真实诊断" : "Runtime",
+    runtimeRunning: zh ? "诊断中" : "Runtime",
+    acceptedRuntime: zh ? "已通过" : "accepted",
+    rejectedRuntime: zh ? "未放行" : "rejected",
     adapter: zh ? "适配器" : "Adapter",
     ready: zh ? "已连接" : "Ready",
     offline: zh ? "未连接" : "Offline",

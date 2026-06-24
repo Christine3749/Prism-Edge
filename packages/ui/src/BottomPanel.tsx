@@ -55,6 +55,7 @@ export default function BottomPanel({
   const [quantHealth, setQuantHealth] = useState<QuantHealth | null>(null);
   const [backtest, setBacktest] = useState<QuantBacktestReport | null>(null);
   const [backtestLoading, setBacktestLoading] = useState(false);
+  const [runtimeLoading, setRuntimeLoading] = useState(false);
   const [backtestError, setBacktestError] = useState("");
   const currentSymbolRef = useRef(currentSymbol);
 
@@ -189,6 +190,37 @@ export default function BottomPanel({
     }
   };
 
+  const handleRunRuntimeDiagnostic = async () => {
+    if (candles.length < 30) return;
+    setRuntimeLoading(true);
+    setBacktestError("");
+
+    try {
+      const response = await fetch("/api/quant/decision/run", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          symbol: currentSymbol.id,
+          interval: timeframe,
+          candles,
+          indicators: buildIndicatorList(activeIndicators),
+          source: "msir-prism-web",
+          provider: marketStatus?.provider || marketStatus?.source || "browser",
+          context: { dgwmRuntime: "diagnostic" }
+        })
+      });
+      if (!response.ok) throw new Error("DGWM runtime failed");
+      const data = await response.json() as AnalysisRunResponse;
+      setAiAnalysis(formatAnalysisResponse(data, currentSymbol, timeframe, lang));
+      setAnalysisServiceFallback(false);
+      onAnalysisResult?.(data);
+    } catch {
+      setBacktestError(getRuntimeFallbackText(lang));
+    } finally {
+      setRuntimeLoading(false);
+    }
+  };
+
   return (
     <div
       className={`border-t border-slate-800 bg-slate-950 flex flex-col justify-between shrink-0 z-30 transition-all duration-300 ${collapsed ? "h-8" : ""}`}
@@ -220,10 +252,12 @@ export default function BottomPanel({
               quantHealth={quantHealth}
               backtest={backtest}
               backtestLoading={backtestLoading}
+              runtimeLoading={runtimeLoading}
               backtestError={backtestError}
               lang={lang}
               onRunAnalysis={handleRunAiAnalysis}
               onRunBacktest={handleRunBacktest}
+              onRunRuntime={handleRunRuntimeDiagnostic}
             />
           )}
         </div>
@@ -258,4 +292,10 @@ function getBacktestFallbackText(lang: Language) {
   if (lang === "zh") return "回测接口暂不可用，请稍后重试。";
   if (lang === "tc") return "回測接口暫不可用，請稍後重試。";
   return "Backtest endpoint is unavailable. Please retry shortly.";
+}
+
+function getRuntimeFallbackText(lang: Language) {
+  if (lang === "zh") return "DGWM 真实诊断暂不可用，请确认 FastAPI 和 DGWM .venv 已启动。";
+  if (lang === "tc") return "DGWM 真實診斷暫不可用，請確認 FastAPI 和 DGWM .venv 已啟動。";
+  return "DGWM runtime diagnostic is unavailable. Check FastAPI and the DGWM .venv.";
 }

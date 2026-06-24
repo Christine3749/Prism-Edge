@@ -140,12 +140,12 @@ export function registerApiRoutes(app: Express, apiBaseUrl: string) {
   });
 
   app.post("/api/quant/decision/run", async (req, res) => {
-    return proxyJsonPost(res, `${apiBaseUrl}/api/quant/decision/run`, req.body);
+    return proxyJsonPost(res, `${apiBaseUrl}/api/quant/decision/run`, req.body, 150000);
   });
 
   app.post("/api/backtest/run", async (req, res) => {
     try {
-      return await proxyJsonPostOrThrow(res, `${apiBaseUrl}/api/backtest/run`, req.body, true);
+      return await proxyJsonPostOrThrow(res, `${apiBaseUrl}/api/backtest/run`, req.body, true, 30000);
     } catch {
       try {
         return res.json(computeLocalBacktest(req.body));
@@ -195,21 +195,27 @@ async function proxyQuantHealth(res: any, upstreamUrl: string) {
   }
 }
 
-async function proxyJsonPost(res: any, upstreamUrl: string, body: unknown) {
+async function proxyJsonPost(res: any, upstreamUrl: string, body: unknown, timeoutMs = 5000) {
   try {
-    return await proxyJsonPostOrThrow(res, upstreamUrl, body);
+    return await proxyJsonPostOrThrow(res, upstreamUrl, body, false, timeoutMs);
   } catch (error: any) {
     return res.status(502).json({ error: "FastAPI route unavailable.", detail: error?.message || String(error) });
   }
 }
 
-async function proxyJsonPostOrThrow(res: any, upstreamUrl: string, body: unknown, throwOnHttpError = false) {
+async function proxyJsonPostOrThrow(
+  res: any,
+  upstreamUrl: string,
+  body: unknown,
+  throwOnHttpError = false,
+  timeoutMs = 5000
+) {
   try {
     const response = await fetch(upstreamUrl, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),
-      signal: AbortSignal.timeout(5000)
+      signal: AbortSignal.timeout(timeoutMs)
     });
     const contentType = response.headers.get("content-type") || "application/json";
     const text = await response.text();

@@ -12,10 +12,12 @@ interface AiAnalysisTabProps {
   quantHealth: QuantHealth | null;
   backtest: QuantBacktestReport | null;
   backtestLoading: boolean;
+  runtimeLoading: boolean;
   backtestError: string;
   lang: Language;
   onRunAnalysis: () => void;
   onRunBacktest: () => void;
+  onRunRuntime: () => void;
 }
 
 export function AiAnalysisTab({
@@ -26,10 +28,12 @@ export function AiAnalysisTab({
   quantHealth,
   backtest,
   backtestLoading,
+  runtimeLoading,
   backtestError,
   lang,
   onRunAnalysis,
-  onRunBacktest
+  onRunBacktest,
+  onRunRuntime
 }: AiAnalysisTabProps) {
   return (
     <div className="h-full flex flex-col justify-between">
@@ -43,9 +47,11 @@ export function AiAnalysisTab({
           quantHealth={quantHealth}
           backtest={backtest}
           backtestLoading={backtestLoading}
+          runtimeLoading={runtimeLoading}
           backtestError={backtestError}
           lang={lang}
           onRunBacktest={onRunBacktest}
+          onRunRuntime={onRunRuntime}
         />
       ) : (
         <EmptyState lang={lang} onRunAnalysis={onRunAnalysis} />
@@ -76,8 +82,10 @@ function AnalysisOutput({
   quantHealth,
   backtest,
   backtestLoading,
+  runtimeLoading,
   backtestError,
   onRunBacktest,
+  onRunRuntime,
   lang
 }: {
   aiAnalysis: string;
@@ -86,8 +94,10 @@ function AnalysisOutput({
   quantHealth: QuantHealth | null;
   backtest: QuantBacktestReport | null;
   backtestLoading: boolean;
+  runtimeLoading: boolean;
   backtestError: string;
   onRunBacktest: () => void;
+  onRunRuntime: () => void;
   lang: Language;
 }) {
   return (
@@ -102,11 +112,14 @@ function AnalysisOutput({
       <QuantLabPanel
         health={quantHealth}
         backtest={backtest}
+        runtimeDiagnostic={analysisResult.runtimeDiagnostic}
         loading={backtestLoading}
+        runtimeLoading={runtimeLoading}
         error={backtestError}
         canRun={Boolean(analysisResult)}
         lang={lang}
         onRunBacktest={onRunBacktest}
+        onRunRuntime={onRunRuntime}
       />
       <div className="bg-slate-900 p-3 border border-slate-800 rounded-lg">
         <AiMarkdown text={aiAnalysis} />
