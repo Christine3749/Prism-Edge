@@ -130,6 +130,22 @@ export function registerApiRoutes(app: Express, apiBaseUrl: string) {
     }
   });
 
+  app.get("/api/quant/health", async (_req, res) => {
+    return proxyGet(res, `${apiBaseUrl}/api/quant/health`);
+  });
+
+  app.post("/api/quant/state/compile", async (req, res) => {
+    return proxyJsonPost(res, `${apiBaseUrl}/api/quant/state/compile`, req.body);
+  });
+
+  app.post("/api/quant/decision/run", async (req, res) => {
+    return proxyJsonPost(res, `${apiBaseUrl}/api/quant/decision/run`, req.body);
+  });
+
+  app.post("/api/backtest/run", async (req, res) => {
+    return proxyJsonPost(res, `${apiBaseUrl}/api/backtest/run`, req.body);
+  });
+
   app.get("/api/news", (req, res) => {
     const asset = (req.query.symbol as string) || "Crypto/Global";
     return res.json({ news: buildNewsItems(asset) });
@@ -138,6 +154,33 @@ export function registerApiRoutes(app: Express, apiBaseUrl: string) {
   app.use("/api", (_req, res) => {
     return res.status(404).json({ error: "API route not found." });
   });
+}
+
+async function proxyGet(res: any, upstreamUrl: string) {
+  try {
+    const response = await fetch(upstreamUrl, { signal: AbortSignal.timeout(2500) });
+    const contentType = response.headers.get("content-type") || "application/json";
+    const text = await response.text();
+    return res.status(response.status).type(contentType).send(text);
+  } catch (error: any) {
+    return res.status(502).json({ error: "FastAPI route unavailable.", detail: error?.message || String(error) });
+  }
+}
+
+async function proxyJsonPost(res: any, upstreamUrl: string, body: unknown) {
+  try {
+    const response = await fetch(upstreamUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+      signal: AbortSignal.timeout(5000)
+    });
+    const contentType = response.headers.get("content-type") || "application/json";
+    const text = await response.text();
+    return res.status(response.status).type(contentType).send(text);
+  } catch (error: any) {
+    return res.status(502).json({ error: "FastAPI route unavailable.", detail: error?.message || String(error) });
+  }
 }
 
 async function mergeYahooSearchResults(

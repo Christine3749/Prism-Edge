@@ -145,12 +145,14 @@ export function useMarketRuntime(params: UseMarketRuntimeParams) {
     const state = getFeedState(activeQuote.source, activeQuote.isLive);
     lastMarketUpdateRef.current = activeQuote.updatedAt || Date.now();
     setIsLiveBinanceActive(activeQuote.isLive);
-    setMarketStatus({
-      state,
-      source: activeQuote.source,
-      updatedAt: lastMarketUpdateRef.current,
-      message: activeQuote.isLive
-        ? "Real market quote stream."
+      setMarketStatus({
+        state,
+        source: activeQuote.source,
+        provider: activeSymbol.exchange || activeSymbol.market,
+        updatedAt: lastMarketUpdateRef.current,
+        freshnessMs: Date.now() - lastMarketUpdateRef.current,
+        message: activeQuote.isLive
+          ? "Real market quote stream."
         : state === "delayed"
           ? "Delayed market quote from public market provider."
           : "Fallback simulated quote."
@@ -180,7 +182,10 @@ export function useMarketRuntime(params: UseMarketRuntimeParams) {
       setMarketStatus({
         state,
         source: result.source,
+        provider: currentSymbol.exchange || currentSymbol.market,
         updatedAt: result.updatedAt,
+        latencyMs: result.latencyMs,
+        freshnessMs: Date.now() - result.updatedAt,
         message: result.isLiveBinance
           ? "Real candle gateway connected."
           : state === "delayed"
@@ -232,7 +237,9 @@ export function useMarketRuntime(params: UseMarketRuntimeParams) {
       setMarketStatus((prev) => ({
         state,
         source: tick.source || (tick.isLive ? (prev.source === "simulated" ? "binance" : prev.source) : "simulated"),
+        provider: currentSymbol.exchange || currentSymbol.market,
         updatedAt: lastMarketUpdateRef.current,
+        freshnessMs: 0,
         message: tick.isLive
           ? "Realtime candle gateway connected."
           : state === "delayed"

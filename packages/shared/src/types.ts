@@ -1,3 +1,20 @@
+import type {
+  NetRewardBreakdown,
+  QuantDiagnostics,
+  QuantRegime,
+  TradePermission
+} from "./quantTypes";
+
+export type {
+  DataLineage,
+  NetRewardBreakdown,
+  QuantDecision,
+  QuantDiagnostics,
+  QuantRegime,
+  TradePermission,
+  TradePermissionMode
+} from "./quantTypes";
+
 export interface MarketSymbol {
   id: string;
   symbol: string;
@@ -22,7 +39,10 @@ export type MarketDataState = "loading" | "live" | "delayed" | "simulated" | "st
 export interface MarketDataStatus {
   state: MarketDataState;
   source: string;
+  provider?: string;
   updatedAt?: number;
+  latencyMs?: number;
+  freshnessMs?: number;
   message?: string;
 }
 
@@ -73,7 +93,14 @@ export interface AnalysisRunRequest {
 
 export interface AnalysisRunResponse {
   trend: AnalysisTrend;
+  regime?: QuantRegime;
   confidence: number;
+  structuralError?: number;
+  spectralGap?: number;
+  bellmanResidual?: number;
+  netReward?: NetRewardBreakdown;
+  tradePermission?: TradePermission;
+  diagnostics?: QuantDiagnostics;
   signals: AnalysisSignal[];
   levels: AnalysisLevels;
   summary: string;

@@ -40,6 +40,8 @@ export interface KlinePayload {
   symbol: string;
   interval: string;
   source: string;
+  updatedAt: number;
+  isLive: boolean;
   candles: Candle[];
 }
 

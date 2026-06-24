@@ -1,4 +1,5 @@
 import { AlertTriangle, Play, Sparkles } from "lucide-react";
+import type { AnalysisRunResponse } from "../../../shared/src/types";
 import type { Language } from "../../../shared/src/translations";
 import { AiMarkdown } from "./AiMarkdown";
 
@@ -6,6 +7,7 @@ interface AiAnalysisTabProps {
   aiAnalysis: string;
   aiLoading: boolean;
   analysisServiceFallback: boolean;
+  analysisResult?: AnalysisRunResponse | null;
   lang: Language;
   onRunAnalysis: () => void;
 }
@@ -14,6 +16,7 @@ export function AiAnalysisTab({
   aiAnalysis,
   aiLoading,
   analysisServiceFallback,
+  analysisResult,
   lang,
   onRunAnalysis
 }: AiAnalysisTabProps) {
@@ -25,6 +28,7 @@ export function AiAnalysisTab({
         <AnalysisOutput
           aiAnalysis={aiAnalysis}
           analysisServiceFallback={analysisServiceFallback}
+          analysisResult={analysisResult}
           lang={lang}
         />
       ) : (
@@ -52,10 +56,12 @@ function LoadingState({ lang }: { lang: Language }) {
 function AnalysisOutput({
   aiAnalysis,
   analysisServiceFallback,
+  analysisResult,
   lang
 }: {
   aiAnalysis: string;
   analysisServiceFallback: boolean;
+  analysisResult?: AnalysisRunResponse | null;
   lang: Language;
 }) {
   return (
@@ -66,11 +72,97 @@ function AnalysisOutput({
           <span>{lang === "zh" ? "后端模型服务未连接或不可用，当前显示棱镜本地模拟接口输出。" : lang === "tc" ? "後端模型服務未連接或不可用，當前顯示稜鏡本地模擬接口輸出。" : "Backend model service is unavailable. Local Prism-Edge simulator output is shown."}</span>
         </div>
       )}
+      {analysisResult && <QuantSnapshot result={analysisResult} lang={lang} />}
       <div className="bg-slate-900 p-3 border border-slate-800 rounded-lg">
         <AiMarkdown text={aiAnalysis} />
       </div>
     </div>
   );
+}
+
+function QuantSnapshot({ result, lang }: { result: AnalysisRunResponse; lang: Language }) {
+  const permission = result.tradePermission;
+  const reward = result.netReward;
+  const labels = getQuantLabels(lang);
+  const cards = [
+    {
+      label: labels.structure,
+      value: result.regime ? labels.regime[result.regime] : "-",
+      meta: `${labels.error} ${formatRatio(result.structuralError)}`
+    },
+    {
+      label: labels.permission,
+      value: permission ? labels.mode[permission.mode] : "-",
+      meta: permission?.allowed ? labels.allowed : labels.blocked,
+      tone: permission?.allowed ? "text-emerald-300" : "text-rose-300"
+    },
+    {
+      label: labels.netReward,
+      value: reward ? formatSignedPercent(reward.mean) : "-",
+      meta: reward ? `CVaR ${formatSignedPercent(reward.cvar)}` : "-"
+    },
+    {
+      label: "Bellman",
+      value: formatRatio(result.bellmanResidual),
+      meta: `${labels.gap} ${formatRatio(result.spectralGap)}`
+    }
+  ];
+
+  return (
+    <div className="grid grid-cols-2 lg:grid-cols-4 gap-2">
+      {cards.map((card) => (
+        <div key={card.label} className="border border-slate-800 bg-slate-900/80 rounded-md px-2.5 py-2 min-h-16">
+          <div className="text-[9px] uppercase tracking-widest text-slate-500 font-bold">{card.label}</div>
+          <div className={`text-[13px] font-black mt-1 ${card.tone || "text-slate-100"}`}>{card.value}</div>
+          <div className="text-[9px] text-slate-500 mt-0.5 truncate">{card.meta}</div>
+        </div>
+      ))}
+      {permission && permission.reasons.length > 0 && (
+        <div className="col-span-2 lg:col-span-4 border border-rose-500/20 bg-rose-500/10 rounded-md px-2.5 py-1.5 text-[10px] text-rose-200">
+          <span className="font-bold">{labels.riskReasons}: </span>
+          <span>{permission.reasons.join(" · ")}</span>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function getQuantLabels(lang: Language) {
+  const zh = lang === "zh" || lang === "tc";
+  return {
+    structure: zh ? "市场结构" : "Structure",
+    permission: zh ? "交易许可" : "Permission",
+    netReward: zh ? "净奖励" : "Net Reward",
+    error: zh ? "误差" : "EDG",
+    gap: zh ? "谱间隙" : "Gap",
+    allowed: zh ? "允许交易" : "Allowed",
+    blocked: zh ? "需要降级/拒绝" : "Review or reject",
+    riskReasons: zh ? "风险原因" : "Risk reasons",
+    regime: {
+      trend: zh ? "趋势" : "Trend",
+      range: zh ? "震荡" : "Range",
+      breakout: zh ? "突破" : "Breakout",
+      stress: zh ? "压力" : "Stress",
+      transition: zh ? "切换" : "Transition"
+    },
+    mode: {
+      attack: zh ? "进攻" : "Attack",
+      defensive: zh ? "防守" : "Defensive",
+      reduce_only: zh ? "只减仓" : "Reduce only",
+      hedge_only: zh ? "仅对冲" : "Hedge only",
+      reject: zh ? "拒绝" : "Reject",
+      manual_review: zh ? "人工复核" : "Manual review"
+    }
+  };
+}
+
+function formatRatio(value?: number) {
+  return typeof value === "number" ? value.toFixed(2) : "-";
+}
+
+function formatSignedPercent(value: number) {
+  const percent = value * 100;
+  return `${percent >= 0 ? "+" : ""}${percent.toFixed(2)}%`;
 }
 
 function EmptyState({ lang, onRunAnalysis }: { lang: Language; onRunAnalysis: () => void }) {

@@ -101,7 +101,7 @@ export default function Header({
         <div className="shrink-0 flex">
           <div
             className={`h-7 flex items-center gap-1 px-2 border rounded-full ${feedClass}`}
-            title={`${marketStatus?.source || "gateway"} · ${marketStatus?.message || ""}`}
+            title={`${marketStatus?.source || "gateway"}${marketStatus?.latencyMs ? ` · ${marketStatus.latencyMs}ms` : ""} · ${marketStatus?.message || ""}`}
           >
             <span className={`h-1.5 w-1.5 rounded-full ${dotClass}`}></span>
             <span className="text-[9px] font-mono font-bold uppercase tracking-widest hidden lg:inline">{feedLabel}</span>

@@ -83,6 +83,10 @@ export default function Watchlist({
     if (symbol.dataProvider === "yahoo") return "delayed";
     return "simulated";
   };
+  const feedAge = marketStatus?.updatedAt
+    ? Math.max(0, Math.round((Date.now() - marketStatus.updatedAt) / 1000))
+    : null;
+  const activeSource = marketStatus?.source || currentSymbol.lastSource || currentSymbol.dataProvider || "gateway";
 
   const content = (
     <div className="w-full flex flex-col h-full select-none justify-between bg-slate-950 text-slate-200">
@@ -211,6 +215,18 @@ export default function Watchlist({
           <div className="flex justify-between font-mono text-[10px]">
             <span className="text-slate-500 font-sans">{t("volume24h")}:</span>
             <span className="text-slate-300">${(currentSymbol.volume24h).toLocaleString()}</span>
+          </div>
+          <div className="flex justify-between font-mono text-[10px]">
+            <span className="text-slate-500 font-sans">{lang === "zh" ? "数据源" : lang === "tc" ? "數據源" : "Source"}:</span>
+            <span className="max-w-32 truncate text-slate-300" title={marketStatus?.message}>
+              {activeSource}{marketStatus?.latencyMs ? ` · ${marketStatus.latencyMs}ms` : ""}
+            </span>
+          </div>
+          <div className="flex justify-between font-mono text-[10px]">
+            <span className="text-slate-500 font-sans">{lang === "zh" ? "最近更新" : lang === "tc" ? "最近更新" : "Updated"}:</span>
+            <span className="text-slate-300">
+              {feedAge === null ? "-" : feedAge < 3 ? "now" : `${feedAge}s`}
+            </span>
           </div>
           <div className="flex justify-between font-mono text-[10px]">
             <span className="text-slate-500 font-sans">{lang === "zh" ? "棱镜折射率" : lang === "tc" ? "稜鏡折射率" : "Refraction Index"}:</span>

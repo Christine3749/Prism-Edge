@@ -4,6 +4,8 @@ import { generateSimulatedHistoricalKlines, timeframeToSeconds } from "./mockMar
 interface MarketGatewayResponse {
   candles: Candle[];
   source?: string;
+  updatedAt?: number;
+  isLive?: boolean;
 }
 
 interface QuoteGatewayResponse {
@@ -34,7 +36,8 @@ export async function fetchHistoricalGatewayKlines(
   symbol: string,
   timeframe: string,
   limit = 200
-): Promise<{ candles: Candle[]; source: string }> {
+): Promise<{ candles: Candle[]; source: string; updatedAt: number; isLive: boolean; latencyMs: number }> {
+  const startedAt = performance.now();
   const params = new URLSearchParams({
     symbol,
     interval: timeframe,
@@ -55,6 +58,9 @@ export async function fetchHistoricalGatewayKlines(
 
   return {
     source: data.source || "gateway",
+    updatedAt: data.updatedAt || Date.now(),
+    isLive: Boolean(data.isLive),
+    latencyMs: Math.round(performance.now() - startedAt),
     candles: candles.filter((candle) => (
     Number.isFinite(candle.time) &&
     Number.isFinite(candle.open) &&
@@ -73,15 +79,16 @@ function isLiveGatewaySource(source: string) {
 export async function loadMarketData(
   symbol: MarketSymbol,
   timeframe: string
-): Promise<{ candles: Candle[]; isLiveBinance: boolean; source: string; updatedAt: number }> {
+): Promise<{ candles: Candle[]; isLiveBinance: boolean; source: string; updatedAt: number; latencyMs?: number }> {
   try {
     try {
       const hist = await fetchHistoricalGatewayKlines(symbol.symbol, timeframe, 200);
       return {
         candles: hist.candles,
-        isLiveBinance: isLiveGatewaySource(hist.source),
+        isLiveBinance: hist.isLive || isLiveGatewaySource(hist.source),
         source: hist.source,
-        updatedAt: Date.now()
+        updatedAt: hist.updatedAt,
+        latencyMs: hist.latencyMs
       };
     } catch (err) {
       warnOnce(
@@ -102,7 +109,7 @@ export async function loadMarketData(
 export async function getHistoricalCandles(
   symbol: MarketSymbol,
   interval: string
-): Promise<{ candles: Candle[]; isLiveBinance: boolean; source: string; updatedAt: number }> {
+): Promise<{ candles: Candle[]; isLiveBinance: boolean; source: string; updatedAt: number; latencyMs?: number }> {
   return loadMarketData(symbol, interval);
 }
 

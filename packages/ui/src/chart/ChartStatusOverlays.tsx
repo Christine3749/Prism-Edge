@@ -56,6 +56,7 @@ export function ChartStatusOverlays({
             : "border-blue-500/20 text-blue-300"
         }`}>
           {dataState === "stale" ? "Data delayed" : "Delayed market feed"} · {marketStatus?.source || "gateway"}
+          {marketStatus?.latencyMs ? ` · ${marketStatus.latencyMs}ms` : ""}
         </div>
       )}
     </>

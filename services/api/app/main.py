@@ -1,6 +1,7 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 
+from services.api.app.routes.quant import router as quant_router
 from services.api.app.schemas import AnalysisRunRequest, AnalysisRunResponse
 from services.quant.prism_edge_quant.engine import run_analysis
 
@@ -10,6 +11,8 @@ app = FastAPI(
     description="Backend boundary for market analysis, quant adapters, and future backtesting services.",
     version="0.1.0",
 )
+
+app.include_router(quant_router)
 
 app.add_middleware(
     CORSMiddleware,
@@ -30,7 +33,8 @@ def health_check():
     return {
         "status": "ok",
         "service": "prism-edge-api",
-        "quantAdapter": "prism-edge-mock-quant-v0",
+        "quantAdapter": "prism-edge-technical-v1",
+        "dgwmAdapter": "dgwm-prism-adapter-v0",
     }
 
 

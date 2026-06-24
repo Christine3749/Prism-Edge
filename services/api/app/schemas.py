@@ -5,6 +5,8 @@ from pydantic import BaseModel, Field
 
 AnalysisTrend = Literal["bullish", "bearish", "neutral"]
 AnalysisSignalType = Literal["buy", "sell", "watch"]
+QuantRegime = Literal["trend", "range", "breakout", "stress", "transition"]
+TradePermissionMode = Literal["attack", "defensive", "reduce_only", "hedge_only", "reject", "manual_review"]
 
 
 class Candle(BaseModel):
@@ -36,6 +38,31 @@ class AnalysisLevels(BaseModel):
     resistance: list[float]
 
 
+class NetRewardBreakdown(BaseModel):
+    mean: float
+    cvar: float
+    grossPnl: float
+    costPenalty: float
+    riskPenalty: float
+    uncertaintyPenalty: float
+
+
+class TradePermission(BaseModel):
+    allowed: bool
+    mode: TradePermissionMode
+    reasons: list[str]
+    diagnostics: dict[str, float]
+
+
+class QuantDiagnostics(BaseModel):
+    score: float
+    momentum: float
+    emaSpread: float
+    rsi: float
+    atrPct: float
+    volumeRatio: float
+
+
 class AnalysisMeta(BaseModel):
     engine: str
     generatedAt: str
@@ -44,7 +71,14 @@ class AnalysisMeta(BaseModel):
 
 class AnalysisRunResponse(BaseModel):
     trend: AnalysisTrend
+    regime: QuantRegime
     confidence: float = Field(..., ge=0, le=1)
+    structuralError: float = Field(..., ge=0, le=1)
+    spectralGap: float = Field(..., ge=0, le=1)
+    bellmanResidual: float = Field(..., ge=0, le=1)
+    netReward: NetRewardBreakdown
+    tradePermission: TradePermission
+    diagnostics: QuantDiagnostics
     signals: list[AnalysisSignal]
     levels: AnalysisLevels
     summary: str

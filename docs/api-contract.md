@@ -40,7 +40,38 @@ Response:
 ```json
 {
   "trend": "bullish",
+  "regime": "trend",
   "confidence": 0.78,
+  "structuralError": 0.21,
+  "spectralGap": 0.56,
+  "bellmanResidual": 0.18,
+  "netReward": {
+    "mean": 0.0124,
+    "cvar": -0.0062,
+    "grossPnl": 0.021,
+    "costPenalty": 0.003,
+    "riskPenalty": 0.004,
+    "uncertaintyPenalty": 0.0016
+  },
+  "tradePermission": {
+    "allowed": true,
+    "mode": "defensive",
+    "reasons": [],
+    "diagnostics": {
+      "structuralError": 0.21,
+      "spectralGap": 0.56,
+      "bellmanResidual": 0.18,
+      "netRewardMean": 0.0124
+    }
+  },
+  "diagnostics": {
+    "score": 0.32,
+    "momentum": 0.018,
+    "emaSpread": 0.006,
+    "rsi": 61.2,
+    "atrPct": 0.024,
+    "volumeRatio": 1.22
+  },
   "signals": [
     {
       "type": "buy",
@@ -56,12 +87,14 @@ Response:
   },
   "summary": "当前结构偏多，但接近压力区，注意回撤确认。",
   "meta": {
-    "engine": "prism-edge-mock-quant-v0",
+    "engine": "prism-edge-technical-v1",
     "generatedAt": "2026-06-23T00:00:00+00:00",
     "candleCount": 200
   }
 }
 ```
+
+`structuralError`, `spectralGap`, `bellmanResidual`, `netReward`, and `tradePermission` are Prism's quant-v2 adapter fields. They are currently produced by `prism-edge-technical-v1` / `node-technical-fallback-v1` and are intended to be replaced by the DGWM adapter without changing the frontend contract.
 
 Development ports:
 
@@ -70,6 +103,38 @@ Development ports:
 - OpenAPI docs: `http://localhost:8000/docs`
 
 The web gateway forwards `/api/analysis/run` to FastAPI through `API_BASE_URL`. If FastAPI is not running, the gateway returns a same-shape local fallback so the UI can continue to work during frontend development.
+
+## Quant Adapter Health
+
+```http
+GET /api/quant/health
+```
+
+Returns DGWM adapter version, configured root path, import probe, and key DGWM quant file availability.
+
+## Quant State Compile
+
+```http
+POST /api/quant/state/compile
+```
+
+Compiles candles into the first MSIR Prism state object for the DGWM boundary.
+
+## Quant Decision
+
+```http
+POST /api/quant/decision/run
+```
+
+Returns the same quant-v2 analysis result as `/api/analysis/run`, plus adapter metadata and the compiled state. Current runtime is `technical-decision-bridge`; the contract is shaped for the real DGWM runtime readout.
+
+## Backtest
+
+```http
+POST /api/backtest/run
+```
+
+Runs a lightweight rolling-window validation over the submitted candles. Current output is intended for interface validation and will be replaced by DGWM `quant-diagnostic` or release validation once the DGWM runtime request is finalized.
 
 ## Market Search
 
@@ -124,6 +189,7 @@ The gateway routes market data by symbol:
 - `binance` or `coinbase` for live crypto candles when available.
 - `yahoo-delayed` for public delayed stock, index, Hong Kong, A-share, and forex candles.
 - The frontend falls back to explicit `simulated` data if every public provider is unreachable.
+- Candle responses include `updatedAt` and `isLive` so the UI can show live, delayed, stale, or simulated feed state.
 
 ## Market Quotes
 

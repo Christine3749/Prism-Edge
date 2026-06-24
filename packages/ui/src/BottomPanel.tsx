@@ -165,6 +165,7 @@ export default function BottomPanel({
               aiAnalysis={aiAnalysis}
               aiLoading={aiLoading}
               analysisServiceFallback={analysisServiceFallback}
+              analysisResult={analysisResult}
               lang={lang}
               onRunAnalysis={handleRunAiAnalysis}
             />

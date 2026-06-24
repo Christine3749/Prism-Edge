@@ -24,14 +24,14 @@ async function fetchMarketKlines(symbol: string, interval: string, limit: number
   if (isCryptoMarketSymbol(symbol)) {
     try {
       const candles = await fetchBinanceKlines(symbol, interval, limit);
-      return { candles, source: "binance" };
+      return { candles, source: "binance", isLive: true };
     } catch (error: any) {
       errors.push(`binance: ${error?.message || String(error)}`);
     }
 
     try {
       const candles = await fetchCoinbaseKlines(symbol, interval, limit);
-      return { candles, source: "coinbase" };
+      return { candles, source: "coinbase", isLive: true };
     } catch (error: any) {
       errors.push(`coinbase: ${error?.message || String(error)}`);
     }
@@ -41,7 +41,7 @@ async function fetchMarketKlines(symbol: string, interval: string, limit: number
 
   try {
     const payload = await fetchYahooChart(symbol, interval, limit);
-    return { candles: payload.candles, source: payload.source };
+    return { candles: payload.candles, source: payload.source, isLive: false };
   } catch (error: any) {
     errors.push(`yahoo: ${error?.message || String(error)}`);
   }
@@ -179,10 +179,10 @@ export async function getKlinePayload(symbol: string, interval: string, limit: n
   const cached = marketCache.get(cacheKey);
   if (cached && cached.expiresAt > Date.now()) return cached.payload as KlinePayload;
 
-  const { candles, source } = await fetchMarketKlines(symbol, interval, limit);
+  const { candles, source, isLive } = await fetchMarketKlines(symbol, interval, limit);
   if (candles.length === 0) throw new Error("No candle data returned by market source.");
 
-  const payload = { symbol, interval, source, candles };
+  const payload = { symbol, interval, source, isLive, updatedAt: Date.now(), candles };
   marketCache.set(cacheKey, { expiresAt: Date.now() + (limit <= 2 ? 1000 : 30000), payload });
   return payload;
 }

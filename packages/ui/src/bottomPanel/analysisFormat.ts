@@ -29,6 +29,13 @@ export function formatAnalysisResponse(
   }[data.trend];
 
   const confidence = `${Math.round(data.confidence * 100)}%`;
+  const structuralError = data.structuralError?.toFixed(2) ?? "-";
+  const spectralGap = data.spectralGap?.toFixed(2) ?? "-";
+  const bellmanResidual = data.bellmanResidual?.toFixed(2) ?? "-";
+  const netReward = typeof data.netReward?.mean === "number" ? `${(data.netReward.mean * 100).toFixed(2)}%` : "-";
+  const permission = data.tradePermission
+    ? `${data.tradePermission.mode}${data.tradePermission.allowed ? "" : ` · ${data.tradePermission.reasons.join(", ")}`}`
+    : "-";
   const support = data.levels.support.length > 0 ? data.levels.support.join(", ") : "-";
   const resistance = data.levels.resistance.length > 0 ? data.levels.resistance.join(", ") : "-";
   const signals = data.signals.length > 0
@@ -39,6 +46,11 @@ export function formatAnalysisResponse(
     `# ${currentSymbol.id} ${timeframe} ${lang === "zh" ? "量化分析" : lang === "tc" ? "量化分析" : "Quant Analysis"}`,
     `- ${lang === "zh" ? "趋势" : lang === "tc" ? "趨勢" : "Trend"}: **${trendLabel}**`,
     `- ${lang === "zh" ? "置信度" : lang === "tc" ? "置信度" : "Confidence"}: **${confidence}**`,
+    `- ${lang === "zh" ? "结构误差" : lang === "tc" ? "結構誤差" : "Structural Error"}: **${structuralError}**`,
+    `- ${lang === "zh" ? "谱间隙" : lang === "tc" ? "譜間隙" : "Spectral Gap"}: **${spectralGap}**`,
+    `- Bellman: **${bellmanResidual}**`,
+    `- ${lang === "zh" ? "净奖励" : lang === "tc" ? "淨獎勵" : "Net Reward"}: **${netReward}**`,
+    `- ${lang === "zh" ? "交易许可" : lang === "tc" ? "交易許可" : "Trade Permission"}: **${permission}**`,
     `- ${lang === "zh" ? "支撑" : lang === "tc" ? "支撐" : "Support"}: ${support}`,
     `- ${lang === "zh" ? "压力" : lang === "tc" ? "壓力" : "Resistance"}: ${resistance}`,
     `## ${lang === "zh" ? "信号" : lang === "tc" ? "信號" : "Signals"}`,
