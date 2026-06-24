@@ -55,3 +55,33 @@ export interface QuantDecision {
   diagnostics: QuantDiagnostics;
   lineage?: DataLineage;
 }
+
+export interface QuantHealth {
+  adapter: string;
+  root: string;
+  exists: boolean;
+  importable: boolean;
+  files: Record<string, boolean>;
+}
+
+export interface QuantBacktestDecision {
+  time: number;
+  mode: TradePermissionMode;
+  allowed: boolean;
+  netReward: number;
+  regime: QuantRegime;
+}
+
+export interface QuantBacktestReport {
+  schema: string;
+  adapter: string;
+  symbol: string;
+  interval: string;
+  sampleCount: number;
+  acceptedSignals: number;
+  rejectedSignals: number;
+  cumulativeReturn: number;
+  maxDrawdown: number;
+  decisions: QuantBacktestDecision[];
+  serviceFallback?: boolean;
+}

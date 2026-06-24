@@ -1,15 +1,21 @@
 import { AlertTriangle, Play, Sparkles } from "lucide-react";
-import type { AnalysisRunResponse } from "../../../shared/src/types";
+import type { AnalysisRunResponse, QuantBacktestReport, QuantHealth } from "../../../shared/src/types";
 import type { Language } from "../../../shared/src/translations";
 import { AiMarkdown } from "./AiMarkdown";
+import { QuantLabPanel } from "./QuantLabPanel";
 
 interface AiAnalysisTabProps {
   aiAnalysis: string;
   aiLoading: boolean;
   analysisServiceFallback: boolean;
   analysisResult?: AnalysisRunResponse | null;
+  quantHealth: QuantHealth | null;
+  backtest: QuantBacktestReport | null;
+  backtestLoading: boolean;
+  backtestError: string;
   lang: Language;
   onRunAnalysis: () => void;
+  onRunBacktest: () => void;
 }
 
 export function AiAnalysisTab({
@@ -17,8 +23,13 @@ export function AiAnalysisTab({
   aiLoading,
   analysisServiceFallback,
   analysisResult,
+  quantHealth,
+  backtest,
+  backtestLoading,
+  backtestError,
   lang,
-  onRunAnalysis
+  onRunAnalysis,
+  onRunBacktest
 }: AiAnalysisTabProps) {
   return (
     <div className="h-full flex flex-col justify-between">
@@ -29,7 +40,12 @@ export function AiAnalysisTab({
           aiAnalysis={aiAnalysis}
           analysisServiceFallback={analysisServiceFallback}
           analysisResult={analysisResult}
+          quantHealth={quantHealth}
+          backtest={backtest}
+          backtestLoading={backtestLoading}
+          backtestError={backtestError}
           lang={lang}
+          onRunBacktest={onRunBacktest}
         />
       ) : (
         <EmptyState lang={lang} onRunAnalysis={onRunAnalysis} />
@@ -57,11 +73,21 @@ function AnalysisOutput({
   aiAnalysis,
   analysisServiceFallback,
   analysisResult,
+  quantHealth,
+  backtest,
+  backtestLoading,
+  backtestError,
+  onRunBacktest,
   lang
 }: {
   aiAnalysis: string;
   analysisServiceFallback: boolean;
   analysisResult?: AnalysisRunResponse | null;
+  quantHealth: QuantHealth | null;
+  backtest: QuantBacktestReport | null;
+  backtestLoading: boolean;
+  backtestError: string;
+  onRunBacktest: () => void;
   lang: Language;
 }) {
   return (
@@ -73,6 +99,15 @@ function AnalysisOutput({
         </div>
       )}
       {analysisResult && <QuantSnapshot result={analysisResult} lang={lang} />}
+      <QuantLabPanel
+        health={quantHealth}
+        backtest={backtest}
+        loading={backtestLoading}
+        error={backtestError}
+        canRun={Boolean(analysisResult)}
+        lang={lang}
+        onRunBacktest={onRunBacktest}
+      />
       <div className="bg-slate-900 p-3 border border-slate-800 rounded-lg">
         <AiMarkdown text={aiAnalysis} />
       </div>

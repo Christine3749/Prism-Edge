@@ -7,7 +7,9 @@ import {
   MarketDataStatus,
   MarketSymbol,
   NewsItem,
-  OrderBookItem
+  OrderBookItem,
+  QuantBacktestReport,
+  QuantHealth
 } from "../../shared/src/types";
 import { generateMarketTrades, generateOrderBook, MarketTrade } from "../../shared/src/mockMarketData";
 import { Language, useTranslation } from "../../shared/src/translations";
@@ -50,6 +52,10 @@ export default function BottomPanel({
   const [aiAnalysis, setAiAnalysis] = useState("");
   const [aiLoading, setAiLoading] = useState(false);
   const [analysisServiceFallback, setAnalysisServiceFallback] = useState(false);
+  const [quantHealth, setQuantHealth] = useState<QuantHealth | null>(null);
+  const [backtest, setBacktest] = useState<QuantBacktestReport | null>(null);
+  const [backtestLoading, setBacktestLoading] = useState(false);
+  const [backtestError, setBacktestError] = useState("");
   const currentSymbolRef = useRef(currentSymbol);
 
   useEffect(() => {
@@ -80,12 +86,29 @@ export default function BottomPanel({
     if (!analysisResult) {
       setAiAnalysis("");
       setAnalysisServiceFallback(false);
+      setBacktest(null);
+      setBacktestError("");
       return;
     }
 
     setAiAnalysis(formatAnalysisResponse(analysisResult, currentSymbol, timeframe, lang));
     setAnalysisServiceFallback(Boolean(analysisResult.meta?.engine.includes("fallback")));
   }, [analysisResult, currentSymbol, timeframe, lang]);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    const fetchHealth = async () => {
+      try {
+        const response = await fetch("/api/quant/health", { signal: controller.signal });
+        if (!response.ok) return;
+        setQuantHealth(await response.json() as QuantHealth);
+      } catch {
+        if (!controller.signal.aborted) setQuantHealth(null);
+      }
+    };
+    fetchHealth();
+    return () => controller.abort();
+  }, []);
 
   useEffect(() => {
     const fetchNews = async () => {
@@ -138,6 +161,34 @@ export default function BottomPanel({
     }
   };
 
+  const handleRunBacktest = async () => {
+    if (candles.length < 30) return;
+    setBacktestLoading(true);
+    setBacktestError("");
+
+    try {
+      const response = await fetch("/api/backtest/run", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          symbol: currentSymbol.id,
+          interval: timeframe,
+          candles,
+          indicators: buildIndicatorList(activeIndicators),
+          source: "msir-prism-web",
+          provider: marketStatus?.provider || marketStatus?.source || "browser",
+          window: Math.min(120, Math.max(30, Math.floor(candles.length * 0.6)))
+        })
+      });
+      if (!response.ok) throw new Error("Backtest failed");
+      setBacktest(await response.json() as QuantBacktestReport);
+    } catch {
+      setBacktestError(getBacktestFallbackText(lang));
+    } finally {
+      setBacktestLoading(false);
+    }
+  };
+
   return (
     <div
       className={`border-t border-slate-800 bg-slate-950 flex flex-col justify-between shrink-0 z-30 transition-all duration-300 ${collapsed ? "h-8" : ""}`}
@@ -166,8 +217,13 @@ export default function BottomPanel({
               aiLoading={aiLoading}
               analysisServiceFallback={analysisServiceFallback}
               analysisResult={analysisResult}
+              quantHealth={quantHealth}
+              backtest={backtest}
+              backtestLoading={backtestLoading}
+              backtestError={backtestError}
               lang={lang}
               onRunAnalysis={handleRunAiAnalysis}
+              onRunBacktest={handleRunBacktest}
             />
           )}
         </div>
@@ -196,4 +252,10 @@ function getAnalysisFallbackText(lang: Language) {
     return "量化模型接口連接超時。當前使用前端離線保護提示：結構暫按震盪處理，等待突破或回踩確認。";
   }
   return "Quant model interface timeout. Frontend safety fallback: structure is treated as range-bound until breakout or pullback confirmation.";
+}
+
+function getBacktestFallbackText(lang: Language) {
+  if (lang === "zh") return "回测接口暂不可用，请稍后重试。";
+  if (lang === "tc") return "回測接口暫不可用，請稍後重試。";
+  return "Backtest endpoint is unavailable. Please retry shortly.";
 }

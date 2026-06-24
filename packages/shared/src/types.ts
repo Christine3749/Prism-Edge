@@ -7,9 +7,12 @@ import type {
 
 export type {
   DataLineage,
+  QuantBacktestDecision,
+  QuantBacktestReport,
   NetRewardBreakdown,
   QuantDecision,
   QuantDiagnostics,
+  QuantHealth,
   QuantRegime,
   TradePermission,
   TradePermissionMode

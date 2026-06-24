@@ -111,6 +111,13 @@ POST /api/backtest/run
 
 当前是轻量 rolling-window 验证，用于检查拒绝交易、净奖励和最大回撤的接口形状。
 
+前端 `AI 智能分析` 面板已接入轻量 `Quant Lab`：
+
+1. `GET /api/quant/health` 显示 DGWM adapter 是否连通。
+2. `POST /api/backtest/run` 由用户手动触发，避免每次行情刷新都跑回测。
+3. 如果 FastAPI 暂时没起来，Node 网关会返回 `node-quant-bridge` 健康状态。
+4. Backtest 会自动降级到 `node-backtest-fallback-v1`，保持同结构摘要，避免页面卡死。
+
 ## 4. 下一步接真 DGWM
 
 1. 确认 DGWM 最小 request：`symbols`、`start`、`end`、`market`、`world`、`output_dir`。

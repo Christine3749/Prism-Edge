@@ -5,6 +5,7 @@ import {
 } from "../packages/shared/src/marketCatalog";
 import type { MarketSymbol } from "../packages/shared/src/types";
 import { computeLocalAnalysis } from "./analysisFallback";
+import { computeLocalBacktest } from "./backtestFallback";
 import { API_CACHE_CONTROL, MAX_QUOTE_SYMBOLS } from "./config";
 import { clamp } from "./math";
 import {
@@ -131,7 +132,7 @@ export function registerApiRoutes(app: Express, apiBaseUrl: string) {
   });
 
   app.get("/api/quant/health", async (_req, res) => {
-    return proxyGet(res, `${apiBaseUrl}/api/quant/health`);
+    return proxyQuantHealth(res, `${apiBaseUrl}/api/quant/health`);
   });
 
   app.post("/api/quant/state/compile", async (req, res) => {
@@ -143,7 +144,15 @@ export function registerApiRoutes(app: Express, apiBaseUrl: string) {
   });
 
   app.post("/api/backtest/run", async (req, res) => {
-    return proxyJsonPost(res, `${apiBaseUrl}/api/backtest/run`, req.body);
+    try {
+      return await proxyJsonPostOrThrow(res, `${apiBaseUrl}/api/backtest/run`, req.body, true);
+    } catch {
+      try {
+        return res.json(computeLocalBacktest(req.body));
+      } catch (fallbackError: any) {
+        return res.status(400).json({ error: fallbackError.message || "Invalid backtest request." });
+      }
+    }
   });
 
   app.get("/api/news", (req, res) => {
@@ -167,7 +176,34 @@ async function proxyGet(res: any, upstreamUrl: string) {
   }
 }
 
+async function proxyQuantHealth(res: any, upstreamUrl: string) {
+  try {
+    const response = await fetch(upstreamUrl, { signal: AbortSignal.timeout(1500) });
+    if (!response.ok) throw new Error(`FastAPI health returned ${response.status}`);
+    const contentType = response.headers.get("content-type") || "application/json";
+    const text = await response.text();
+    return res.status(response.status).type(contentType).send(text);
+  } catch (error: any) {
+    return res.json({
+      adapter: "node-quant-bridge",
+      root: "",
+      exists: false,
+      importable: false,
+      files: { fastapiRoute: false },
+      detail: error?.message || String(error)
+    });
+  }
+}
+
 async function proxyJsonPost(res: any, upstreamUrl: string, body: unknown) {
+  try {
+    return await proxyJsonPostOrThrow(res, upstreamUrl, body);
+  } catch (error: any) {
+    return res.status(502).json({ error: "FastAPI route unavailable.", detail: error?.message || String(error) });
+  }
+}
+
+async function proxyJsonPostOrThrow(res: any, upstreamUrl: string, body: unknown, throwOnHttpError = false) {
   try {
     const response = await fetch(upstreamUrl, {
       method: "POST",
@@ -177,9 +213,12 @@ async function proxyJsonPost(res: any, upstreamUrl: string, body: unknown) {
     });
     const contentType = response.headers.get("content-type") || "application/json";
     const text = await response.text();
+    if (throwOnHttpError && !response.ok) {
+      throw new Error(`FastAPI route returned ${response.status}: ${text}`);
+    }
     return res.status(response.status).type(contentType).send(text);
   } catch (error: any) {
-    return res.status(502).json({ error: "FastAPI route unavailable.", detail: error?.message || String(error) });
+    throw new Error(error?.message || String(error));
   }
 }
 
