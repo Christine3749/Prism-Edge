@@ -1,15 +1,24 @@
-import { Activity, FlaskConical, PlayCircle, Radar, ShieldCheck } from "lucide-react";
+import { Activity, Cpu, FlaskConical, PlayCircle, Radar, ShieldCheck } from "lucide-react";
 import type { ReactNode } from "react";
-import type { QuantBacktestReport, QuantHealth, QuantRuntimeDiagnostic } from "../../../shared/src/types";
+import type {
+  QuantBacktestReport,
+  QuantHealth,
+  QuantModelEntry,
+  QuantModelRegistry,
+  QuantRuntimeDiagnostic
+} from "../../../shared/src/types";
 import type { Language } from "../../../shared/src/translations";
+import type { MembershipNotice } from "./types";
 
 interface QuantLabPanelProps {
   health: QuantHealth | null;
+  models: QuantModelRegistry | null;
   backtest: QuantBacktestReport | null;
   runtimeDiagnostic?: QuantRuntimeDiagnostic | null;
   loading: boolean;
   runtimeLoading: boolean;
   error: string;
+  membershipNotice?: MembershipNotice | null;
   canRun: boolean;
   lang: Language;
   onRunBacktest: () => void;
@@ -18,11 +27,13 @@ interface QuantLabPanelProps {
 
 export function QuantLabPanel({
   health,
+  models,
   backtest,
   runtimeDiagnostic,
   loading,
   runtimeLoading,
   error,
+  membershipNotice,
   canRun,
   lang,
   onRunBacktest,
@@ -32,7 +43,12 @@ export function QuantLabPanel({
   const acceptedRate = backtest && backtest.sampleCount > 0
     ? backtest.acceptedSignals / backtest.sampleCount
     : 0;
-  const healthReady = Boolean(health?.exists);
+  const modelEntries = models?.models ?? [];
+  const readyModels = modelEntries.filter((model) => model.status === "ready").length;
+  const defaultModel = modelEntries.find((model) => model.id === models?.defaultModelId);
+  const healthReady = Boolean(health?.exists || readyModels > 0);
+  const runtimeLocked = membershipNotice?.featureKey === "runtime_diagnostic";
+  const backtestLocked = membershipNotice?.featureKey === "backtest";
 
   return (
     <div className="border border-cyan-500/15 bg-cyan-950/10 rounded-lg p-2.5 space-y-2">
@@ -44,14 +60,14 @@ export function QuantLabPanel({
               {labels.title}
             </div>
             <div className="text-[9px] text-slate-500 truncate">
-              {health?.adapter || labels.pending}
+              {defaultModel ? `${labels.defaultModel}: ${defaultModel.name}` : health?.adapter || labels.pending}
             </div>
           </div>
         </div>
         <div className="flex items-center gap-1">
           <button
             onClick={onRunRuntime}
-            disabled={!canRun || runtimeLoading}
+            disabled={!canRun || runtimeLoading || runtimeLocked}
             className="h-7 px-2 rounded border border-fuchsia-400/40 bg-fuchsia-500/10 text-fuchsia-200 text-[10px] font-bold flex items-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-fuchsia-500/20"
           >
             <Radar className="h-3 w-3" />
@@ -59,7 +75,7 @@ export function QuantLabPanel({
           </button>
           <button
             onClick={onRunBacktest}
-            disabled={!canRun || loading}
+            disabled={!canRun || loading || backtestLocked}
             className="h-7 px-2 rounded border border-cyan-500/40 bg-cyan-500/10 text-cyan-200 text-[10px] font-bold flex items-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-cyan-500/20"
           >
             <PlayCircle className="h-3 w-3" />
@@ -68,13 +84,27 @@ export function QuantLabPanel({
         </div>
       </div>
 
-      <div className="grid grid-cols-2 lg:grid-cols-5 gap-2">
+      {modelEntries.length > 0 && (
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-1.5">
+          {modelEntries.slice(0, 4).map((model) => (
+            <ModelTile
+              key={model.id}
+              model={model}
+              isDefault={model.id === models?.defaultModelId}
+              labels={labels}
+            />
+          ))}
+        </div>
+      )}
+
+      <div className="grid grid-cols-2 lg:grid-cols-6 gap-2">
         <MetricCard
           icon={<Activity className="h-3 w-3" />}
           label={labels.adapter}
           value={healthReady ? labels.ready : labels.offline}
           tone={healthReady ? "text-emerald-300" : "text-yellow-300"}
         />
+        <MetricCard label={labels.models} value={modelEntries.length ? `${readyModels}/${modelEntries.length}` : "-"} />
         <MetricCard label={labels.samples} value={backtest ? String(backtest.sampleCount) : "-"} />
         <MetricCard label={labels.accepted} value={backtest ? formatPercent(acceptedRate) : "-"} />
         <MetricCard label={labels.return} value={backtest ? formatSignedPercent(backtest.cumulativeReturn) : "-"} />
@@ -98,11 +128,48 @@ export function QuantLabPanel({
         </div>
       )}
 
+      {membershipNotice && membershipNotice.featureKey !== "quant_lab" && (
+        <div className="flex items-center justify-between gap-2 rounded border border-amber-400/25 bg-amber-500/10 px-2 py-1 text-[10px] text-amber-100">
+          <span>{membershipNotice.message}</span>
+          <a href={membershipNotice.href} className="shrink-0 font-black text-amber-200 no-underline hover:text-amber-100">
+            {membershipNotice.actionLabel}
+          </a>
+        </div>
+      )}
+
       {error && (
         <div className="text-[10px] text-yellow-200 bg-yellow-500/10 border border-yellow-500/20 rounded px-2 py-1">
           {error}
         </div>
       )}
+    </div>
+  );
+}
+
+function ModelTile({
+  model,
+  isDefault,
+  labels
+}: {
+  model: QuantModelEntry;
+  isDefault: boolean;
+  labels: ReturnType<typeof getLabels>;
+}) {
+  return (
+    <div className="min-w-0 border border-slate-800 bg-slate-950/60 rounded-md px-2 py-1.5" title={model.root}>
+      <div className="flex items-center justify-between gap-1.5 min-w-0">
+        <span className="flex items-center gap-1 min-w-0 text-[9px] font-black text-slate-100 uppercase tracking-wider">
+          <Cpu className="h-3 w-3 text-cyan-300 shrink-0" />
+          <span className="truncate">{model.name}</span>
+        </span>
+        <span className={`shrink-0 text-[8px] font-black uppercase ${statusTone(model.status)}`}>
+          {labels.status[model.status]}
+        </span>
+      </div>
+      <div className="mt-1 flex items-center justify-between gap-2 text-[8px] text-slate-500 min-w-0">
+        <span className="truncate">{model.role}{isDefault ? ` · ${labels.default}` : ""}</span>
+        <span className="shrink-0">{model.version || model.gitCommit || model.kind}{model.dirty ? ` · ${labels.dirty}` : ""}</span>
+      </div>
     </div>
   );
 }
@@ -141,6 +208,7 @@ function getLabels(lang: Language) {
     acceptedRuntime: zh ? "已通过" : "accepted",
     rejectedRuntime: zh ? "未放行" : "rejected",
     adapter: zh ? "适配器" : "Adapter",
+    models: zh ? "模型" : "Models",
     ready: zh ? "已连接" : "Ready",
     offline: zh ? "未连接" : "Offline",
     samples: zh ? "样本" : "Samples",
@@ -149,8 +217,22 @@ function getLabels(lang: Language) {
     drawdown: zh ? "回撤" : "Drawdown",
     adapterSource: zh ? "引擎" : "Engine",
     fallback: zh ? "Node 兜底" : "Node fallback",
-    dgwm: zh ? "DGWM 通道" : "DGWM route"
+    dgwm: zh ? "DGWM 通道" : "DGWM route",
+    default: zh ? "默认" : "default",
+    defaultModel: zh ? "默认模型" : "Default model",
+    dirty: zh ? "dirty" : "dirty",
+    status: {
+      ready: zh ? "可用" : "ready",
+      degraded: zh ? "降级" : "degraded",
+      missing: zh ? "缺失" : "missing"
+    }
   };
+}
+
+function statusTone(status: QuantModelEntry["status"]) {
+  if (status === "ready") return "text-emerald-300";
+  if (status === "missing") return "text-rose-300";
+  return "text-yellow-300";
 }
 
 function formatPercent(value: number) {

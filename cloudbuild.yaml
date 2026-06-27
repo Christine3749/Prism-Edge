@@ -7,6 +7,9 @@ substitutions:
   # Set via --substitutions on deploy or in Cloud Build trigger variables.
   # Leave empty to disable internal auth (dev/staging only).
   _INTERNAL_API_KEY: ""
+  _HS_SUPABASE_URL: "https://hrtynofmjcumuanjvpxz.supabase.co"
+  _HS_PRODUCT_CODE: "msir_prism"
+  _HS_MEMBERSHIP_ENFORCEMENT: "enforce"
 
 steps:
   - name: gcr.io/google.com/cloudsdktool/cloud-sdk:slim
@@ -72,7 +75,7 @@ steps:
           --platform=managed \
           --format='value(status.url)')
 
-        WEB_ENV_VARS="API_BASE_URL=$$API_URL,APP_URL=${_APP_URL}"
+        WEB_ENV_VARS="API_BASE_URL=$$API_URL,APP_URL=${_APP_URL},HS_SUPABASE_URL=${_HS_SUPABASE_URL},HS_PRODUCT_CODE=${_HS_PRODUCT_CODE},HS_MEMBERSHIP_ENFORCEMENT=${_HS_MEMBERSHIP_ENFORCEMENT}"
         if [ -n "${_INTERNAL_API_KEY}" ]; then
           WEB_ENV_VARS="$$WEB_ENV_VARS,INTERNAL_API_KEY=${_INTERNAL_API_KEY}"
         fi

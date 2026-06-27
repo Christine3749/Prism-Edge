@@ -9,9 +9,11 @@ import {
   NewsItem,
   OrderBookItem,
   QuantBacktestReport,
-  QuantHealth
+  QuantHealth,
+  QuantModelRegistry
 } from "../../shared/src/types";
 import { generateMarketTrades, generateOrderBook, MarketTrade } from "../../shared/src/mockMarketData";
+import { hsFetch, readHsAccessToken } from "../../shared/src/hsAuth";
 import { Language, useTranslation } from "../../shared/src/translations";
 import { AiAnalysisTab } from "./bottomPanel/AiAnalysisTab";
 import { BottomPanelTabs } from "./bottomPanel/BottomPanelTabs";
@@ -19,7 +21,7 @@ import { NewsTab } from "./bottomPanel/NewsTab";
 import { OrderBookTab } from "./bottomPanel/OrderBookTab";
 import { TradesTab } from "./bottomPanel/TradesTab";
 import { buildIndicatorList, formatAnalysisResponse } from "./bottomPanel/analysisFormat";
-import type { BottomPanelTab } from "./bottomPanel/types";
+import type { BottomPanelTab, MembershipNotice } from "./bottomPanel/types";
 
 interface BottomPanelProps {
   currentSymbol: MarketSymbol;
@@ -53,10 +55,12 @@ export default function BottomPanel({
   const [aiLoading, setAiLoading] = useState(false);
   const [analysisServiceFallback, setAnalysisServiceFallback] = useState(false);
   const [quantHealth, setQuantHealth] = useState<QuantHealth | null>(null);
+  const [quantModels, setQuantModels] = useState<QuantModelRegistry | null>(null);
   const [backtest, setBacktest] = useState<QuantBacktestReport | null>(null);
   const [backtestLoading, setBacktestLoading] = useState(false);
   const [runtimeLoading, setRuntimeLoading] = useState(false);
   const [backtestError, setBacktestError] = useState("");
+  const [membershipNotice, setMembershipNotice] = useState<MembershipNotice | null>(null);
   const currentSymbolRef = useRef(currentSymbol);
 
   useEffect(() => {
@@ -98,18 +102,31 @@ export default function BottomPanel({
 
   useEffect(() => {
     const controller = new AbortController();
-    const fetchHealth = async () => {
+    const fetchQuantStatus = async () => {
       try {
-        const response = await fetch("/api/quant/health", { signal: controller.signal });
-        if (!response.ok) return;
-        setQuantHealth(await response.json() as QuantHealth);
+        const [healthResponse, modelsResponse] = await Promise.all([
+          fetch("/api/quant/health", { signal: controller.signal }),
+          hsFetch("/api/quant/models", { signal: controller.signal })
+        ]);
+        if (healthResponse.ok) {
+          setQuantHealth(await healthResponse.json() as QuantHealth);
+        }
+        if (modelsResponse.ok) {
+          setQuantModels(await modelsResponse.json() as QuantModelRegistry);
+        } else {
+          const notice = await membershipNoticeFromResponse(modelsResponse, "model_registry", lang);
+          if (notice) setMembershipNotice(notice);
+        }
       } catch {
-        if (!controller.signal.aborted) setQuantHealth(null);
+        if (!controller.signal.aborted) {
+          setQuantHealth(null);
+          setQuantModels(null);
+        }
       }
     };
-    fetchHealth();
+    fetchQuantStatus();
     return () => controller.abort();
-  }, []);
+  }, [lang]);
 
   useEffect(() => {
     const fetchNews = async () => {
@@ -134,6 +151,7 @@ export default function BottomPanel({
     setAiLoading(true);
     setAiAnalysis("");
     setAnalysisServiceFallback(false);
+    setMembershipNotice(null);
 
     try {
       const payload: AnalysisRunRequest = {
@@ -142,18 +160,23 @@ export default function BottomPanel({
         candles,
         indicators: buildIndicatorList(activeIndicators)
       };
-      const response = await fetch("/api/analysis/run", {
+      const response = await hsFetch("/api/analysis/run", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload)
       });
-      if (!response.ok) throw new Error("Analysis failed");
-
-      const data = await response.json() as AnalysisRunResponse & { serviceFallback?: boolean };
+      const data = await readJsonOrThrow<AnalysisRunResponse & { serviceFallback?: boolean }>(response, "quant_lab", lang);
       setAiAnalysis(formatAnalysisResponse(data, currentSymbol, timeframe, lang));
       setAnalysisServiceFallback(Boolean(data.serviceFallback || data.meta?.engine.includes("fallback")));
       onAnalysisResult?.(data);
-    } catch {
+    } catch (error) {
+      if (error instanceof MembershipGateError) {
+        setMembershipNotice(error.notice);
+        setAiAnalysis("");
+        setAnalysisServiceFallback(false);
+        onAnalysisResult?.(null);
+        return;
+      }
       setAiAnalysis(getAnalysisFallbackText(lang));
       setAnalysisServiceFallback(true);
       onAnalysisResult?.(null);
@@ -166,9 +189,10 @@ export default function BottomPanel({
     if (candles.length < 30) return;
     setBacktestLoading(true);
     setBacktestError("");
+    setMembershipNotice(null);
 
     try {
-      const response = await fetch("/api/backtest/run", {
+      const response = await hsFetch("/api/backtest/run", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -181,9 +205,13 @@ export default function BottomPanel({
           window: Math.min(120, Math.max(30, Math.floor(candles.length * 0.6)))
         })
       });
-      if (!response.ok) throw new Error("Backtest failed");
-      setBacktest(await response.json() as QuantBacktestReport);
-    } catch {
+      setBacktest(await readJsonOrThrow<QuantBacktestReport>(response, "backtest", lang));
+    } catch (error) {
+      if (error instanceof MembershipGateError) {
+        setMembershipNotice(error.notice);
+        setBacktestError(error.notice.message);
+        return;
+      }
       setBacktestError(getBacktestFallbackText(lang));
     } finally {
       setBacktestLoading(false);
@@ -194,9 +222,10 @@ export default function BottomPanel({
     if (candles.length < 30) return;
     setRuntimeLoading(true);
     setBacktestError("");
+    setMembershipNotice(null);
 
     try {
-      const response = await fetch("/api/quant/decision/run", {
+      const response = await hsFetch("/api/quant/decision/run", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -209,12 +238,16 @@ export default function BottomPanel({
           context: { dgwmRuntime: "diagnostic" }
         })
       });
-      if (!response.ok) throw new Error("DGWM runtime failed");
-      const data = await response.json() as AnalysisRunResponse;
+      const data = await readJsonOrThrow<AnalysisRunResponse>(response, "runtime_diagnostic", lang);
       setAiAnalysis(formatAnalysisResponse(data, currentSymbol, timeframe, lang));
       setAnalysisServiceFallback(false);
       onAnalysisResult?.(data);
-    } catch {
+    } catch (error) {
+      if (error instanceof MembershipGateError) {
+        setMembershipNotice(error.notice);
+        setBacktestError(error.notice.message);
+        return;
+      }
       setBacktestError(getRuntimeFallbackText(lang));
     } finally {
       setRuntimeLoading(false);
@@ -250,10 +283,12 @@ export default function BottomPanel({
               analysisServiceFallback={analysisServiceFallback}
               analysisResult={analysisResult}
               quantHealth={quantHealth}
+              quantModels={quantModels}
               backtest={backtest}
               backtestLoading={backtestLoading}
               runtimeLoading={runtimeLoading}
               backtestError={backtestError}
+              membershipNotice={membershipNotice}
               lang={lang}
               onRunAnalysis={handleRunAiAnalysis}
               onRunBacktest={handleRunBacktest}
@@ -278,6 +313,87 @@ function buildTrade(liveSymbol: MarketSymbol): MarketTrade {
   };
 }
 
+class MembershipGateError extends Error {
+  notice: MembershipNotice;
+
+  constructor(notice: MembershipNotice) {
+    super(notice.message);
+    this.notice = notice;
+  }
+}
+
+async function readJsonOrThrow<T>(response: Response, featureKey: string, lang: Language): Promise<T> {
+  const payload = await readJsonPayload(response);
+  if (!response.ok) {
+    const notice = membershipNoticeFromPayload(payload, response.status, featureKey, lang);
+    if (notice) throw new MembershipGateError(notice);
+    throw new Error(readPayloadMessage(payload) || `Request failed with ${response.status}`);
+  }
+  return payload as T;
+}
+
+async function membershipNoticeFromResponse(response: Response, featureKey: string, lang: Language) {
+  const payload = await readJsonPayload(response);
+  return membershipNoticeFromPayload(payload, response.status, featureKey, lang);
+}
+
+async function readJsonPayload(response: Response) {
+  const text = await response.text();
+  if (!text) return {};
+  try {
+    return JSON.parse(text) as Record<string, any>;
+  } catch {
+    return { message: text };
+  }
+}
+
+function membershipNoticeFromPayload(payload: Record<string, any>, status: number, fallbackFeatureKey: string, lang: Language): MembershipNotice | null {
+  const error = String(payload.error || "");
+  const code = String(payload.code || "");
+  const featureKey = String(payload.featureKey || fallbackFeatureKey || "quant_lab");
+  const isMembershipError = error === "HS_MEMBERSHIP_REQUIRED" || error === "UNAUTHORIZED" || status === 401 || status === 403;
+  if (!isMembershipError) return null;
+
+  const zh = lang === "zh" || lang === "tc";
+  const feature = featureLabel(featureKey, lang);
+  const signedIn = Boolean(readHsAccessToken());
+  const needsLogin = error === "UNAUTHORIZED" || status === 401 || code === "missing_bearer_token" || !signedIn;
+  const needsActivation = code === "product_not_active";
+  const href = needsLogin ? "/login" : "/membership";
+  const actionLabel = needsLogin
+    ? (zh ? "登录会员" : "Sign in")
+    : needsActivation
+      ? (zh ? "开通会员" : "Activate")
+      : (zh ? "查看方案" : "View plan");
+  const title = needsLogin
+    ? (zh ? "需要登录 MSIR Prism 会员" : "MSIR Prism sign-in required")
+    : needsActivation
+      ? (zh ? "需要开通 MSIR Prism 会员" : "MSIR Prism membership required")
+      : (zh ? "当前方案未解锁" : "Plan upgrade required");
+  const requiredPlan = featureKey === "runtime_diagnostic" || featureKey === "backtest" ? "Quant Pro" : "Free / Quant Pro";
+  const message = needsLogin
+    ? (zh ? `登录后才能运行 ${feature}。` : `Sign in before running ${feature}.`)
+    : needsActivation
+      ? (zh ? "当前账号还没有 MSIR Prism 产品权限，请先开通 Free 会员。" : "Activate the Free MSIR Prism plan before using this product.")
+      : (zh ? `${feature} 需要 ${requiredPlan} 权限。` : `${feature} requires ${requiredPlan}.`);
+
+  return { featureKey, title, message, actionLabel, href };
+}
+
+function readPayloadMessage(payload: Record<string, any>) {
+  return String(payload.message || payload.error_description || payload.error || "");
+}
+
+function featureLabel(featureKey: string, lang: Language) {
+  const zh = lang === "zh" || lang === "tc";
+  const labels: Record<string, string> = {
+    quant_lab: zh ? "AI 智能分析" : "AI analysis",
+    model_registry: zh ? "模型注册表" : "model registry",
+    runtime_diagnostic: zh ? "DGWM Runtime" : "DGWM runtime",
+    backtest: zh ? "回测能力" : "backtest"
+  };
+  return labels[featureKey] || featureKey;
+}
 function getAnalysisFallbackText(lang: Language) {
   if (lang === "zh") {
     return "量化模型接口连接超时。当前使用前端离线保护提示：结构暂按震荡处理，等待突破或回踩确认。";

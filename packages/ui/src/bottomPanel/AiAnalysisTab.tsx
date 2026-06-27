@@ -1,8 +1,9 @@
-import { AlertTriangle, Play, Sparkles } from "lucide-react";
-import type { AnalysisRunResponse, QuantBacktestReport, QuantHealth } from "../../../shared/src/types";
+import { AlertTriangle, Crown, Play, Sparkles } from "lucide-react";
+import type { AnalysisRunResponse, QuantBacktestReport, QuantHealth, QuantModelRegistry } from "../../../shared/src/types";
 import type { Language } from "../../../shared/src/translations";
 import { AiMarkdown } from "./AiMarkdown";
 import { QuantLabPanel } from "./QuantLabPanel";
+import type { MembershipNotice } from "./types";
 
 interface AiAnalysisTabProps {
   aiAnalysis: string;
@@ -10,10 +11,12 @@ interface AiAnalysisTabProps {
   analysisServiceFallback: boolean;
   analysisResult?: AnalysisRunResponse | null;
   quantHealth: QuantHealth | null;
+  quantModels: QuantModelRegistry | null;
   backtest: QuantBacktestReport | null;
   backtestLoading: boolean;
   runtimeLoading: boolean;
   backtestError: string;
+  membershipNotice?: MembershipNotice | null;
   lang: Language;
   onRunAnalysis: () => void;
   onRunBacktest: () => void;
@@ -26,36 +29,60 @@ export function AiAnalysisTab({
   analysisServiceFallback,
   analysisResult,
   quantHealth,
+  quantModels,
   backtest,
   backtestLoading,
   runtimeLoading,
   backtestError,
+  membershipNotice,
   lang,
   onRunAnalysis,
   onRunBacktest,
   onRunRuntime
 }: AiAnalysisTabProps) {
   return (
-    <div className="h-full flex flex-col justify-between">
-      {aiLoading ? (
-        <LoadingState lang={lang} />
-      ) : aiAnalysis ? (
-        <AnalysisOutput
-          aiAnalysis={aiAnalysis}
-          analysisServiceFallback={analysisServiceFallback}
-          analysisResult={analysisResult}
-          quantHealth={quantHealth}
-          backtest={backtest}
-          backtestLoading={backtestLoading}
-          runtimeLoading={runtimeLoading}
-          backtestError={backtestError}
-          lang={lang}
-          onRunBacktest={onRunBacktest}
-          onRunRuntime={onRunRuntime}
-        />
-      ) : (
-        <EmptyState lang={lang} onRunAnalysis={onRunAnalysis} />
-      )}
+    <div className="h-full flex flex-col gap-2">
+      {membershipNotice && <MembershipNoticeBanner notice={membershipNotice} />}
+      <div className="min-h-0 flex-1 flex flex-col justify-between">
+        {aiLoading ? (
+          <LoadingState lang={lang} />
+        ) : aiAnalysis ? (
+          <AnalysisOutput
+            aiAnalysis={aiAnalysis}
+            analysisServiceFallback={analysisServiceFallback}
+            analysisResult={analysisResult}
+            quantHealth={quantHealth}
+            quantModels={quantModels}
+            backtest={backtest}
+            backtestLoading={backtestLoading}
+            runtimeLoading={runtimeLoading}
+            backtestError={backtestError}
+            membershipNotice={membershipNotice}
+            lang={lang}
+            onRunBacktest={onRunBacktest}
+            onRunRuntime={onRunRuntime}
+          />
+        ) : (
+          <EmptyState lang={lang} onRunAnalysis={onRunAnalysis} />
+        )}
+      </div>
+    </div>
+  );
+}
+
+function MembershipNoticeBanner({ notice }: { notice: MembershipNotice }) {
+  return (
+    <div className="flex items-center justify-between gap-3 rounded-md border border-amber-400/30 bg-amber-500/10 px-3 py-2 text-[10px] text-amber-100">
+      <div className="flex min-w-0 items-start gap-2">
+        <Crown className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-300" />
+        <div className="min-w-0">
+          <div className="font-black text-amber-100">{notice.title}</div>
+          <div className="mt-0.5 leading-relaxed text-amber-100/80">{notice.message}</div>
+        </div>
+      </div>
+      <a href={notice.href} className="shrink-0 rounded border border-amber-300/40 px-2 py-1 font-black text-amber-100 no-underline hover:bg-amber-300/10">
+        {notice.actionLabel}
+      </a>
     </div>
   );
 }
@@ -80,10 +107,12 @@ function AnalysisOutput({
   analysisServiceFallback,
   analysisResult,
   quantHealth,
+  quantModels,
   backtest,
   backtestLoading,
   runtimeLoading,
   backtestError,
+  membershipNotice,
   onRunBacktest,
   onRunRuntime,
   lang
@@ -92,10 +121,12 @@ function AnalysisOutput({
   analysisServiceFallback: boolean;
   analysisResult?: AnalysisRunResponse | null;
   quantHealth: QuantHealth | null;
+  quantModels: QuantModelRegistry | null;
   backtest: QuantBacktestReport | null;
   backtestLoading: boolean;
   runtimeLoading: boolean;
   backtestError: string;
+  membershipNotice?: MembershipNotice | null;
   onRunBacktest: () => void;
   onRunRuntime: () => void;
   lang: Language;
@@ -111,11 +142,13 @@ function AnalysisOutput({
       {analysisResult && <QuantSnapshot result={analysisResult} lang={lang} />}
       <QuantLabPanel
         health={quantHealth}
+        models={quantModels}
         backtest={backtest}
         runtimeDiagnostic={analysisResult.runtimeDiagnostic}
         loading={backtestLoading}
         runtimeLoading={runtimeLoading}
         error={backtestError}
+        membershipNotice={membershipNotice}
         canRun={Boolean(analysisResult)}
         lang={lang}
         onRunBacktest={onRunBacktest}
