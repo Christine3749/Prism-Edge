@@ -1,4 +1,4 @@
-import { Activity, ChevronLeft, ChevronRight, Crosshair, Radar, ShieldAlert, Zap } from "lucide-react";
+import { Activity, ChevronRight, Crosshair, Radar, ShieldAlert, Zap } from "lucide-react";
 import { useMemo, useState } from "react";
 import type { AnalysisRunResponse, MarketDataStatus, MarketSymbol } from "../../shared/src/types";
 import type { Language } from "../../shared/src/translations";
@@ -31,7 +31,7 @@ export default function SignalScanner({
   lang,
   onSymbolSelect
 }: SignalScannerProps) {
-  const [collapsed, setCollapsed] = useState(false);
+  const [collapsed, setCollapsed] = useState(true);
   const labels = getLabels(lang);
   const rows = useMemo(
     () => buildScannerRows(symbolsList, currentSymbol, marketStatus, analysisResult, labels),
@@ -43,110 +43,111 @@ export default function SignalScanner({
     ? Math.round(rows.reduce((sum, row) => sum + row.score, 0) / rows.length)
     : 0;
 
-  if (collapsed) {
-    return (
-      <aside className="hidden xl:flex h-full w-10 shrink-0 flex-col items-center justify-between border-r border-slate-800 bg-slate-950 py-2 text-slate-400">
-        <button
-          type="button"
-          onClick={() => setCollapsed(false)}
-          className="flex h-8 w-8 items-center justify-center rounded border border-slate-800 bg-slate-900 text-cyan-300 hover:border-cyan-500/50 focus:outline-none focus-visible:border-cyan-400"
-          title={labels.expand}
-        >
-          <ChevronRight className="h-4 w-4" />
-        </button>
-        <div className="flex rotate-180 items-center gap-2 [writing-mode:vertical-rl]">
-          <Radar className="h-3.5 w-3.5 text-cyan-300" />
-          <span className="text-[9px] font-black uppercase tracking-[0.28em] text-slate-500">Scanner</span>
-        </div>
-        <div className="font-mono text-[10px] font-black text-cyan-300">{activeRows}</div>
-      </aside>
-    );
-  }
-
   return (
-    <aside className="hidden xl:flex h-full w-[248px] shrink-0 flex-col border-r border-slate-800 bg-slate-950 text-slate-200">
-      <div className="border-b border-slate-800 p-2.5">
-        <div className="flex items-center justify-between gap-2">
-          <div className="min-w-0">
-            <div className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-[0.22em] text-cyan-300">
-              <Radar className="h-3.5 w-3.5" />
-              MSIR Scanner
-            </div>
-            <div className="mt-1 truncate text-[9px] uppercase tracking-widest text-slate-600">
-              {labels.subtitle}
+    <aside
+      className="relative z-20 hidden h-full shrink-0 overflow-visible xl:block"
+      style={{
+        width: collapsed ? 0 : 248,
+        transition: "width 520ms cubic-bezier(0.22, 1, 0.36, 1)"
+      }}
+    >
+      <div
+        className={`absolute inset-y-0 left-0 flex w-[248px] flex-col border-r border-slate-800 bg-slate-950 text-slate-200 shadow-[18px_0_40px_rgba(2,6,23,0.26)] transition-[transform,opacity,filter] duration-500 ${
+          collapsed ? "pointer-events-none -translate-x-5 opacity-0 blur-[1px]" : "translate-x-0 opacity-100 blur-0"
+        }`}
+        style={{ transitionTimingFunction: "cubic-bezier(0.22, 1, 0.36, 1)" }}
+      >
+        <div className="border-b border-slate-800 p-2.5">
+          <div className="flex items-center justify-between gap-2 pr-6">
+            <div className="min-w-0">
+              <div className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-[0.22em] text-cyan-300">
+                <Radar className="h-3.5 w-3.5" />
+                MSIR Scanner
+              </div>
+              <div className="mt-1 truncate text-[9px] uppercase tracking-widest text-slate-600">
+                {labels.subtitle}
+              </div>
             </div>
           </div>
-          <button
-            type="button"
-            onClick={() => setCollapsed(true)}
-            className="flex h-7 w-7 shrink-0 items-center justify-center rounded border border-slate-800 bg-slate-900 text-slate-400 hover:border-cyan-500/40 hover:text-cyan-300 focus:outline-none focus-visible:border-cyan-400"
-            title={labels.collapse}
-          >
-            <ChevronLeft className="h-3.5 w-3.5" />
-          </button>
-        </div>
 
-        <div className="mt-2 grid grid-cols-3 gap-1.5">
-          <ScannerMetric icon={<Zap className="h-3 w-3" />} label={labels.active} value={String(activeRows)} tone="text-cyan-300" />
-          <ScannerMetric icon={<ShieldAlert className="h-3 w-3" />} label={labels.defense} value={String(defenseRows)} tone="text-amber-300" />
-          <ScannerMetric icon={<Activity className="h-3 w-3" />} label={labels.score} value={String(avgScore)} tone="text-emerald-300" />
-        </div>
-      </div>
-
-      <div className="grid grid-cols-[minmax(0,1fr)_42px_44px] gap-2 border-b border-slate-900 px-2.5 py-1.5 text-[8px] font-black uppercase tracking-widest text-slate-600">
-        <span>{labels.asset}</span>
-        <span className="text-right">{labels.bias}</span>
-        <span className="text-right">{labels.rank}</span>
-      </div>
-
-      <div className="min-h-0 flex-1 overflow-y-auto divide-y divide-slate-900">
-        {rows.map((row) => {
-          const selected = row.symbol.id === currentSymbol.id;
-          return (
-            <button
-              key={row.symbol.id}
-              type="button"
-              onClick={() => onSymbolSelect(row.symbol)}
-              className={`grid h-[54px] w-full grid-cols-[minmax(0,1fr)_42px_44px] items-center gap-2 px-2.5 text-left transition-colors focus:outline-none focus-visible:bg-slate-900 focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-cyan-400/60 ${
-                selected
-                  ? "border-l-2 border-cyan-400 bg-slate-900 text-white"
-                  : "border-l-2 border-transparent text-slate-300 hover:bg-slate-900/70 hover:text-white"
-              }`}
-            >
-              <div className="min-w-0">
-                <div className="flex min-w-0 items-center gap-1.5">
-                  <Crosshair className={`h-3 w-3 shrink-0 ${sideTone(row.side)}`} />
-                  <span className="truncate text-[11px] font-black">{row.symbol.id}</span>
-                </div>
-                <div className="mt-1 flex min-w-0 items-center gap-1.5">
-                  <span className={`shrink-0 rounded border px-1 py-[1px] text-[7px] font-black uppercase tracking-wider ${setupTone(row.side)}`}>
-                    {row.setup}
-                  </span>
-                  <span className="truncate text-[8px] text-slate-600">{row.source}</span>
-                </div>
-              </div>
-              <span className={`text-right text-[9px] font-black uppercase ${sideTone(row.side)}`}>{labels.side[row.side]}</span>
-              <div className="text-right">
-                <div className={`font-mono text-[12px] font-black ${scoreTone(row.score)}`}>{row.score}</div>
-                <div className="text-[7px] uppercase tracking-wider text-slate-600">{row.risk}</div>
-              </div>
-            </button>
-          );
-        })}
-      </div>
-
-      <div className="border-t border-slate-900 p-2.5">
-        <div className="rounded border border-cyan-500/15 bg-cyan-950/10 p-2">
-          <div className="flex items-center justify-between gap-2 text-[8px] font-black uppercase tracking-widest text-slate-500">
-            <span>{labels.focus}</span>
-            <span className={marketStatus?.state === "live" ? "text-emerald-300" : "text-amber-300"}>
-              {marketStatus?.state || "SIM"}
-            </span>
+          <div className="mt-2 grid grid-cols-3 gap-1.5">
+            <ScannerMetric icon={<Zap className="h-3 w-3" />} label={labels.active} value={String(activeRows)} tone="text-cyan-300" />
+            <ScannerMetric icon={<ShieldAlert className="h-3 w-3" />} label={labels.defense} value={String(defenseRows)} tone="text-amber-300" />
+            <ScannerMetric icon={<Activity className="h-3 w-3" />} label={labels.score} value={String(avgScore)} tone="text-emerald-300" />
           </div>
-          <div className="mt-1 truncate text-[11px] font-black text-slate-100">{currentSymbol.id}</div>
-          <div className="mt-1 text-[9px] leading-relaxed text-slate-500">{labels.footer}</div>
+        </div>
+
+        <div className="grid grid-cols-[minmax(0,1fr)_42px_44px] gap-2 border-b border-slate-900 px-2.5 py-1.5 text-[8px] font-black uppercase tracking-widest text-slate-600">
+          <span>{labels.asset}</span>
+          <span className="text-right">{labels.bias}</span>
+          <span className="text-right">{labels.rank}</span>
+        </div>
+
+        <div className="min-h-0 flex-1 overflow-y-auto divide-y divide-slate-900">
+          {rows.map((row) => {
+            const selected = row.symbol.id === currentSymbol.id;
+            return (
+              <button
+                key={row.symbol.id}
+                type="button"
+                onClick={() => onSymbolSelect(row.symbol)}
+                className={`grid h-[54px] w-full grid-cols-[minmax(0,1fr)_42px_44px] items-center gap-2 px-2.5 text-left transition-colors focus:outline-none focus-visible:bg-slate-900 focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-cyan-400/60 ${
+                  selected
+                    ? "border-l-2 border-cyan-400 bg-slate-900 text-white"
+                    : "border-l-2 border-transparent text-slate-300 hover:bg-slate-900/70 hover:text-white"
+                }`}
+              >
+                <div className="min-w-0">
+                  <div className="flex min-w-0 items-center gap-1.5">
+                    <Crosshair className={`h-3 w-3 shrink-0 ${sideTone(row.side)}`} />
+                    <span className="truncate text-[11px] font-black">{row.symbol.id}</span>
+                  </div>
+                  <div className="mt-1 flex min-w-0 items-center gap-1.5">
+                    <span className={`shrink-0 rounded border px-1 py-[1px] text-[7px] font-black uppercase tracking-wider ${setupTone(row.side)}`}>
+                      {row.setup}
+                    </span>
+                    <span className="truncate text-[8px] text-slate-600">{row.source}</span>
+                  </div>
+                </div>
+                <span className={`text-right text-[9px] font-black uppercase ${sideTone(row.side)}`}>{labels.side[row.side]}</span>
+                <div className="text-right">
+                  <div className={`font-mono text-[12px] font-black ${scoreTone(row.score)}`}>{row.score}</div>
+                  <div className="text-[7px] uppercase tracking-wider text-slate-600">{row.risk}</div>
+                </div>
+              </button>
+            );
+          })}
+        </div>
+
+        <div className="border-t border-slate-900 p-2.5">
+          <div className="rounded border border-cyan-500/15 bg-cyan-950/10 p-2">
+            <div className="flex items-center justify-between gap-2 text-[8px] font-black uppercase tracking-widest text-slate-500">
+              <span>{labels.focus}</span>
+              <span className={marketStatus?.state === "live" ? "text-emerald-300" : "text-amber-300"}>
+                {marketStatus?.state || "SIM"}
+              </span>
+            </div>
+            <div className="mt-1 truncate text-[11px] font-black text-slate-100">{currentSymbol.id}</div>
+            <div className="mt-1 text-[9px] leading-relaxed text-slate-500">{labels.footer}</div>
+          </div>
         </div>
       </div>
+
+      <button
+        type="button"
+        onClick={() => setCollapsed((value) => !value)}
+        aria-expanded={!collapsed}
+        className={`absolute top-3 z-30 flex h-9 w-7 items-center justify-center border border-slate-700/90 bg-slate-950/95 text-cyan-300 shadow-[0_0_24px_rgba(34,211,238,0.16)] backdrop-blur transition-all duration-500 hover:border-cyan-400/70 hover:bg-slate-900 hover:shadow-[0_0_34px_rgba(34,211,238,0.28)] focus:outline-none focus-visible:border-cyan-300 focus-visible:ring-1 focus-visible:ring-cyan-300/70 ${
+          collapsed ? "left-2 rounded-md" : "left-[234px] rounded-l-md rounded-r-none"
+        }`}
+        style={{ transitionTimingFunction: "cubic-bezier(0.22, 1, 0.36, 1)" }}
+        title={collapsed ? labels.expand : labels.collapse}
+      >
+        <ChevronRight
+          className={`h-4 w-4 transition-transform duration-500 ${collapsed ? "rotate-0" : "rotate-180"}`}
+          style={{ transitionTimingFunction: "cubic-bezier(0.22, 1, 0.36, 1)" }}
+        />
+      </button>
     </aside>
   );
 }
