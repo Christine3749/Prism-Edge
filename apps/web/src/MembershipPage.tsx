@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { ArrowLeft, Brain, Check, Crown, Database, Gauge, LockKeyhole, Settings, ShieldCheck, Sparkles, UserCircle } from "lucide-react";
 import { hsFetch, readHsAccessToken } from "@shared/hsAuth";
+import Logo from "@ui/Logo";
 
 type MembershipSnapshot = {
   configured?: boolean;
@@ -70,12 +71,22 @@ export default function MembershipPage() {
   const features = snapshot?.features || {};
 
   return (
-    <main className="min-h-screen overflow-auto bg-[#070b12] text-slate-100">
-      <div className="mx-auto min-h-screen w-full max-w-7xl px-5 py-5">
+    <main className="relative min-h-screen overflow-auto bg-[#030711] text-slate-100">
+      <div
+        className="pointer-events-none absolute inset-0 opacity-35"
+        style={{
+          backgroundImage:
+            "linear-gradient(rgba(14,165,233,0.08) 1px, transparent 1px), linear-gradient(90deg, rgba(14,165,233,0.07) 1px, transparent 1px)",
+          backgroundSize: "44px 44px"
+        }}
+      />
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-cyan-400/50" />
+
+      <div className="relative mx-auto min-h-screen w-full max-w-7xl px-5 py-5">
         <header className="flex items-center justify-between border-b border-slate-800/80 pb-4">
           <a href="/" className="flex items-center gap-3 text-slate-100 no-underline">
-            <div className="flex h-10 w-10 items-center justify-center border border-cyan-500/50 bg-cyan-950/20 text-cyan-300">
-              <span className="font-mono text-lg">△</span>
+            <div className="flex h-10 w-10 items-center justify-center rounded-md border border-cyan-500/40 bg-slate-950/70 text-cyan-300">
+              <Logo className="h-8" showText={false} />
             </div>
             <div>
               <div className="text-sm font-black tracking-wide">MSIR Prism</div>
@@ -83,12 +94,12 @@ export default function MembershipPage() {
             </div>
           </a>
           <div className="flex items-center gap-2">
-            <a href="/" className="flex h-8 items-center gap-2 border border-slate-800 bg-slate-900 px-3 text-xs font-semibold text-slate-300 no-underline hover:border-cyan-500/40 hover:text-white">
+            <a href="/" className="flex h-8 items-center gap-2 rounded-md border border-slate-800 bg-slate-950/80 px-3 text-xs font-semibold text-slate-300 no-underline hover:border-cyan-500/40 hover:text-white">
               <ArrowLeft className="h-3.5 w-3.5" />
               返回终端
             </a>
             {!token && (
-              <a href="/login" className="flex h-8 items-center border border-cyan-500/50 bg-cyan-500 px-3 text-xs font-black text-slate-950 no-underline hover:bg-cyan-300">
+              <a href="/login" className="flex h-8 items-center rounded-md border border-cyan-500/50 bg-cyan-500 px-3 text-xs font-black text-slate-950 no-underline hover:bg-cyan-300">
                 登录
               </a>
             )}
@@ -97,7 +108,7 @@ export default function MembershipPage() {
 
         <section className="grid gap-6 py-8 lg:grid-cols-[240px_1fr]">
           <aside className="space-y-6">
-            <div className="border border-slate-800 bg-slate-950/70 p-4">
+            <div className="rounded-lg border border-slate-800 bg-slate-950/70 p-4">
               <div className="flex items-center gap-3">
                 <div className="flex h-10 w-10 items-center justify-center rounded-full border border-cyan-500/40 bg-cyan-950/30 text-cyan-300">
                   <UserCircle className="h-5 w-5" />
@@ -108,7 +119,7 @@ export default function MembershipPage() {
                 </div>
               </div>
             </div>
-            <nav className="border border-slate-800 bg-slate-950/60 p-2 text-sm">
+            <nav className="rounded-lg border border-slate-800 bg-slate-950/60 p-2 text-sm">
               <SideItem active icon={<UserCircle className="h-4 w-4" />} label="账户信息" />
               <SideItem icon={<ShieldCheck className="h-4 w-4" />} label="我的权限" />
               <SideItem icon={<Crown className="h-4 w-4" />} label="会员方案" />
@@ -126,8 +137,8 @@ export default function MembershipPage() {
             </div>
 
             {!token && <GuestPanel />}
-            {error && <div className="border border-amber-500/40 bg-amber-950/20 px-4 py-3 text-sm text-amber-200">{error}</div>}
-            {loading && <div className="border border-slate-800 bg-slate-950/70 p-6 text-sm text-slate-400">正在读取会员状态...</div>}
+            {error && <div className="rounded-md border border-amber-500/40 bg-amber-950/20 px-4 py-3 text-sm text-amber-200">{error}</div>}
+            {loading && <div className="rounded-lg border border-slate-800 bg-slate-950/70 p-6 text-sm text-slate-400">正在读取会员状态...</div>}
 
             {!loading && token && (
               <>
@@ -138,7 +149,7 @@ export default function MembershipPage() {
                 </div>
 
                 {!isActive && (
-                  <div className="flex flex-col gap-3 border border-cyan-500/30 bg-cyan-950/10 p-5 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="flex flex-col gap-3 rounded-lg border border-cyan-500/30 bg-cyan-950/10 p-5 sm:flex-row sm:items-center sm:justify-between">
                     <div>
                       <div className="font-black text-white">还没有 MSIR Prism 会员权限</div>
                       <div className="mt-1 text-sm text-slate-400">可以先开通 Free 方案，后续再升级 Quant Pro。</div>
@@ -147,7 +158,7 @@ export default function MembershipPage() {
                       type="button"
                       onClick={activateFree}
                       disabled={activating}
-                      className="h-10 border border-cyan-500/50 bg-cyan-500 px-4 text-sm font-black text-slate-950 hover:bg-cyan-300 disabled:cursor-not-allowed disabled:opacity-60"
+                      className="h-10 rounded-md border border-cyan-500/50 bg-cyan-500 px-4 text-sm font-black text-slate-950 hover:bg-cyan-300 disabled:cursor-not-allowed disabled:opacity-60"
                     >
                       {activating ? "开通中..." : "开通 Free 会员"}
                     </button>
@@ -161,7 +172,7 @@ export default function MembershipPage() {
                   <PermissionCard icon={<Sparkles className="h-4 w-4" />} title="回测能力" enabled={featureEnabled(features.backtest)} detail="策略回测、权益曲线、回撤分析" />
                 </div>
 
-                <div className="border border-slate-800 bg-slate-950/70">
+                <div className="overflow-hidden rounded-lg border border-slate-800 bg-slate-950/70">
                   <div className="border-b border-slate-800 px-5 py-4">
                     <div className="text-sm font-black text-white">账户信息</div>
                     <div className="mt-1 text-xs text-slate-500">基础资料和授权状态</div>
@@ -184,21 +195,21 @@ export default function MembershipPage() {
 
 function GuestPanel() {
   return (
-    <div className="grid gap-4 border border-slate-800 bg-slate-950/70 p-6 lg:grid-cols-[1fr_auto] lg:items-center">
+    <div className="grid gap-4 rounded-lg border border-slate-800 bg-slate-950/70 p-6 lg:grid-cols-[1fr_auto] lg:items-center">
       <div>
         <div className="text-lg font-black text-white">请先登录 MSIR Prism</div>
         <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-400">
           登录后可以查看你的方案等级、量化权限和模型额度。普通会员不会进入内部运营后台。
         </p>
       </div>
-      <a href="/login" className="flex h-10 items-center justify-center border border-cyan-500/50 bg-cyan-500 px-4 text-sm font-black text-slate-950 no-underline hover:bg-cyan-300">登录会员账号</a>
+      <a href="/login" className="flex h-10 items-center justify-center rounded-md border border-cyan-500/50 bg-cyan-500 px-4 text-sm font-black text-slate-950 no-underline hover:bg-cyan-300">登录会员账号</a>
     </div>
   );
 }
 
 function SideItem({ icon, label, active = false }: { icon: React.ReactNode; label: string; active?: boolean }) {
   return (
-    <div className={`flex items-center gap-2 px-3 py-2 ${active ? "bg-slate-900 text-cyan-300" : "text-slate-500"}`}>
+    <div className={`flex items-center gap-2 rounded-md px-3 py-2 ${active ? "bg-slate-900 text-cyan-300" : "text-slate-500"}`}>
       {icon}
       <span>{label}</span>
     </div>
@@ -208,8 +219,8 @@ function SideItem({ icon, label, active = false }: { icon: React.ReactNode; labe
 function StatusPanel({ title, value, meta, icon, accent }: { title: string; value: string; meta: string; icon: React.ReactNode; accent: "cyan" | "amber" | "slate" }) {
   const accentClass = accent === "cyan" ? "text-cyan-300 border-cyan-500/30 bg-cyan-950/20" : accent === "amber" ? "text-amber-300 border-amber-500/30 bg-amber-950/20" : "text-slate-300 border-slate-700 bg-slate-900/50";
   return (
-    <div className="border border-slate-800 bg-slate-950/70 p-5">
-      <div className={`mb-5 inline-flex h-9 w-9 items-center justify-center border ${accentClass}`}>{icon}</div>
+    <div className="rounded-lg border border-slate-800 bg-slate-950/70 p-5">
+      <div className={`mb-5 inline-flex h-9 w-9 items-center justify-center rounded-md border ${accentClass}`}>{icon}</div>
       <div className="text-[11px] font-bold uppercase tracking-[0.2em] text-slate-500">{title}</div>
       <div className="mt-2 text-xl font-black text-white">{value}</div>
       <div className="mt-1 text-xs text-slate-500">{meta}</div>
@@ -219,12 +230,12 @@ function StatusPanel({ title, value, meta, icon, accent }: { title: string; valu
 
 function PermissionCard({ icon, title, detail, enabled }: { icon: React.ReactNode; title: string; detail: string; enabled: boolean }) {
   return (
-    <div className="flex items-start gap-3 border border-slate-800 bg-slate-950/70 p-4">
+    <div className="flex items-start gap-3 rounded-md border border-slate-800 bg-slate-950/70 p-4">
       <div className={enabled ? "text-cyan-300" : "text-slate-600"}>{icon}</div>
       <div className="min-w-0 flex-1">
         <div className="flex items-center justify-between gap-3">
           <div className="font-bold text-white">{title}</div>
-          <span className={`inline-flex items-center gap-1 border px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ${enabled ? "border-cyan-500/40 text-cyan-300" : "border-slate-700 text-slate-500"}`}>
+          <span className={`inline-flex items-center gap-1 rounded border px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ${enabled ? "border-cyan-500/40 text-cyan-300" : "border-slate-700 text-slate-500"}`}>
             {enabled && <Check className="h-3 w-3" />}
             {enabled ? "Enabled" : "Locked"}
           </span>
@@ -250,5 +261,4 @@ function featureEnabled(value: unknown) {
   if (typeof value === "string") return ["true", "yes", "enabled"].includes(value.toLowerCase());
   return false;
 }
-
 
