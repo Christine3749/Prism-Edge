@@ -137,8 +137,8 @@ export default function SignalScanner({
         type="button"
         onClick={() => setCollapsed((value) => !value)}
         aria-expanded={!collapsed}
-        className={`absolute top-3 z-30 flex h-9 w-7 items-center justify-center border border-slate-700/90 bg-slate-950/95 text-cyan-300 shadow-[0_0_24px_rgba(34,211,238,0.16)] backdrop-blur transition-all duration-500 hover:border-cyan-400/70 hover:bg-slate-900 hover:shadow-[0_0_34px_rgba(34,211,238,0.28)] focus:outline-none focus-visible:border-cyan-300 focus-visible:ring-1 focus-visible:ring-cyan-300/70 ${
-          collapsed ? "left-2 rounded-md" : "left-[234px] rounded-l-md rounded-r-none"
+        className={`absolute z-30 flex h-9 w-7 items-center justify-center border border-slate-700/90 bg-slate-950/95 text-cyan-300 shadow-[0_0_24px_rgba(34,211,238,0.16)] backdrop-blur transition-all duration-500 hover:border-cyan-400/70 hover:bg-slate-900 hover:shadow-[0_0_34px_rgba(34,211,238,0.28)] focus:outline-none focus-visible:border-cyan-300 focus-visible:ring-1 focus-visible:ring-cyan-300/70 ${
+          collapsed ? "left-2 top-[4.75rem] rounded-md" : "left-[234px] top-3 rounded-l-md rounded-r-none"
         }`}
         style={{ transitionTimingFunction: "cubic-bezier(0.22, 1, 0.36, 1)" }}
         title={collapsed ? labels.expand : labels.collapse}
