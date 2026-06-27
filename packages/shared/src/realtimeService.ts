@@ -42,7 +42,8 @@ function subscribePolling(symbol: MarketSymbol, interval: string, onTick: TickCa
       const secStep = timeframeToSeconds(interval);
       const now = Math.floor(Date.now() / 1000);
       const anchor = Math.floor(now / secStep) * secStep;
-      const pct = (Math.random() - 0.5) * 0.0015;
+      const volUnit = symbol.type === "forex" ? 0.00035 : symbol.type === "crypto" ? 0.003 : 0.0016;
+      const pct = (Math.random() - 0.48) * volUnit;
       const close = lastClose * (1 + pct);
       const high = Math.max(lastClose, close) * (1 + Math.random() * 0.0003);
       const low = Math.min(lastClose, close) * (1 - Math.random() * 0.0003);
@@ -92,17 +93,29 @@ function subscribeWs(symbol: MarketSymbol, interval: string, onTick: TickCallbac
   let closed = false;
   let ws: WebSocket | null = null;
   let pollUnsub: (() => void) | null = null;
+  let lastMessageAt = Date.now();
+  let watchdog: ReturnType<typeof setInterval> | null = null;
 
   function fallback() {
     if (closed || pollUnsub) return;
-    warnOnce(`ws_fallback_${symbol.symbol}`, "[realtime ws] WebSocket unavailable, falling back to polling.");
+    warnOnce(`ws_fallback_${symbol.symbol}`, "[realtime ws] WebSocket unavailable or quiet, falling back to polling.");
+    try { ws?.close(); } catch { /* ignore */ }
+    if (watchdog) {
+      clearInterval(watchdog);
+      watchdog = null;
+    }
     pollUnsub = subscribePolling(symbol, interval, onTick);
   }
 
   try {
     ws = new WebSocket(buildWsUrl(symbol, interval));
+    ws.onopen = () => { lastMessageAt = Date.now(); };
+    watchdog = setInterval(() => {
+      if (!closed && !pollUnsub && Date.now() - lastMessageAt > 4500) fallback();
+    }, 1500);
 
     ws.onmessage = (event) => {
+      lastMessageAt = Date.now();
       if (closed) return;
       try {
         const msg = JSON.parse(String(event.data));
@@ -128,6 +141,7 @@ function subscribeWs(symbol: MarketSymbol, interval: string, onTick: TickCallbac
 
   return () => {
     closed = true;
+    if (watchdog) clearInterval(watchdog);
     ws?.close();
     pollUnsub?.();
   };

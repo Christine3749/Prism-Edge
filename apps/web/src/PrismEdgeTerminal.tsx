@@ -8,6 +8,7 @@ import ChartContainer from "@ui/ChartContainer";
 import DrawingToolbar from "@ui/DrawingToolbar";
 import Header from "@ui/Header";
 import IndicatorsModal from "@ui/IndicatorsModal";
+import SignalScanner from "@ui/SignalScanner";
 import SettingsModal from "@ui/SettingsModal";
 import Watchlist from "@ui/Watchlist";
 import { DEFAULT_APP_SETTINGS, DEFAULT_INDICATOR_CONFIG } from "./config/appDefaults";
@@ -129,6 +130,15 @@ export default function PrismEdgeTerminal() {
           lang={lang}
         />
 
+
+        <SignalScanner
+          currentSymbol={currentSymbol}
+          symbolsList={symbolsList}
+          marketStatus={marketStatus}
+          analysisResult={analysisResult}
+          lang={lang}
+          onSymbolSelect={handleSymbolSelect}
+        />
         <div className="flex-grow flex flex-col min-w-0 h-full">
           <ChartContainer
             currentSymbol={currentSymbol}
