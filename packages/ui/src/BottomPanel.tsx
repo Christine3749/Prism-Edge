@@ -14,6 +14,13 @@ import {
 } from "../../shared/src/types";
 import { generateMarketTrades, generateOrderBook, MarketTrade } from "../../shared/src/mockMarketData";
 import { hsFetch, readHsAccessToken } from "../../shared/src/hsAuth";
+import {
+  hasMembershipFeature,
+  loadMembershipSnapshot,
+  membershipIsActive,
+  membershipPlanLabel
+} from "../../shared/src/membership";
+import type { HsMembershipSnapshot } from "../../shared/src/membership";
 import { Language, useTranslation } from "../../shared/src/translations";
 import { AiAnalysisTab } from "./bottomPanel/AiAnalysisTab";
 import { BottomPanelTabs } from "./bottomPanel/BottomPanelTabs";
@@ -21,7 +28,7 @@ import { NewsTab } from "./bottomPanel/NewsTab";
 import { OrderBookTab } from "./bottomPanel/OrderBookTab";
 import { TradesTab } from "./bottomPanel/TradesTab";
 import { buildIndicatorList, formatAnalysisResponse } from "./bottomPanel/analysisFormat";
-import type { BottomPanelTab, MembershipNotice } from "./bottomPanel/types";
+import type { BottomPanelTab, MembershipNotice, QuantFeatureAccess } from "./bottomPanel/types";
 
 interface BottomPanelProps {
   currentSymbol: MarketSymbol;
@@ -61,11 +68,27 @@ export default function BottomPanel({
   const [runtimeLoading, setRuntimeLoading] = useState(false);
   const [backtestError, setBacktestError] = useState("");
   const [membershipNotice, setMembershipNotice] = useState<MembershipNotice | null>(null);
+  const [featureAccess, setFeatureAccess] = useState<QuantFeatureAccess>(() => buildQuantFeatureAccess(null, false, false, lang));
   const currentSymbolRef = useRef(currentSymbol);
 
   useEffect(() => {
     currentSymbolRef.current = currentSymbol;
   }, [currentSymbol]);
+  useEffect(() => {
+    const controller = new AbortController();
+    setFeatureAccess((prev) => ({ ...prev, loading: true }));
+
+    loadMembershipSnapshot(controller.signal).then((result) => {
+      if (controller.signal.aborted) return;
+      const nextAccess = buildQuantFeatureAccess(result.snapshot, result.signedIn, false, lang);
+      setFeatureAccess(nextAccess);
+      if (!nextAccess.quantLab) {
+        setMembershipNotice(membershipNoticeForFeature("quant_lab", nextAccess, lang));
+      }
+    });
+
+    return () => controller.abort();
+  }, [lang]);
 
   useEffect(() => {
     const book = generateOrderBook(currentSymbol.price, currentSymbol.precision);
@@ -147,6 +170,11 @@ export default function BottomPanel({
   }, [currentSymbol]);
 
   const handleRunAiAnalysis = async () => {
+    if (!featureAccess.quantLab) {
+      setMembershipNotice(membershipNoticeForFeature("quant_lab", featureAccess, lang));
+      onAnalysisResult?.(null);
+      return;
+    }
     if (candles.length === 0) return;
     setAiLoading(true);
     setAiAnalysis("");
@@ -186,6 +214,12 @@ export default function BottomPanel({
   };
 
   const handleRunBacktest = async () => {
+    if (!featureAccess.backtest) {
+      const notice = membershipNoticeForFeature("backtest", featureAccess, lang);
+      setMembershipNotice(notice);
+      setBacktestError(notice.message);
+      return;
+    }
     if (candles.length < 30) return;
     setBacktestLoading(true);
     setBacktestError("");
@@ -219,6 +253,12 @@ export default function BottomPanel({
   };
 
   const handleRunRuntimeDiagnostic = async () => {
+    if (!featureAccess.runtimeDiagnostic) {
+      const notice = membershipNoticeForFeature("runtime_diagnostic", featureAccess, lang);
+      setMembershipNotice(notice);
+      setBacktestError(notice.message);
+      return;
+    }
     if (candles.length < 30) return;
     setRuntimeLoading(true);
     setBacktestError("");
@@ -289,6 +329,7 @@ export default function BottomPanel({
               runtimeLoading={runtimeLoading}
               backtestError={backtestError}
               membershipNotice={membershipNotice}
+              featureAccess={featureAccess}
               lang={lang}
               onRunAnalysis={handleRunAiAnalysis}
               onRunBacktest={handleRunBacktest}
@@ -301,6 +342,34 @@ export default function BottomPanel({
   );
 }
 
+function buildQuantFeatureAccess(
+  snapshot: HsMembershipSnapshot | null,
+  signedIn: boolean,
+  loading: boolean,
+  lang: Language
+): QuantFeatureAccess {
+  const active = membershipIsActive(snapshot);
+  return {
+    signedIn,
+    active,
+    loading,
+    planLabel: membershipPlanLabel(snapshot, signedIn, lang),
+    quantLab: hasMembershipFeature(snapshot, "quant_lab"),
+    modelRegistry: hasMembershipFeature(snapshot, "model_registry"),
+    runtimeDiagnostic: hasMembershipFeature(snapshot, "runtime_diagnostic"),
+    backtest: hasMembershipFeature(snapshot, "backtest")
+  };
+}
+
+function membershipNoticeForFeature(featureKey: string, access: QuantFeatureAccess, lang: Language) {
+  const needsLogin = !access.signedIn;
+  const needsActivation = access.signedIn && !access.active;
+  return membershipNoticeFromPayload({
+    error: needsLogin ? "UNAUTHORIZED" : "HS_MEMBERSHIP_REQUIRED",
+    code: needsActivation ? "product_not_active" : "feature_forbidden",
+    featureKey
+  }, needsLogin ? 401 : 403, featureKey, lang) as MembershipNotice;
+}
 function buildTrade(liveSymbol: MarketSymbol): MarketTrade {
   const isBuy = Math.random() > 0.46;
   const tickVal = liveSymbol.price * (1 + (Math.random() - 0.5) * 0.001);

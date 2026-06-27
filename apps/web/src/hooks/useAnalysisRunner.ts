@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import type { AnalysisRunResponse, Candle, IndicatorConfig, MarketSymbol } from "@shared/types";
+import { hsFetch, readHsAccessToken } from "@shared/hsAuth";
 import { buildActiveIndicatorList } from "../services/marketRuntimeHelpers";
 
 interface UseAnalysisRunnerParams {
@@ -17,13 +18,19 @@ export function useAnalysisRunner({
   indicatorConfig,
   setAnalysisResult
 }: UseAnalysisRunnerParams) {
+  const hsAccessToken = readHsAccessToken();
+
   useEffect(() => {
+    if (!hsAccessToken) {
+      setAnalysisResult(null);
+      return;
+    }
     if (candles.length < 30) return;
 
     const controller = new AbortController();
     const timer = window.setTimeout(async () => {
       try {
-        const response = await fetch("/api/analysis/run", {
+        const response = await hsFetch("/api/analysis/run", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -35,7 +42,10 @@ export function useAnalysisRunner({
           signal: controller.signal
         });
 
-        if (!response.ok) return;
+        if (!response.ok) {
+          if (response.status === 401 || response.status === 403) setAnalysisResult(null);
+          return;
+        }
         const data = await response.json() as AnalysisRunResponse;
         setAnalysisResult(data);
       } catch {
@@ -48,6 +58,7 @@ export function useAnalysisRunner({
       controller.abort();
     };
   }, [
+    hsAccessToken,
     currentSymbol.id,
     timeframe,
     candles.length,

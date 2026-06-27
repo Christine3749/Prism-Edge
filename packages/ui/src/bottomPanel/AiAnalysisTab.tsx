@@ -3,7 +3,7 @@ import type { AnalysisRunResponse, QuantBacktestReport, QuantHealth, QuantModelR
 import type { Language } from "../../../shared/src/translations";
 import { AiMarkdown } from "./AiMarkdown";
 import { QuantLabPanel } from "./QuantLabPanel";
-import type { MembershipNotice } from "./types";
+import type { MembershipNotice, QuantFeatureAccess } from "./types";
 
 interface AiAnalysisTabProps {
   aiAnalysis: string;
@@ -17,6 +17,7 @@ interface AiAnalysisTabProps {
   runtimeLoading: boolean;
   backtestError: string;
   membershipNotice?: MembershipNotice | null;
+  featureAccess?: QuantFeatureAccess;
   lang: Language;
   onRunAnalysis: () => void;
   onRunBacktest: () => void;
@@ -35,6 +36,7 @@ export function AiAnalysisTab({
   runtimeLoading,
   backtestError,
   membershipNotice,
+  featureAccess,
   lang,
   onRunAnalysis,
   onRunBacktest,
@@ -58,12 +60,13 @@ export function AiAnalysisTab({
             runtimeLoading={runtimeLoading}
             backtestError={backtestError}
             membershipNotice={membershipNotice}
+            featureAccess={featureAccess}
             lang={lang}
             onRunBacktest={onRunBacktest}
             onRunRuntime={onRunRuntime}
           />
         ) : (
-          <EmptyState lang={lang} onRunAnalysis={onRunAnalysis} />
+          <EmptyState lang={lang} featureAccess={featureAccess} onRunAnalysis={onRunAnalysis} />
         )}
       </div>
     </div>
@@ -113,6 +116,7 @@ function AnalysisOutput({
   runtimeLoading,
   backtestError,
   membershipNotice,
+  featureAccess,
   onRunBacktest,
   onRunRuntime,
   lang
@@ -127,6 +131,7 @@ function AnalysisOutput({
   runtimeLoading: boolean;
   backtestError: string;
   membershipNotice?: MembershipNotice | null;
+  featureAccess?: QuantFeatureAccess;
   onRunBacktest: () => void;
   onRunRuntime: () => void;
   lang: Language;
@@ -149,6 +154,7 @@ function AnalysisOutput({
         runtimeLoading={runtimeLoading}
         error={backtestError}
         membershipNotice={membershipNotice}
+        featureAccess={featureAccess}
         canRun={Boolean(analysisResult)}
         lang={lang}
         onRunBacktest={onRunBacktest}
@@ -246,7 +252,24 @@ function formatSignedPercent(value: number) {
   return `${percent >= 0 ? "+" : ""}${percent.toFixed(2)}%`;
 }
 
-function EmptyState({ lang, onRunAnalysis }: { lang: Language; onRunAnalysis: () => void }) {
+function EmptyState({
+  lang,
+  featureAccess,
+  onRunAnalysis
+}: {
+  lang: Language;
+  featureAccess?: QuantFeatureAccess;
+  onRunAnalysis: () => void;
+}) {
+  const blocked = Boolean(featureAccess && !featureAccess.loading && !featureAccess.quantLab);
+  const buttonLabel = featureAccess?.loading
+    ? (lang === "zh" ? "校验会员权限" : lang === "tc" ? "校驗會員權限" : "Checking membership")
+    : blocked
+      ? (!featureAccess?.signedIn
+        ? (lang === "zh" ? "登录后运行" : lang === "tc" ? "登入後運行" : "Sign in to run")
+        : (lang === "zh" ? "开通后运行" : lang === "tc" ? "開通後運行" : "Activate to run"))
+      : (lang === "zh" ? "运行量化智能诊断" : lang === "tc" ? "運行量化智能診斷" : "Run Technical Study");
+
   return (
     <div className="flex flex-col items-center justify-center flex-grow py-4 text-center">
       <div className="h-8 w-8 rounded-full bg-cyan-950 border border-cyan-800 flex items-center justify-center text-cyan-400 mb-2">
@@ -258,10 +281,11 @@ function EmptyState({ lang, onRunAnalysis }: { lang: Language; onRunAnalysis: ()
       </p>
       <button
         onClick={onRunAnalysis}
-        className="px-3 py-1.5 bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-extrabold text-[10px] rounded-md transition-all cursor-pointer flex items-center gap-1.5 shadow-md"
+        disabled={featureAccess?.loading || blocked}
+        className="px-3 py-1.5 bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-extrabold text-[10px] rounded-md transition-all cursor-pointer flex items-center gap-1.5 shadow-md disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-cyan-500"
       >
         <Play className="h-3 w-3 fill-slate-950 stroke-none" />
-        <span>{lang === "zh" ? "运行量化智能诊断" : lang === "tc" ? "運行量化智能診斷" : "Run Technical Study"}</span>
+        <span>{buttonLabel}</span>
       </button>
     </div>
   );

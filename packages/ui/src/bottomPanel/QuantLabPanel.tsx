@@ -8,7 +8,7 @@ import type {
   QuantRuntimeDiagnostic
 } from "../../../shared/src/types";
 import type { Language } from "../../../shared/src/translations";
-import type { MembershipNotice } from "./types";
+import type { MembershipNotice, QuantFeatureAccess } from "./types";
 
 interface QuantLabPanelProps {
   health: QuantHealth | null;
@@ -19,6 +19,7 @@ interface QuantLabPanelProps {
   runtimeLoading: boolean;
   error: string;
   membershipNotice?: MembershipNotice | null;
+  featureAccess?: QuantFeatureAccess;
   canRun: boolean;
   lang: Language;
   onRunBacktest: () => void;
@@ -34,6 +35,7 @@ export function QuantLabPanel({
   runtimeLoading,
   error,
   membershipNotice,
+  featureAccess,
   canRun,
   lang,
   onRunBacktest,
@@ -47,8 +49,9 @@ export function QuantLabPanel({
   const readyModels = modelEntries.filter((model) => model.status === "ready").length;
   const defaultModel = modelEntries.find((model) => model.id === models?.defaultModelId);
   const healthReady = Boolean(health?.exists || readyModels > 0);
-  const runtimeLocked = membershipNotice?.featureKey === "runtime_diagnostic";
-  const backtestLocked = membershipNotice?.featureKey === "backtest";
+  const runtimeLocked = membershipNotice?.featureKey === "runtime_diagnostic" || Boolean(featureAccess && !featureAccess.loading && !featureAccess.runtimeDiagnostic);
+  const backtestLocked = membershipNotice?.featureKey === "backtest" || Boolean(featureAccess && !featureAccess.loading && !featureAccess.backtest);
+  const quantProLocked = Boolean(featureAccess?.active && (!featureAccess.runtimeDiagnostic || !featureAccess.backtest));
 
   return (
     <div className="border border-cyan-500/15 bg-cyan-950/10 rounded-lg p-2.5 space-y-2">
@@ -65,9 +68,15 @@ export function QuantLabPanel({
           </div>
         </div>
         <div className="flex items-center gap-1">
+          {featureAccess && (
+            <span className={`hidden sm:inline-flex h-7 items-center rounded border px-2 text-[9px] font-black uppercase tracking-wider ${featureAccess.active ? "border-cyan-500/30 text-cyan-300" : "border-amber-500/30 text-amber-300"}`}>
+              {featureAccess.loading ? labels.checking : featureAccess.planLabel}
+            </span>
+          )}
           <button
             onClick={onRunRuntime}
             disabled={!canRun || runtimeLoading || runtimeLocked}
+            title={runtimeLocked ? labels.quantProRequired : labels.runtime}
             className="h-7 px-2 rounded border border-fuchsia-400/40 bg-fuchsia-500/10 text-fuchsia-200 text-[10px] font-bold flex items-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-fuchsia-500/20"
           >
             <Radar className="h-3 w-3" />
@@ -76,6 +85,7 @@ export function QuantLabPanel({
           <button
             onClick={onRunBacktest}
             disabled={!canRun || loading || backtestLocked}
+            title={backtestLocked ? labels.quantProRequired : labels.run}
             className="h-7 px-2 rounded border border-cyan-500/40 bg-cyan-500/10 text-cyan-200 text-[10px] font-bold flex items-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-cyan-500/20"
           >
             <PlayCircle className="h-3 w-3" />
@@ -133,6 +143,15 @@ export function QuantLabPanel({
           <span>{membershipNotice.message}</span>
           <a href={membershipNotice.href} className="shrink-0 font-black text-amber-200 no-underline hover:text-amber-100">
             {membershipNotice.actionLabel}
+          </a>
+        </div>
+      )}
+
+      {!membershipNotice && quantProLocked && (
+        <div className="flex items-center justify-between gap-2 rounded border border-amber-400/25 bg-amber-500/10 px-2 py-1 text-[10px] text-amber-100">
+          <span>{labels.quantProRequired}</span>
+          <a href="/membership" className="shrink-0 font-black text-amber-200 no-underline hover:text-amber-100">
+            {labels.viewPlan}
           </a>
         </div>
       )}
@@ -202,6 +221,9 @@ function getLabels(lang: Language) {
     title: zh ? "量化实验室" : "Quant Lab",
     pending: zh ? "等待适配器状态" : "Waiting for adapter status",
     run: zh ? "跑回测" : "Backtest",
+    checking: zh ? "校验中" : "Checking",
+    quantProRequired: zh ? "DGWM Runtime 与回测需要 Quant Pro 权限。" : "DGWM runtime and backtests require Quant Pro.",
+    viewPlan: zh ? "查看方案" : "View plan",
     running: zh ? "回测中" : "Running",
     runtime: zh ? "真实诊断" : "Runtime",
     runtimeRunning: zh ? "诊断中" : "Runtime",

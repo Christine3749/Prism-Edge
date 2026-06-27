@@ -7,6 +7,12 @@ import {
 import { MarketSymbol, AppSettings, MarketDataStatus } from "../../shared/src/types";
 import { Language, useTranslation } from "../../shared/src/translations";
 import { readHsAccessToken } from "../../shared/src/hsAuth";
+import {
+  HsMembershipSnapshot,
+  loadMembershipSnapshot,
+  membershipIsActive,
+  membershipPlanLabel
+} from "../../shared/src/membership";
 import Logo from "./Logo";
 import { SymbolSearch } from "./header/SymbolSearch";
 
@@ -90,16 +96,36 @@ export default function Header({
   }[feedState];
   const account = useMemo(() => readAccountSnapshot(), []);
   const isSignedIn = Boolean(account.token);
+  const [membership, setMembership] = useState<HsMembershipSnapshot | null>(null);
+  const [membershipLoading, setMembershipLoading] = useState(false);
+  const signedOutLabel = lang === "en" ? "Sign In" : lang === "tc" ? "登入" : "登录";
+  const checkingLabel = lang === "en" ? "Checking" : lang === "tc" ? "校驗中" : "校验中";
   const accountLabel = isSignedIn
-    ? account.planLabel
-    : lang === "en"
-      ? "Sign In"
-      : lang === "tc"
-        ? "登入"
-        : "登录";
+    ? (membershipLoading ? checkingLabel : membershipPlanLabel(membership, true, lang))
+    : signedOutLabel;
+  const accountTone = getAccountTone(membership, isSignedIn);
   const membershipUrl = "/membership";
   const loginUrl = "/login";
 
+  useEffect(() => {
+    if (!isSignedIn) {
+      setMembership(null);
+      setMembershipLoading(false);
+      return;
+    }
+
+    const controller = new AbortController();
+    setMembershipLoading(true);
+    loadMembershipSnapshot(controller.signal)
+      .then((result) => {
+        if (!controller.signal.aborted) setMembership(result.snapshot);
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setMembershipLoading(false);
+      });
+
+    return () => controller.abort();
+  }, [account.token, isSignedIn]);
   useEffect(() => {
     function handlePointerDown(event: MouseEvent) {
       if (!accountMenuRef.current?.contains(event.target as Node)) {
@@ -263,14 +289,14 @@ export default function Header({
             }}
             className={`h-7 flex items-center gap-1.5 px-2 border rounded text-[11px] font-bold cursor-pointer transition-all ${
               isSignedIn
-                ? "bg-slate-900 border-slate-800 text-cyan-300 hover:bg-slate-800 hover:border-cyan-500/40"
+                ? accountTone.button
                 : "bg-slate-900 border-slate-800 text-slate-300 hover:bg-slate-800 hover:text-white hover:border-cyan-500/40"
             }`}
             title={isSignedIn ? "MSIR Prism membership" : "Sign in to MSIR Prism"}
             aria-haspopup={isSignedIn ? "menu" : undefined}
             aria-expanded={isSignedIn ? accountMenuOpen : undefined}
           >
-            {isSignedIn ? <Crown className="h-3.5 w-3.5 text-amber-300" /> : <LogIn className="h-3.5 w-3.5 text-cyan-400" />}
+            {isSignedIn ? <Crown className={`h-3.5 w-3.5 ${accountTone.icon}`} /> : <LogIn className="h-3.5 w-3.5 text-cyan-400" />}
             <span className="hidden sm:inline">{accountLabel}</span>
             {isSignedIn ? <ChevronDown className="h-3 w-3 text-cyan-300/80" /> : <ExternalLink className="h-3 w-3 text-slate-500" />}
           </button>
@@ -291,7 +317,7 @@ export default function Header({
                     </div>
                     <div className="mt-0.5 flex items-center gap-1 text-[10px] font-mono uppercase tracking-wider text-cyan-300">
                       <ShieldCheck className="h-3 w-3" />
-                      MSIR Prism · {isSignedIn ? account.planLabel : "Guest"}
+                      MSIR Prism · {isSignedIn ? accountLabel : "Guest"}
                     </div>
                   </div>
                 </div>
@@ -385,13 +411,37 @@ function AccountMenuButton({
   );
 }
 
+function getAccountTone(snapshot: HsMembershipSnapshot | null, signedIn: boolean) {
+  if (!signedIn) {
+    return { button: "", icon: "text-cyan-400" };
+  }
+
+  if (!membershipIsActive(snapshot)) {
+    return {
+      button: "bg-slate-900 border-amber-500/35 text-amber-200 hover:bg-amber-950/20 hover:border-amber-400/50",
+      icon: "text-amber-300"
+    };
+  }
+
+  const planCode = snapshot?.subscription?.planCode?.toLowerCase().replace(/-/g, "_");
+  if (planCode === "quant_pro" || planCode === "professional" || planCode === "pro") {
+    return {
+      button: "bg-slate-900 border-amber-500/35 text-amber-200 hover:bg-amber-950/20 hover:border-amber-400/50",
+      icon: "text-amber-300"
+    };
+  }
+
+  return {
+    button: "bg-slate-900 border-slate-800 text-cyan-300 hover:bg-slate-800 hover:border-cyan-500/40",
+    icon: "text-cyan-300"
+  };
+}
 function readAccountSnapshot() {
   const token = readHsAccessToken();
   const payload = decodeJwtPayload(token);
   return {
     token,
-    email: typeof payload?.email === "string" ? payload.email : "",
-    planLabel: "Quant Pro"
+    email: typeof payload?.email === "string" ? payload.email : ""
   };
 }
 
@@ -416,9 +466,5 @@ function clearHsSession() {
     }
   }
 }
-
-
-
-
 
 
