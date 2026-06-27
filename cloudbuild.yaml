@@ -65,7 +65,7 @@ steps:
           --region=${_REGION} \
           --platform=managed \
           --allow-unauthenticated \
-          --set-env-vars="$$API_ENV_VARS"
+          --update-env-vars="$$API_ENV_VARS"
 
         API_URL=$(gcloud run services describe ${_API_SERVICE} \
           --region=${_REGION} \
@@ -85,7 +85,7 @@ steps:
           --min-instances=1 \
           --cpu-boost \
           --timeout=3600 \
-          --set-env-vars="$$WEB_ENV_VARS"
+          --update-env-vars="$$WEB_ENV_VARS"
 
 images:
   - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPOSITORY}/api:$BUILD_ID

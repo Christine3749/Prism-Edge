@@ -1,10 +1,12 @@
-import React from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { 
   TrendingUp, BarChart2, Eye, Layout,
-  Settings, Camera, Bookmark, RefreshCw, Menu, Globe
+  Camera, Bookmark, RefreshCw, Menu, Globe,
+  ChevronDown, Crown, ExternalLink, LogIn, LogOut, Settings, ShieldCheck, UserCircle
 } from "lucide-react";
 import { MarketSymbol, AppSettings, MarketDataStatus } from "../../shared/src/types";
 import { Language, useTranslation } from "../../shared/src/translations";
+import { readHsAccessToken } from "../../shared/src/hsAuth";
 import Logo from "./Logo";
 import { SymbolSearch } from "./header/SymbolSearch";
 
@@ -51,6 +53,8 @@ export default function Header({
   onToggleWatchlist
 }: HeaderProps) {
   const t = useTranslation(lang);
+  const [accountMenuOpen, setAccountMenuOpen] = useState(false);
+  const accountMenuRef = useRef<HTMLDivElement>(null);
   const timeframes = ["1m", "5m", "15m", "1h", "4h", "1D", "1W", "1M"];
   const chartTypes = [
     { label: "Candle", value: "candlestick", icon: <BarChart2 className="h-3.5 w-3.5" /> },
@@ -84,6 +88,36 @@ export default function Header({
     stale: "bg-orange-300",
     error: "bg-rose-400"
   }[feedState];
+  const account = useMemo(() => readAccountSnapshot(), []);
+  const isSignedIn = Boolean(account.token);
+  const accountLabel = isSignedIn
+    ? account.planLabel
+    : lang === "en"
+      ? "Sign In"
+      : lang === "tc"
+        ? "登入"
+        : "登录";
+  const membershipUrl = "/membership";
+  const loginUrl = "/login";
+
+  useEffect(() => {
+    function handlePointerDown(event: MouseEvent) {
+      if (!accountMenuRef.current?.contains(event.target as Node)) {
+        setAccountMenuOpen(false);
+      }
+    }
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") setAccountMenuOpen(false);
+    }
+
+    document.addEventListener("mousedown", handlePointerDown);
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("mousedown", handlePointerDown);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, []);
 
   return (
     <header className="h-12 shrink-0 border-b border-slate-800 bg-slate-950 px-2.5 md:px-3 flex items-center gap-2 text-slate-200 select-none z-50 relative overflow-visible">
@@ -217,6 +251,76 @@ export default function Header({
           <Camera className="h-3.5 w-3.5 text-sky-400" />
         </button>
 
+        {/* Account / membership entry */}
+        <div className="relative shrink-0" ref={accountMenuRef}>
+          <button
+            onClick={() => {
+              if (!isSignedIn) {
+                window.location.href = loginUrl;
+                return;
+              }
+              setAccountMenuOpen((open) => !open);
+            }}
+            className={`h-7 flex items-center gap-1.5 px-2 border rounded text-[11px] font-bold cursor-pointer transition-all ${
+              isSignedIn
+                ? "bg-slate-900 border-slate-800 text-cyan-300 hover:bg-slate-800 hover:border-cyan-500/40"
+                : "bg-slate-900 border-slate-800 text-slate-300 hover:bg-slate-800 hover:text-white hover:border-cyan-500/40"
+            }`}
+            title={isSignedIn ? "MSIR Prism membership" : "Sign in to MSIR Prism"}
+            aria-haspopup={isSignedIn ? "menu" : undefined}
+            aria-expanded={isSignedIn ? accountMenuOpen : undefined}
+          >
+            {isSignedIn ? <Crown className="h-3.5 w-3.5 text-amber-300" /> : <LogIn className="h-3.5 w-3.5 text-cyan-400" />}
+            <span className="hidden sm:inline">{accountLabel}</span>
+            {isSignedIn ? <ChevronDown className="h-3 w-3 text-cyan-300/80" /> : <ExternalLink className="h-3 w-3 text-slate-500" />}
+          </button>
+
+          {isSignedIn && accountMenuOpen && (
+            <div
+              role="menu"
+              className="absolute right-0 top-9 z-[80] w-64 overflow-hidden rounded border border-slate-700/80 bg-slate-950/98 shadow-2xl shadow-black/40 backdrop-blur"
+            >
+              <div className="border-b border-slate-800 bg-slate-900/70 px-3 py-3">
+                <div className="flex items-center gap-2">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-full border border-cyan-500/40 bg-cyan-950/30 text-cyan-300">
+                    <UserCircle className="h-4 w-4" />
+                  </div>
+                  <div className="min-w-0">
+                    <div className="truncate text-[12px] font-semibold text-slate-100">
+                      {account.email || (lang === "en" ? "MSIR Prism Account" : lang === "tc" ? "MSIR Prism 帳號" : "MSIR Prism 账号")}
+                    </div>
+                    <div className="mt-0.5 flex items-center gap-1 text-[10px] font-mono uppercase tracking-wider text-cyan-300">
+                      <ShieldCheck className="h-3 w-3" />
+                      MSIR Prism · {isSignedIn ? account.planLabel : "Guest"}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="py-1.5">
+                <AccountMenuLink href={membershipUrl} icon={<Crown className="h-3.5 w-3.5" />} label={lang === "en" ? "MSIR Prism Membership" : lang === "tc" ? "MSIR Prism 會員中心" : "MSIR Prism 会员中心"} />
+                <AccountMenuButton
+                  icon={<Settings className="h-3.5 w-3.5" />}
+                  label={lang === "en" ? "Account & System Settings" : lang === "tc" ? "账号与系统设置" : "账户与系统设置"}
+                  onClick={() => {
+                    setAccountMenuOpen(false);
+                    onOpenSettings();
+                  }}
+                />
+                <AccountMenuButton
+                  icon={<LogOut className="h-3.5 w-3.5" />}
+                  label={lang === "en" ? "Sign out" : lang === "tc" ? "退出登入" : "退出登录"}
+                  onClick={() => {
+                    clearHsSession();
+                    setAccountMenuOpen(false);
+                    window.location.reload();
+                  }}
+                  danger
+                />
+              </div>
+            </div>
+          )}
+        </div>
         {/* Dynamic Globe Language Toggle Button */}
         <button
           onClick={() => {
@@ -233,17 +337,88 @@ export default function Header({
           </span>
         </button>
 
-        <div className="w-px h-5 bg-slate-800 shrink-0 mx-0.5 hidden sm:block"></div>
 
-        {/* Settings modal trigger */}
-        <button
-          onClick={onOpenSettings}
-          className="h-7 w-7 flex items-center justify-center bg-slate-900 hover:bg-slate-800 border border-slate-800 hover:border-cyan-500/40 rounded text-cyan-400 cursor-pointer transition-all shrink-0"
-          id="config_modal_btn"
-        >
-          <Settings className="h-4 w-4 animate-hover-spin" />
-        </button>
       </div>
     </header>
   );
 }
+function AccountMenuLink({ href, icon, label }: { href: string; icon: React.ReactNode; label: string }) {
+  return (
+    <a
+      role="menuitem"
+      href={href}
+      target={href.startsWith("http") ? "_blank" : undefined}
+      rel={href.startsWith("http") ? "noreferrer" : undefined}
+      className="flex items-center gap-2 px-3 py-2 text-[12px] font-medium text-slate-300 no-underline transition-colors hover:bg-slate-900 hover:text-white"
+    >
+      <span className="text-cyan-400">{icon}</span>
+      <span>{label}</span>
+    </a>
+  );
+}
+
+function AccountMenuButton({
+  icon,
+  label,
+  onClick,
+  danger = false
+}: {
+  icon: React.ReactNode;
+  label: string;
+  onClick: () => void;
+  danger?: boolean;
+}) {
+  return (
+    <button
+      role="menuitem"
+      type="button"
+      onClick={onClick}
+      className={`flex w-full items-center gap-2 px-3 py-2 text-left text-[12px] font-medium transition-colors ${
+        danger
+          ? "text-rose-300 hover:bg-rose-950/30 hover:text-rose-200"
+          : "text-slate-300 hover:bg-slate-900 hover:text-white"
+      }`}
+    >
+      <span className={danger ? "text-rose-300" : "text-cyan-400"}>{icon}</span>
+      <span>{label}</span>
+    </button>
+  );
+}
+
+function readAccountSnapshot() {
+  const token = readHsAccessToken();
+  const payload = decodeJwtPayload(token);
+  return {
+    token,
+    email: typeof payload?.email === "string" ? payload.email : "",
+    planLabel: "Quant Pro"
+  };
+}
+
+function decodeJwtPayload(token: string): Record<string, unknown> | null {
+  const payload = token.split(".")[1];
+  if (!payload) return null;
+  try {
+    const normalized = payload.replace(/-/g, "+").replace(/_/g, "/");
+    const padded = normalized.padEnd(Math.ceil(normalized.length / 4) * 4, "=");
+    return JSON.parse(window.atob(padded));
+  } catch {
+    return null;
+  }
+}
+
+function clearHsSession() {
+  for (const storage of [window.localStorage, window.sessionStorage]) {
+    for (const key of Object.keys(storage)) {
+      if (key === "hs_access_token" || key === "halfsphere_access_token" || (key.startsWith("sb-") && key.endsWith("-auth-token"))) {
+        storage.removeItem(key);
+      }
+    }
+  }
+}
+
+
+
+
+
+
