@@ -71,7 +71,7 @@ export default function MembershipPage() {
   const features = snapshot?.features || {};
 
   return (
-    <main className="relative min-h-screen overflow-auto bg-[#030711] text-slate-100">
+    <main className="prism-auth-page relative min-h-screen overflow-auto bg-[#030711] text-slate-100">
       <div
         className="pointer-events-none absolute inset-0 opacity-35"
         style={{
@@ -130,7 +130,7 @@ export default function MembershipPage() {
           <section className="space-y-6">
             <div>
               <div className="text-[11px] font-bold uppercase tracking-[0.28em] text-cyan-300">Membership Plane</div>
-              <h1 className="mt-2 text-3xl font-black tracking-tight text-white">MSIR Prism 会员中心</h1>
+              <h1 className="prism-auth-title mt-2 text-3xl text-white">MSIR Prism 会员中心</h1>
               <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-400">
                 普通会员在这里管理 MSIR Prism 权限；内部运营中心负责后台授权、会员运营和高级管理员管理。
               </p>

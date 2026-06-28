@@ -55,7 +55,7 @@ export default function LoginPage() {
   }, []);
 
   return (
-    <main className="relative min-h-screen overflow-hidden bg-[#030711] text-slate-100">
+    <main className="prism-auth-page relative min-h-screen overflow-hidden bg-[#030711] text-slate-100">
       <div
         className="pointer-events-none absolute inset-0 opacity-45"
         style={{
@@ -106,7 +106,7 @@ export default function LoginPage() {
               <ShieldCheck className="h-3.5 w-3.5" />
               Member Auth Plane
             </div>
-            <h1 className="mt-5 max-w-2xl text-4xl font-black leading-tight tracking-tight text-white sm:text-5xl lg:text-6xl">
+            <h1 className="prism-auth-title mt-5 max-w-2xl text-4xl leading-tight text-white sm:text-5xl lg:text-6xl">
               MSIR Prism 会员登录
             </h1>
             <p className="mt-4 max-w-2xl text-sm leading-7 text-slate-400">

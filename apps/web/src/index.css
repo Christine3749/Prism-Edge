@@ -3,7 +3,7 @@
 @source "../../../packages/shared/src";
 
 @theme {
-  --font-sans: "Segoe UI", "Microsoft YaHei", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "Inter", "Segoe UI Variable", "Segoe UI", "Microsoft YaHei UI", "Microsoft YaHei", ui-sans-serif, system-ui, sans-serif;
   --font-mono: "Cascadia Mono", "Consolas", ui-monospace, SFMono-Regular, monospace;
 }
 
@@ -41,6 +41,39 @@ body {
 
 .no-scrollbar::-webkit-scrollbar {
   display: none;
+}
+
+.prism-auth-page {
+  font-family: var(--font-sans);
+  font-feature-settings: "kern" 1, "tnum" 1;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: geometricPrecision;
+}
+
+.prism-auth-page h1,
+.prism-auth-page .prism-auth-title {
+  font-family: var(--font-sans);
+  font-weight: 760;
+  letter-spacing: -0.018em;
+}
+
+.prism-auth-page .font-black {
+  font-weight: 760;
+}
+
+.prism-auth-page .font-bold {
+  font-weight: 650;
+}
+
+.prism-auth-page input,
+.prism-auth-page button,
+.prism-auth-page a {
+  font-family: inherit;
+}
+
+.prism-auth-page .font-mono {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
 }
 
 /* Custom CSS helper to style Light Theme aesthetics gracefully if toggled */
