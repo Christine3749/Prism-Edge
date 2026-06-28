@@ -53,7 +53,7 @@ export default function SignalScanner({
 
   return (
     <aside
-      className="relative z-20 hidden h-full shrink-0 overflow-visible xl:block"
+      className="relative z-[70] hidden h-full shrink-0 overflow-visible xl:block"
       style={{
         width: collapsed ? 0 : 248,
         transition: "width 520ms cubic-bezier(0.22, 1, 0.36, 1)"
@@ -145,11 +145,13 @@ export default function SignalScanner({
         type="button"
         onPointerDown={(event) => {
           if (event.button !== 0) return;
+          event.stopPropagation();
+        }}
+        onClick={(event) => {
           event.preventDefault();
           event.stopPropagation();
           setCollapsed((value) => !value);
         }}
-        onClick={(event) => event.preventDefault()}
         onKeyDown={(event) => {
           if (event.key !== "Enter" && event.key !== " ") return;
           event.preventDefault();
@@ -163,7 +165,7 @@ export default function SignalScanner({
         onBlur={() => onHandleHoverChange?.(false)}
         aria-expanded={!collapsed}
         aria-label={collapsed ? labels.expand : labels.collapse}
-        className={`absolute top-[2.75rem] z-50 flex h-12 w-12 items-center justify-center bg-transparent p-0 focus:outline-none ${handlePosition}`}
+        className={`pointer-events-auto absolute top-[2.75rem] z-[80] flex h-12 w-12 cursor-pointer items-center justify-center bg-transparent p-0 focus:outline-none ${handlePosition}`}
         title={collapsed ? labels.expand : labels.collapse}
       >
         <span

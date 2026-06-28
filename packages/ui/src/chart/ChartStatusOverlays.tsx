@@ -41,12 +41,12 @@ export function ChartStatusOverlays({
   return (
     <>
       {latestCandle && (
-        <div
-          className="pointer-events-auto absolute left-0 top-0 z-20 hidden h-16 w-[min(920px,calc(100%-7rem))] md:block"
-          onPointerEnter={() => setPrimaryInfoHover(true)}
-          onPointerLeave={() => setPrimaryInfoHover(false)}
-        >
-          <div className={`absolute left-3 top-3 flex max-w-full cursor-default items-center gap-2 overflow-hidden rounded border px-2 py-1 font-mono text-[10px] backdrop-blur-sm transition-[opacity,background-color,border-color,color,box-shadow] duration-150 ${primaryInfoTone}`}>
+        <div className="pointer-events-none absolute left-0 top-0 z-20 hidden h-16 w-[min(920px,calc(100%-7rem))] md:block">
+          <div
+            className={`pointer-events-auto absolute left-3 top-3 flex max-w-full cursor-default items-center gap-2 overflow-hidden rounded border px-2 py-1 font-mono text-[10px] backdrop-blur-sm transition-[opacity,background-color,border-color,color,box-shadow] duration-150 ${primaryInfoTone}`}
+            onPointerEnter={() => setPrimaryInfoHover(true)}
+            onPointerLeave={() => setPrimaryInfoHover(false)}
+          >
             <span className={`font-bold transition-[color,opacity] duration-150 ${primarySymbolTone}`}>{currentSymbol.id}</span>
             <span className="text-slate-600">•</span>
             <span>{currentTimeframe}</span>
