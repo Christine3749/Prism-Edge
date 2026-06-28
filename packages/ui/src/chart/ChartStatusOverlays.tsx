@@ -1,3 +1,4 @@
+import { useState } from "react";
 import type { Candle, MarketDataStatus, MarketSymbol } from "../../../shared/src/types";
 import { formatCompactVolume, formatPanelPrice } from "./chartFormatters";
 
@@ -16,6 +17,7 @@ export function ChartStatusOverlays({
   marketStatus,
   dimPrimaryInfo = false
 }: ChartStatusOverlaysProps) {
+  const [primaryInfoHovered, setPrimaryInfoHovered] = useState(false);
   const latestCandle = candles[candles.length - 1];
   const previousCandle = candles[candles.length - 2];
   const candleChange = latestCandle && previousCandle ? latestCandle.close - previousCandle.close : 0;
@@ -24,29 +26,36 @@ export function ChartStatusOverlays({
     : 0;
   const ohlcTone = candleChange >= 0 ? "text-teal-400" : "text-rose-400";
   const dataState = marketStatus?.state || (candles.length > 0 ? "live" : "loading");
-  const primaryInfoTone = dimPrimaryInfo
+  const primaryInfoDimmed = dimPrimaryInfo || primaryInfoHovered;
+  const primaryInfoTone = primaryInfoDimmed
     ? "border-cyan-400/10 bg-slate-950/25 text-slate-600 opacity-50 shadow-none"
     : "border-slate-800/70 bg-slate-950/70 text-slate-400 opacity-100 shadow-lg hover:border-cyan-400/10 hover:bg-slate-950/25 hover:text-slate-600 hover:opacity-50 hover:shadow-none";
-  const primarySymbolTone = dimPrimaryInfo ? "text-slate-500" : "text-slate-100 group-hover:text-slate-500";
-  const primaryValueTone = dimPrimaryInfo ? "text-slate-500" : "text-slate-200 group-hover:text-slate-500";
-  const primaryMoveTone = dimPrimaryInfo ? "text-slate-500" : `${ohlcTone} group-hover:text-slate-500`;
+  const primarySymbolTone = primaryInfoDimmed ? "text-slate-500" : "text-slate-100";
+  const primaryValueTone = primaryInfoDimmed ? "text-slate-500" : "text-slate-200";
+  const primaryMoveTone = primaryInfoDimmed ? "text-slate-500" : ohlcTone;
 
   return (
     <>
       {latestCandle && (
-        <div className={`group pointer-events-auto absolute left-3 top-3 z-20 hidden max-w-[calc(100%-7rem)] cursor-default items-center gap-2 overflow-hidden rounded border px-2 py-1 font-mono text-[10px] backdrop-blur-sm transition-[opacity,background-color,border-color,color,box-shadow] duration-150 md:flex ${primaryInfoTone}`}>
-          <span className={`font-bold transition-colors duration-150 ${primarySymbolTone}`}>{currentSymbol.id}</span>
-          <span className="text-slate-600">•</span>
-          <span>{currentTimeframe}</span>
-          <span>O <b className={`font-semibold transition-colors duration-150 ${primaryValueTone}`}>{formatPanelPrice(latestCandle.open, currentSymbol.precision)}</b></span>
-          <span>H <b className={`font-semibold transition-colors duration-150 ${primaryValueTone}`}>{formatPanelPrice(latestCandle.high, currentSymbol.precision)}</b></span>
-          <span>L <b className={`font-semibold transition-colors duration-150 ${primaryValueTone}`}>{formatPanelPrice(latestCandle.low, currentSymbol.precision)}</b></span>
-          <span>C <b className={`font-semibold transition-colors duration-150 ${primaryValueTone}`}>{formatPanelPrice(latestCandle.close, currentSymbol.precision)}</b></span>
-          <span className={`transition-colors duration-150 ${primaryMoveTone}`}>
-            {candleChange >= 0 ? "+" : ""}{formatPanelPrice(candleChange, currentSymbol.precision)}
-            {" "}({candleChange >= 0 ? "+" : ""}{candleChangePercent.toFixed(2)}%)
-          </span>
-          <span>Vol <b className={`font-semibold transition-colors duration-150 ${primaryValueTone}`}>{formatCompactVolume(latestCandle.volume)}</b></span>
+        <div
+          className="pointer-events-auto absolute left-0 top-0 z-20 hidden h-16 w-[min(920px,calc(100%-7rem))] md:block"
+          onPointerEnter={() => setPrimaryInfoHovered(true)}
+          onPointerLeave={() => setPrimaryInfoHovered(false)}
+        >
+          <div className={`absolute left-3 top-3 flex max-w-full cursor-default items-center gap-2 overflow-hidden rounded border px-2 py-1 font-mono text-[10px] backdrop-blur-sm transition-[opacity,background-color,border-color,color,box-shadow] duration-150 ${primaryInfoTone}`}>
+            <span className={`font-bold transition-colors duration-150 ${primarySymbolTone}`}>{currentSymbol.id}</span>
+            <span className="text-slate-600">•</span>
+            <span>{currentTimeframe}</span>
+            <span>O <b className={`font-semibold transition-colors duration-150 ${primaryValueTone}`}>{formatPanelPrice(latestCandle.open, currentSymbol.precision)}</b></span>
+            <span>H <b className={`font-semibold transition-colors duration-150 ${primaryValueTone}`}>{formatPanelPrice(latestCandle.high, currentSymbol.precision)}</b></span>
+            <span>L <b className={`font-semibold transition-colors duration-150 ${primaryValueTone}`}>{formatPanelPrice(latestCandle.low, currentSymbol.precision)}</b></span>
+            <span>C <b className={`font-semibold transition-colors duration-150 ${primaryValueTone}`}>{formatPanelPrice(latestCandle.close, currentSymbol.precision)}</b></span>
+            <span className={`transition-colors duration-150 ${primaryMoveTone}`}>
+              {candleChange >= 0 ? "+" : ""}{formatPanelPrice(candleChange, currentSymbol.precision)}
+              {" "}({candleChange >= 0 ? "+" : ""}{candleChangePercent.toFixed(2)}%)
+            </span>
+            <span>Vol <b className={`font-semibold transition-colors duration-150 ${primaryValueTone}`}>{formatCompactVolume(latestCandle.volume)}</b></span>
+          </div>
         </div>
       )}
 
