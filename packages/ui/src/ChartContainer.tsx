@@ -27,6 +27,7 @@ interface ChartContainerProps {
   chartType: string;
   marketStatus?: MarketDataStatus;
   analysisResult?: AnalysisRunResponse | null;
+  scannerHandleActive?: boolean;
 }
 
 export default function ChartContainer({
@@ -41,7 +42,8 @@ export default function ChartContainer({
   currentTimeframe,
   chartType,
   marketStatus,
-  analysisResult
+  analysisResult,
+  scannerHandleActive = false
 }: ChartContainerProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mainChartRef = useRef<HTMLDivElement>(null);
@@ -73,6 +75,7 @@ export default function ChartContainer({
         currentSymbol={currentSymbol}
         currentTimeframe={currentTimeframe}
         marketStatus={marketStatus}
+        dimPrimaryInfo={scannerHandleActive}
       />
 
       <div
