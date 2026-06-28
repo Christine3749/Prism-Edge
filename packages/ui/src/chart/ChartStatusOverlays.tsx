@@ -8,6 +8,7 @@ interface ChartStatusOverlaysProps {
   currentTimeframe: string;
   marketStatus?: MarketDataStatus;
   dimPrimaryInfo?: boolean;
+  onPrimaryInfoHoverChange?: (active: boolean) => void;
 }
 
 export function ChartStatusOverlays({
@@ -15,9 +16,14 @@ export function ChartStatusOverlays({
   currentSymbol,
   currentTimeframe,
   marketStatus,
-  dimPrimaryInfo = false
+  dimPrimaryInfo = false,
+  onPrimaryInfoHoverChange
 }: ChartStatusOverlaysProps) {
   const [primaryInfoHovered, setPrimaryInfoHovered] = useState(false);
+  const setPrimaryInfoHover = (active: boolean) => {
+    setPrimaryInfoHovered(active);
+    onPrimaryInfoHoverChange?.(active);
+  };
   const latestCandle = candles[candles.length - 1];
   const previousCandle = candles[candles.length - 2];
   const candleChange = latestCandle && previousCandle ? latestCandle.close - previousCandle.close : 0;
@@ -26,24 +32,22 @@ export function ChartStatusOverlays({
     : 0;
   const ohlcTone = candleChange >= 0 ? "text-teal-400" : "text-rose-400";
   const dataState = marketStatus?.state || (candles.length > 0 ? "live" : "loading");
-  const primaryInfoDimmed = dimPrimaryInfo || primaryInfoHovered;
-  const primaryInfoTone = primaryInfoDimmed
-    ? "border-cyan-400/10 bg-slate-950/25 text-slate-600 opacity-50 shadow-none"
-    : "border-slate-800/70 bg-slate-950/70 text-slate-400 opacity-100 shadow-lg hover:border-cyan-400/10 hover:bg-slate-950/25 hover:text-slate-600 hover:opacity-50 hover:shadow-none";
-  const primarySymbolTone = primaryInfoDimmed ? "text-slate-500" : "text-slate-100";
-  const primaryValueTone = primaryInfoDimmed ? "text-slate-500" : "text-slate-200";
-  const primaryMoveTone = primaryInfoDimmed ? "text-slate-500" : ohlcTone;
+  const primarySymbolDimmed = dimPrimaryInfo || primaryInfoHovered;
+  const primaryInfoTone = "border-slate-800/70 bg-slate-950/70 text-slate-400 opacity-100 shadow-lg";
+  const primarySymbolTone = primarySymbolDimmed ? "text-slate-500 opacity-60" : "text-slate-100 opacity-100";
+  const primaryValueTone = "text-slate-200";
+  const primaryMoveTone = ohlcTone;
 
   return (
     <>
       {latestCandle && (
         <div
           className="pointer-events-auto absolute left-0 top-0 z-20 hidden h-16 w-[min(920px,calc(100%-7rem))] md:block"
-          onPointerEnter={() => setPrimaryInfoHovered(true)}
-          onPointerLeave={() => setPrimaryInfoHovered(false)}
+          onPointerEnter={() => setPrimaryInfoHover(true)}
+          onPointerLeave={() => setPrimaryInfoHover(false)}
         >
           <div className={`absolute left-3 top-3 flex max-w-full cursor-default items-center gap-2 overflow-hidden rounded border px-2 py-1 font-mono text-[10px] backdrop-blur-sm transition-[opacity,background-color,border-color,color,box-shadow] duration-150 ${primaryInfoTone}`}>
-            <span className={`font-bold transition-colors duration-150 ${primarySymbolTone}`}>{currentSymbol.id}</span>
+            <span className={`font-bold transition-[color,opacity] duration-150 ${primarySymbolTone}`}>{currentSymbol.id}</span>
             <span className="text-slate-600">•</span>
             <span>{currentTimeframe}</span>
             <span>O <b className={`font-semibold transition-colors duration-150 ${primaryValueTone}`}>{formatPanelPrice(latestCandle.open, currentSymbol.precision)}</b></span>

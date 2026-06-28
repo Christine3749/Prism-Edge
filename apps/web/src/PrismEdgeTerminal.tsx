@@ -41,6 +41,7 @@ export default function PrismEdgeTerminal() {
   const [chartType, setChartType] = useState("candlestick");
   const [watchlistOpen, setWatchlistOpen] = useState(false);
   const [scannerHandleActive, setScannerHandleActive] = useState(false);
+  const [chartStatusHoverActive, setChartStatusHoverActive] = useState(false);
   const [indicatorsModalOpen, setIndicatorsModalOpen] = useState(false);
   const [settingsModalOpen, setSettingsModalOpen] = useState(false);
   const [resetConfirmOpen, setResetConfirmOpen] = useState(false);
@@ -63,6 +64,8 @@ export default function PrismEdgeTerminal() {
     setIsLiveBinanceActive,
     setAnalysisResult
   });
+
+  const scannerRevealActive = scannerHandleActive || chartStatusHoverActive;
 
   const handleSymbolSelect = (symbol: MarketSymbol) => {
     const hydrated = enrichMarketSymbol(symbol);
@@ -140,6 +143,7 @@ export default function PrismEdgeTerminal() {
           lang={lang}
           onSymbolSelect={handleSymbolSelect}
           onHandleHoverChange={setScannerHandleActive}
+          revealHandle={scannerRevealActive}
         />
         <div className="flex-grow flex flex-col min-w-0 h-full">
           <ChartContainer
@@ -155,7 +159,8 @@ export default function PrismEdgeTerminal() {
             chartType={chartType}
             marketStatus={marketStatus}
             analysisResult={analysisResult}
-            scannerHandleActive={scannerHandleActive}
+            scannerHandleActive={scannerRevealActive}
+            onPrimaryInfoHoverChange={setChartStatusHoverActive}
           />
           <BottomPanel
             currentSymbol={currentSymbol}

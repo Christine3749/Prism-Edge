@@ -28,6 +28,7 @@ interface ChartContainerProps {
   marketStatus?: MarketDataStatus;
   analysisResult?: AnalysisRunResponse | null;
   scannerHandleActive?: boolean;
+  onPrimaryInfoHoverChange?: (active: boolean) => void;
 }
 
 export default function ChartContainer({
@@ -43,7 +44,8 @@ export default function ChartContainer({
   chartType,
   marketStatus,
   analysisResult,
-  scannerHandleActive = false
+  scannerHandleActive = false,
+  onPrimaryInfoHoverChange
 }: ChartContainerProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mainChartRef = useRef<HTMLDivElement>(null);
@@ -76,6 +78,7 @@ export default function ChartContainer({
         currentTimeframe={currentTimeframe}
         marketStatus={marketStatus}
         dimPrimaryInfo={scannerHandleActive}
+        onPrimaryInfoHoverChange={onPrimaryInfoHoverChange}
       />
 
       <div

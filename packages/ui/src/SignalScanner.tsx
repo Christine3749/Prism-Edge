@@ -11,6 +11,7 @@ interface SignalScannerProps {
   lang: Language;
   onSymbolSelect: (symbol: MarketSymbol) => void;
   onHandleHoverChange?: (active: boolean) => void;
+  revealHandle?: boolean;
 }
 
 type ScannerSide = "long" | "short" | "watch" | "defense";
@@ -31,7 +32,8 @@ export default function SignalScanner({
   analysisResult,
   lang,
   onSymbolSelect,
-  onHandleHoverChange
+  onHandleHoverChange,
+  revealHandle = false
 }: SignalScannerProps) {
   const [collapsed, setCollapsed] = useState(true);
   const labels = getLabels(lang);
@@ -44,6 +46,9 @@ export default function SignalScanner({
   const avgScore = rows.length
     ? Math.round(rows.reduce((sum, row) => sum + row.score, 0) / rows.length)
     : 0;
+  const handleRevealTone = revealHandle
+    ? "border-cyan-400/70 bg-slate-900 text-cyan-300 shadow-[0_0_34px_rgba(34,211,238,0.28)]"
+    : "border-cyan-400/10 bg-slate-950/20 text-transparent shadow-none";
 
   return (
     <aside
@@ -145,7 +150,7 @@ export default function SignalScanner({
         onFocus={() => onHandleHoverChange?.(true)}
         onBlur={() => onHandleHoverChange?.(false)}
         aria-expanded={!collapsed}
-        className={`absolute top-[2.75rem] z-30 flex h-9 w-7 items-center justify-center border border-cyan-400/10 bg-slate-950/20 text-transparent shadow-none backdrop-blur transition-[left,color,border-color,background-color,box-shadow,transform] delay-[80ms] duration-200 hover:border-cyan-400/70 hover:bg-slate-900 hover:text-cyan-300 hover:shadow-[0_0_34px_rgba(34,211,238,0.28)] focus:outline-none focus-visible:border-cyan-300 focus-visible:text-cyan-300 focus-visible:ring-1 focus-visible:ring-cyan-300/70 ${
+        className={`absolute top-[2.75rem] z-30 flex h-9 w-7 items-center justify-center border backdrop-blur transition-[left,color,border-color,background-color,box-shadow,transform] delay-[80ms] duration-200 hover:border-cyan-400/70 hover:bg-slate-900 hover:text-cyan-300 hover:shadow-[0_0_34px_rgba(34,211,238,0.28)] focus:outline-none focus-visible:border-cyan-300 focus-visible:text-cyan-300 focus-visible:ring-1 focus-visible:ring-cyan-300/70 ${handleRevealTone} ${
           collapsed ? "left-2 rounded-md" : "left-[246px] rounded-md"
         }`}
         style={{ transitionTimingFunction: "cubic-bezier(0.22, 1, 0.36, 1)" }}
