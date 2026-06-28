@@ -109,7 +109,13 @@ export function subscribeClient(symbol: string, interval: string, client: WebSoc
     e.clients.delete(client);
     if (e.clients.size > 0) return;
     if (e.reconnectTimer) clearTimeout(e.reconnectTimer);
-    if (e.ws) { e.ws.removeAllListeners(); e.ws.terminate(); }
+    if (e.ws) {
+      const ws = e.ws;
+      e.ws = null;
+      ws.removeAllListeners();
+      ws.on("error", () => {});
+      try { ws.terminate(); } catch { /* ignore shutdown race */ }
+    }
     pool.delete(key);
     console.log(`[binanceWs] stream closed (no subscribers): ${key}`);
   };
