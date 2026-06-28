@@ -10,3 +10,5 @@ __pycache__/
 *.pyc
 apps/desktop/src-tauri/target/
 apps/android/android/
+
+.vercel
