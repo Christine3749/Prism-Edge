@@ -16,6 +16,20 @@ interface QuoteGatewayResponse {
   updatedAt?: number;
 }
 
+function readViteEnv(name: string) {
+  return (import.meta as unknown as { env?: Record<string, string | undefined> }).env?.[name] || "";
+}
+
+const MARKET_API_BASE_URL = (
+  readViteEnv("VITE_MARKET_API_BASE_URL") ||
+  readViteEnv("VITE_API_BASE_URL")
+).replace(/\/+$/, "");
+
+export function buildMarketApiUrl(path: string) {
+  const normalizedPath = path.startsWith("/") ? path : `/${path}`;
+  return `${MARKET_API_BASE_URL}${normalizedPath}`;
+}
+
 // Warning registry to avoid spamming warnings
 const warnedEndpoints = new Set<string>();
 
@@ -46,7 +60,7 @@ export async function fetchHistoricalGatewayKlines(
     interval: timeframe,
     limit: String(limit)
   });
-  const response = await fetch(`/api/market/klines?${params.toString()}`, {
+  const response = await fetch(buildMarketApiUrl(`/api/market/klines?${params.toString()}`), {
     headers: { Accept: "application/json" },
     signal: AbortSignal.timeout(limit <= 2 ? 3500 : 6500)
   });
@@ -124,7 +138,7 @@ export async function fetchMarketQuotes(symbols: MarketSymbol[]): Promise<Market
     symbols: uniqueSymbols.join(",")
   });
 
-  const response = await fetch(`/api/market/quote?${params.toString()}`, {
+  const response = await fetch(buildMarketApiUrl(`/api/market/quote?${params.toString()}`), {
     headers: { Accept: "application/json" },
     signal: AbortSignal.timeout(uniqueSymbols.length > 24 ? 6000 : 4500)
   });

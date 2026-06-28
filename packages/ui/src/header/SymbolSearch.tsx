@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Search } from "lucide-react";
 import { searchMarketSymbols } from "../../../shared/src/marketCatalog";
+import { buildMarketApiUrl } from "../../../shared/src/marketDataService";
 import type { MarketSymbol } from "../../../shared/src/types";
 import { TRANSLATIONS } from "../../../shared/src/translations";
 
@@ -28,7 +29,7 @@ export function SymbolSearch({ currentSymbol, onSymbolSelect, t }: SymbolSearchP
     const timer = window.setTimeout(async () => {
       try {
         const params = new URLSearchParams({ q: query, limit: "18" });
-        const response = await fetch(`/api/market/search?${params.toString()}`, {
+        const response = await fetch(buildMarketApiUrl(`/api/market/search?${params.toString()}`), {
           headers: { Accept: "application/json" },
           signal: controller.signal
         });

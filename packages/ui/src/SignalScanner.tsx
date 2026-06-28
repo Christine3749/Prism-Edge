@@ -46,9 +46,10 @@ export default function SignalScanner({
   const avgScore = rows.length
     ? Math.round(rows.reduce((sum, row) => sum + row.score, 0) / rows.length)
     : 0;
-  const handleRevealTone = revealHandle
-    ? "border-cyan-400/70 bg-slate-900 text-cyan-300 shadow-[0_0_34px_rgba(34,211,238,0.28)]"
-    : "border-cyan-400/10 bg-slate-950/20 text-transparent shadow-none";
+  const handleRevealTone = revealHandle || !collapsed
+    ? "border-cyan-400/70 bg-slate-900 text-cyan-300 opacity-100 shadow-[0_0_34px_rgba(34,211,238,0.28)]"
+    : "border-cyan-400/15 bg-slate-950/20 text-cyan-300/0 opacity-25 shadow-none";
+  const handlePosition = collapsed ? "left-2" : "left-[250px]";
 
   return (
     <aside
@@ -142,7 +143,18 @@ export default function SignalScanner({
 
       <button
         type="button"
-        onClick={() => setCollapsed((value) => !value)}
+        onPointerDown={(event) => {
+          if (event.button !== 0) return;
+          event.preventDefault();
+          event.stopPropagation();
+          setCollapsed((value) => !value);
+        }}
+        onClick={(event) => event.preventDefault()}
+        onKeyDown={(event) => {
+          if (event.key !== "Enter" && event.key !== " ") return;
+          event.preventDefault();
+          setCollapsed((value) => !value);
+        }}
         onPointerEnter={() => onHandleHoverChange?.(true)}
         onPointerLeave={() => onHandleHoverChange?.(false)}
         onMouseEnter={() => onHandleHoverChange?.(true)}
@@ -150,16 +162,19 @@ export default function SignalScanner({
         onFocus={() => onHandleHoverChange?.(true)}
         onBlur={() => onHandleHoverChange?.(false)}
         aria-expanded={!collapsed}
-        className={`absolute top-[2.75rem] z-30 flex h-9 w-7 items-center justify-center border backdrop-blur transition-[left,color,border-color,background-color,box-shadow,transform] delay-[80ms] duration-200 hover:border-cyan-400/70 hover:bg-slate-900 hover:text-cyan-300 hover:shadow-[0_0_34px_rgba(34,211,238,0.28)] focus:outline-none focus-visible:border-cyan-300 focus-visible:text-cyan-300 focus-visible:ring-1 focus-visible:ring-cyan-300/70 ${handleRevealTone} ${
-          collapsed ? "left-2 rounded-md" : "left-[246px] rounded-md"
-        }`}
-        style={{ transitionTimingFunction: "cubic-bezier(0.22, 1, 0.36, 1)" }}
+        aria-label={collapsed ? labels.expand : labels.collapse}
+        className={`absolute top-[2.75rem] z-50 flex h-12 w-12 items-center justify-center bg-transparent p-0 focus:outline-none ${handlePosition}`}
         title={collapsed ? labels.expand : labels.collapse}
       >
-        <ChevronRight
-          className={`h-4 w-4 transition-transform duration-500 ${collapsed ? "rotate-0" : "rotate-180"}`}
+        <span
+          className={`flex h-9 w-7 items-center justify-center rounded-md border backdrop-blur transition-[opacity,color,border-color,background-color,box-shadow,transform] delay-[80ms] duration-200 ${handleRevealTone}`}
           style={{ transitionTimingFunction: "cubic-bezier(0.22, 1, 0.36, 1)" }}
-        />
+        >
+          <ChevronRight
+            className={`h-4 w-4 transition-transform duration-500 ${collapsed ? "rotate-0" : "rotate-180"}`}
+            style={{ transitionTimingFunction: "cubic-bezier(0.22, 1, 0.36, 1)" }}
+          />
+        </span>
       </button>
     </aside>
   );

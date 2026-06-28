@@ -83,7 +83,31 @@ function subscribePolling(symbol: MarketSymbol, interval: string, onTick: TickCa
 
 // ─── WebSocket path (crypto only) ────────────────────────────────────────────
 
+function readViteEnv(name: string) {
+  return (import.meta as unknown as { env?: Record<string, string | undefined> }).env?.[name] || "";
+}
+
+function buildConfiguredWsUrl(symbol: MarketSymbol, interval: string) {
+  const explicitWsBase = readViteEnv("VITE_MARKET_WS_BASE_URL") || readViteEnv("VITE_WS_BASE_URL");
+  const apiBase = readViteEnv("VITE_MARKET_API_BASE_URL") || readViteEnv("VITE_API_BASE_URL");
+  const configuredBase = (explicitWsBase || apiBase).trim();
+  if (!configuredBase) return "";
+
+  try {
+    const url = new URL(configuredBase);
+    url.protocol = url.protocol === "https:" ? "wss:" : "ws:";
+    url.pathname = "/ws";
+    url.search = `?symbol=${encodeURIComponent(symbol.symbol)}&interval=${encodeURIComponent(interval)}`;
+    return url.toString();
+  } catch {
+    return "";
+  }
+}
+
 function buildWsUrl(symbol: MarketSymbol, interval: string): string {
+  const configuredWsUrl = buildConfiguredWsUrl(symbol, interval);
+  if (configuredWsUrl) return configuredWsUrl;
+
   const proto = typeof location !== "undefined" && location.protocol === "https:" ? "wss:" : "ws:";
   const host = typeof location !== "undefined" ? location.host : "localhost:3000";
   return `${proto}//${host}/ws?symbol=${encodeURIComponent(symbol.symbol)}&interval=${encodeURIComponent(interval)}`;
