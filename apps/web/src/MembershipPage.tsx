@@ -158,9 +158,10 @@ export default function MembershipPage() {
                       type="button"
                       onClick={activateFree}
                       disabled={activating}
-                      className="h-10 rounded-md border border-cyan-500/50 bg-cyan-500 px-4 text-sm font-black text-slate-950 hover:bg-cyan-300 disabled:cursor-not-allowed disabled:opacity-60"
+                      className="group inline-flex h-10 items-center justify-center gap-2 rounded-md border border-cyan-400/40 bg-slate-950/85 px-4 text-[12px] font-bold tracking-[0.08em] text-cyan-100 shadow-[inset_0_1px_0_rgba(255,255,255,0.04),0_0_24px_rgba(34,211,238,0.08)] transition hover:border-cyan-300/70 hover:bg-cyan-400/10 hover:text-white disabled:cursor-not-allowed disabled:opacity-60"
                     >
-                      {activating ? "开通中..." : "开通 Free 会员"}
+                      <Crown className="h-3.5 w-3.5 text-amber-300 transition group-hover:text-amber-200" />
+                      <span>{activating ? "启用中..." : "启用 Free Access"}</span>
                     </button>
                   </div>
                 )}
