@@ -6,6 +6,10 @@
     {
       "source": "/api/:path*",
       "destination": "https://prism-edge-web-v3kyxd4wea-de.a.run.app/api/:path*"
+    },
+    {
+      "source": "/:path*",
+      "destination": "/index.html"
     }
   ]
 }
