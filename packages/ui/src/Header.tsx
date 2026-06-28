@@ -6,6 +6,7 @@ import {
 } from "lucide-react";
 import { MarketSymbol, AppSettings, MarketDataStatus } from "../../shared/src/types";
 import { Language, useTranslation } from "../../shared/src/translations";
+import { describeMarketStatus } from "../../shared/src/marketStatus";
 import { readHsAccessToken } from "../../shared/src/hsAuth";
 import {
   HsMembershipSnapshot,
@@ -70,14 +71,15 @@ export default function Header({
   ];
 
   const feedState = marketStatus?.state || (isLiveBinanceActive ? "live" : "simulated");
-  const feedLabel = {
-    loading: lang === "zh" ? "载入" : lang === "tc" ? "載入" : "Loading",
-    live: t("liveWss"),
-    delayed: lang === "zh" ? "延迟" : lang === "tc" ? "延遲" : "Delayed",
-    simulated: t("simFeed"),
-    stale: lang === "zh" ? "延迟" : lang === "tc" ? "延遲" : "Stale",
-    error: lang === "zh" ? "断线" : lang === "tc" ? "斷線" : "Error"
-  }[feedState];
+  const displayMarketStatus: MarketDataStatus = marketStatus || {
+    state: feedState,
+    source: isLiveBinanceActive ? "binance" : "gateway",
+    provider: currentSymbol.exchange || currentSymbol.market,
+    updatedAt: currentSymbol.lastUpdatedAt,
+    reason: isLiveBinanceActive ? "Realtime market feed is active." : "Market gateway status is being resolved."
+  };
+  const feedMeta = describeMarketStatus(displayMarketStatus, lang);
+  const feedLabel = feedMeta.shortLabel;
   const feedClass = {
     loading: "bg-sky-950/40 border-sky-800/60 text-sky-400",
     live: "bg-teal-950/40 border-teal-800/60 text-teal-400",
@@ -161,10 +163,11 @@ export default function Header({
         <div className="shrink-0 flex">
           <div
             className={`h-7 flex items-center gap-1 px-2 border rounded-full ${feedClass}`}
-            title={`${marketStatus?.source || "gateway"}${marketStatus?.latencyMs ? ` · ${marketStatus.latencyMs}ms` : ""} · ${marketStatus?.message || ""}`}
+            title={feedMeta.tooltip}
           >
             <span className={`h-1.5 w-1.5 rounded-full ${dotClass}`}></span>
             <span className="text-[9px] font-mono font-bold uppercase tracking-widest hidden lg:inline">{feedLabel}</span>
+            <span className="hidden 2xl:inline text-[8px] font-mono font-bold uppercase tracking-widest opacity-60">{displayMarketStatus.source}</span>
           </div>
         </div>
 

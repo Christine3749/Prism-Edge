@@ -7,7 +7,7 @@ import type {
   MarketQuote,
   MarketSymbol
 } from "@shared/types";
-import { getFeedState } from "../services/marketRuntimeHelpers";
+import { buildMarketStatus, getFeedState } from "../services/marketRuntimeHelpers";
 
 interface UseMarketRuntimeParams {
   candles: Candle[];
@@ -124,11 +124,12 @@ export function useMarketRuntime(params: UseMarketRuntimeParams) {
       updateActiveQuoteStatus(quotes);
     } catch (err) {
       if (!quiet) {
-        setMarketStatus((prev) => ({
+        setMarketStatus((prev) => buildMarketStatus({
           state: "error",
           source: prev.source || "gateway",
+          provider: currentSymbolRef.current.exchange || currentSymbolRef.current.market,
           updatedAt: lastMarketUpdateRef.current,
-          message: err instanceof Error ? err.message : "Quote gateway unavailable."
+          reason: err instanceof Error ? err.message : "Quote gateway unavailable."
         }));
       }
     } finally {
@@ -144,18 +145,18 @@ export function useMarketRuntime(params: UseMarketRuntimeParams) {
     const state = getFeedState(activeQuote.source, activeQuote.isLive);
     lastMarketUpdateRef.current = activeQuote.updatedAt || Date.now();
     setIsLiveBinanceActive(activeQuote.isLive);
-      setMarketStatus({
-        state,
-        source: activeQuote.source,
-        provider: activeSymbol.exchange || activeSymbol.market,
-        updatedAt: lastMarketUpdateRef.current,
-        freshnessMs: Date.now() - lastMarketUpdateRef.current,
-        message: activeQuote.isLive
-          ? "Real market quote stream."
+    setMarketStatus(buildMarketStatus({
+      state,
+      source: activeQuote.source,
+      provider: activeSymbol.exchange || activeSymbol.market,
+      updatedAt: lastMarketUpdateRef.current,
+      freshnessMs: Date.now() - lastMarketUpdateRef.current,
+      reason: activeQuote.isLive
+        ? "Real quote stream is fresh."
         : state === "delayed"
-          ? "Delayed market quote from public market provider."
-          : "Fallback simulated quote."
-    });
+          ? "Quote is coming from a public delayed provider."
+          : "Quote gateway fell back to simulated protection."
+    }));
   };
 
   useEffect(() => {
@@ -165,11 +166,12 @@ export function useMarketRuntime(params: UseMarketRuntimeParams) {
       setCandles([]);
       setIsLiveBinanceActive(false);
       setAnalysisResult(null);
-      setMarketStatus({
+      setMarketStatus(buildMarketStatus({
         state: "loading",
         source: "gateway",
-        message: `Loading ${currentSymbol.id} ${timeframe} candles.`
-      });
+        provider: currentSymbol.exchange || currentSymbol.market,
+        reason: `Loading ${currentSymbol.id} ${timeframe} candles.`
+      }));
 
       const result = await loadMarketData(currentSymbol, timeframe);
       if (cancelled) return;
@@ -178,19 +180,19 @@ export function useMarketRuntime(params: UseMarketRuntimeParams) {
       setIsLiveBinanceActive(result.isLiveBinance);
       lastMarketUpdateRef.current = result.updatedAt;
       const state = getFeedState(result.source, result.isLiveBinance);
-      setMarketStatus({
+      setMarketStatus(buildMarketStatus({
         state,
         source: result.source,
         provider: currentSymbol.exchange || currentSymbol.market,
         updatedAt: result.updatedAt,
         latencyMs: result.latencyMs,
         freshnessMs: Date.now() - result.updatedAt,
-        message: result.isLiveBinance
+        reason: result.isLiveBinance
           ? "Real candle gateway connected."
           : state === "delayed"
             ? "Delayed candle gateway connected."
-            : "Fallback simulator active."
-      });
+            : result.fallbackReason || "Fallback simulator active because the market gateway did not return usable candles."
+      }));
     };
 
     fetchHistory();
@@ -219,7 +221,7 @@ export function useMarketRuntime(params: UseMarketRuntimeParams) {
       setMarketStatus((prev) => {
         if (prev.state === "loading" || prev.state === "error") return prev;
         if (ageMs <= 22000) return prev;
-        return { ...prev, state: "stale", message: `Market data delayed by ${Math.round(ageMs / 1000)}s.` };
+        return buildMarketStatus({ ...prev, state: "stale", reason: `No fresh market update for ${Math.round(ageMs / 1000)}s.` });
       });
     }, 5000);
 
@@ -235,14 +237,14 @@ export function useMarketRuntime(params: UseMarketRuntimeParams) {
       setSymbolsList((prev) => prev.map((symbol, index) => pulseMarketSymbol(symbol, index, now, activeId)));
       setCurrentSymbol((prev) => pulseMarketSymbol(prev, stableSymbolSeed(prev.symbol), now, prev.id));
       lastMarketUpdateRef.current = now;
-      setMarketStatus((prev) => ({
+      setMarketStatus((prev) => buildMarketStatus({
         ...prev,
         state: "simulated",
         source: prev.source?.toLowerCase().includes("sim") ? prev.source : "local-sim",
         provider: currentSymbolRef.current.exchange || currentSymbolRef.current.market,
         updatedAt: now,
         freshnessMs: 0,
-        message: "Local simulated market pulse active."
+        reason: "External feed is stale or unavailable; local simulator is keeping the terminal responsive."
       }));
     }, 1800);
 
@@ -256,17 +258,17 @@ export function useMarketRuntime(params: UseMarketRuntimeParams) {
       const source = tick.source || (tick.isLive ? marketStatusRef.current.source : "simulated");
       const state = getFeedState(source, tick.isLive);
       updateSymbolsListPrice(currentSymbol.id, tick.close, { source, state, updatedAt: lastMarketUpdateRef.current });
-      setMarketStatus((prev) => ({
+      setMarketStatus((prev) => buildMarketStatus({
         state,
         source: tick.source || (tick.isLive ? (prev.source === "simulated" ? "binance" : prev.source) : "simulated"),
         provider: currentSymbol.exchange || currentSymbol.market,
         updatedAt: lastMarketUpdateRef.current,
         freshnessMs: 0,
-        message: tick.isLive
+        reason: tick.isLive
           ? "Realtime candle gateway connected."
           : state === "delayed"
             ? "Delayed candle gateway connected."
-            : "Fallback simulator active."
+            : "Realtime stream fell back to simulator protection."
       }));
       setCandles((prevCandles) => updateCandlesFromTick(prevCandles, tick, currentSymbol.precision, timeframe));
     });

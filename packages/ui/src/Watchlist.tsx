@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { Search, X } from "lucide-react";
 import { MarketDataStatus, MarketSymbol } from "../../shared/src/types";
 import { Language, useTranslation } from "../../shared/src/translations";
+import { describeMarketStatus, formatFeedAge } from "../../shared/src/marketStatus";
 
 interface WatchlistProps {
   currentSymbol: MarketSymbol;
@@ -83,10 +84,16 @@ export default function Watchlist({
     if (symbol.dataProvider === "yahoo") return "delayed";
     return "simulated";
   };
-  const feedAge = marketStatus?.updatedAt
-    ? Math.max(0, Math.round((Date.now() - marketStatus.updatedAt) / 1000))
-    : null;
   const activeSource = marketStatus?.source || currentSymbol.lastSource || currentSymbol.dataProvider || "gateway";
+  const activeMarketStatus: MarketDataStatus = marketStatus || {
+    state: currentSymbol.lastDataState || getSymbolFeedState(currentSymbol, true),
+    source: activeSource,
+    provider: currentSymbol.exchange || currentSymbol.market,
+    updatedAt: currentSymbol.lastUpdatedAt,
+    reason: "Market gateway status is being resolved."
+  };
+  const activeMeta = describeMarketStatus(activeMarketStatus, lang);
+  const feedAge = formatFeedAge(activeMarketStatus.updatedAt, Date.now(), lang);
 
   const content = (
     <div className="w-full flex flex-col h-full select-none justify-between bg-slate-950 text-slate-200">
@@ -206,8 +213,8 @@ export default function Watchlist({
       <div className="p-2.5 bg-slate-950 border-t border-slate-900 text-xs space-y-1.5 shrink-0">
         <div className="flex justify-between items-center text-[9px] text-slate-500 uppercase tracking-widest">
           <span>{lang === "zh" ? "当前聚焦资产" : lang === "tc" ? "當前聚焦資產" : "Active Asset Focus"}</span>
-          <span className={`px-1.5 py-0.5 bg-slate-900 border border-slate-800 rounded font-mono font-bold ${statusTone}`}>
-            {marketStatus?.state || currentSymbol.type}
+          <span className={`px-1.5 py-0.5 bg-slate-900 border border-slate-800 rounded font-mono font-bold ${statusTone}`} title={activeMeta.tooltip}>
+            {activeMeta.shortLabel}
           </span>
         </div>
         
@@ -218,27 +225,21 @@ export default function Watchlist({
           </div>
           <div className="flex justify-between font-mono text-[10px]">
             <span className="text-slate-500 font-sans">{lang === "zh" ? "数据源" : lang === "tc" ? "數據源" : "Source"}:</span>
-            <span className="max-w-32 truncate text-slate-300" title={marketStatus?.message}>
-              {activeSource}{marketStatus?.latencyMs ? ` · ${marketStatus.latencyMs}ms` : ""}
+            <span className="max-w-36 truncate text-slate-300" title={activeMeta.tooltip}>
+              {activeMeta.sourceLine}
             </span>
           </div>
           <div className="flex justify-between font-mono text-[10px]">
             <span className="text-slate-500 font-sans">{lang === "zh" ? "最近更新" : lang === "tc" ? "最近更新" : "Updated"}:</span>
-            <span className="text-slate-300">
-              {feedAge === null ? "-" : feedAge < 3 ? "now" : `${feedAge}s`}
-            </span>
+            <span className="text-slate-300">{feedAge || "-"}</span>
           </div>
           <div className="flex justify-between font-mono text-[10px]">
-            <span className="text-slate-500 font-sans">{lang === "zh" ? "棱镜折射率" : lang === "tc" ? "稜鏡折射率" : "Refraction Index"}:</span>
-            <span className={`font-extrabold uppercase ${statusTone}`}>
-              {marketStatus?.state === "stale"
-                ? (lang === "zh" ? "数据延迟" : lang === "tc" ? "數據延遲" : "Stale Feed")
-                : marketStatus?.state === "live"
-                  ? (lang === "zh" ? "真实行情" : lang === "tc" ? "真實行情" : "Live Feed")
-                  : marketStatus?.state === "delayed"
-                    ? (lang === "zh" ? "延迟行情" : lang === "tc" ? "延遲行情" : "Delayed")
-                    : (lang === "zh" ? "模拟保护" : lang === "tc" ? "模擬保護" : "Fallback")}
-            </span>
+            <span className="text-slate-500 font-sans">{lang === "zh" ? "可信度" : lang === "tc" ? "可信度" : "Confidence"}:</span>
+            <span className={`font-extrabold uppercase ${statusTone}`}>{activeMeta.qualityLabel} · {activeMeta.confidenceLabel}</span>
+          </div>
+          <div className="flex justify-between gap-2 font-mono text-[10px]">
+            <span className="text-slate-500 font-sans">{lang === "zh" ? "原因" : lang === "tc" ? "原因" : "Reason"}:</span>
+            <span className="max-w-40 truncate text-right text-slate-400" title={activeMeta.reason}>{activeMeta.reason}</span>
           </div>
         </div>
       </div>

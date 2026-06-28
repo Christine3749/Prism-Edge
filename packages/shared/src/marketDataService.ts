@@ -96,7 +96,7 @@ function isLiveGatewaySource(source: string) {
 export async function loadMarketData(
   symbol: MarketSymbol,
   timeframe: string
-): Promise<{ candles: Candle[]; isLiveBinance: boolean; source: string; updatedAt: number; latencyMs?: number }> {
+): Promise<{ candles: Candle[]; isLiveBinance: boolean; source: string; updatedAt: number; latencyMs?: number; fallbackReason?: string }> {
   try {
     try {
       const hist = await fetchHistoricalGatewayKlines(symbol.symbol, timeframe, 200);
@@ -114,19 +114,33 @@ export async function loadMarketData(
         err
       );
       const fallback = generateSimulatedHistoricalKlines(symbol, timeframe, 200);
-      return { candles: fallback, isLiveBinance: false, source: "simulated", updatedAt: Date.now() };
+      const fallbackReason = err instanceof Error ? err.message : String(err);
+      return {
+        candles: fallback,
+        isLiveBinance: false,
+        source: "simulated",
+        updatedAt: Date.now(),
+        fallbackReason: `REST gateway failed: ${fallbackReason.slice(0, 140)}`
+      };
     }
   } catch (err) {
     warnOnce("load_error_ultimate", "Ultimate market data service load exception:", err);
     const fallback = generateSimulatedHistoricalKlines(symbol, timeframe, 200);
-    return { candles: fallback, isLiveBinance: false, source: "simulated", updatedAt: Date.now() };
+    const fallbackReason = err instanceof Error ? err.message : String(err);
+    return {
+      candles: fallback,
+      isLiveBinance: false,
+      source: "simulated",
+      updatedAt: Date.now(),
+      fallbackReason: `Market service exception: ${fallbackReason.slice(0, 140)}`
+    };
   }
 }
 
 export async function getHistoricalCandles(
   symbol: MarketSymbol,
   interval: string
-): Promise<{ candles: Candle[]; isLiveBinance: boolean; source: string; updatedAt: number; latencyMs?: number }> {
+): Promise<{ candles: Candle[]; isLiveBinance: boolean; source: string; updatedAt: number; latencyMs?: number; fallbackReason?: string }> {
   return loadMarketData(symbol, interval);
 }
 

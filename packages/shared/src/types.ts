@@ -40,6 +40,7 @@ export interface MarketSymbol {
 }
 
 export type MarketDataState = "loading" | "live" | "delayed" | "simulated" | "stale" | "error";
+export type MarketDataQuality = "verified" | "public-delayed" | "protected" | "unavailable";
 
 export interface MarketDataStatus {
   state: MarketDataState;
@@ -48,6 +49,10 @@ export interface MarketDataStatus {
   updatedAt?: number;
   latencyMs?: number;
   freshnessMs?: number;
+  quality?: MarketDataQuality;
+  confidence?: number;
+  reason?: string;
+  route?: string[];
   message?: string;
 }
 

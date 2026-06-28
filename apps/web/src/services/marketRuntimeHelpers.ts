@@ -1,4 +1,5 @@
-import type { AnalysisIndicator, IndicatorConfig, MarketDataStatus } from "@shared/types";
+import type { AnalysisIndicator, IndicatorConfig } from "@shared/types";
+export { buildMarketStatus, getFeedState } from "@shared/marketStatus";
 
 export function buildActiveIndicatorList(indicatorConfig: IndicatorConfig): AnalysisIndicator[] {
   const enabled: AnalysisIndicator[] = [];
@@ -8,10 +9,4 @@ export function buildActiveIndicatorList(indicatorConfig: IndicatorConfig): Anal
   if (indicatorConfig.macd.active) enabled.push("MACD");
   if (indicatorConfig.bollinger.active) enabled.push("BOLLINGER");
   return enabled;
-}
-
-export function getFeedState(source: string, isLive: boolean): MarketDataStatus["state"] {
-  if (isLive) return "live";
-  if (source.toLowerCase().includes("yahoo")) return "delayed";
-  return "simulated";
 }

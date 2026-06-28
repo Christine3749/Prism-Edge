@@ -1,5 +1,6 @@
 import { useState } from "react";
 import type { Candle, MarketDataStatus, MarketSymbol } from "../../../shared/src/types";
+import { describeMarketStatus } from "../../../shared/src/marketStatus";
 import { formatCompactVolume, formatPanelPrice } from "./chartFormatters";
 
 interface ChartStatusOverlaysProps {
@@ -32,6 +33,20 @@ export function ChartStatusOverlays({
     : 0;
   const ohlcTone = candleChange >= 0 ? "text-teal-400" : "text-rose-400";
   const dataState = marketStatus?.state || (candles.length > 0 ? "live" : "loading");
+  const statusMeta = describeMarketStatus(marketStatus || {
+    state: dataState,
+    source: "gateway",
+    provider: currentSymbol.exchange || currentSymbol.market,
+    updatedAt: currentSymbol.lastUpdatedAt
+  });
+  const statusBannerTone = {
+    delayed: "border-blue-500/20 text-blue-300",
+    stale: "border-orange-500/20 text-orange-300",
+    simulated: "border-amber-500/20 text-amber-300",
+    error: "border-rose-500/20 text-rose-300",
+    loading: "border-sky-500/20 text-sky-300",
+    live: "border-teal-500/20 text-teal-300"
+  }[dataState];
   const primarySymbolDimmed = dimPrimaryInfo || primaryInfoHovered;
   const primaryInfoTone = "border-slate-800/70 bg-slate-950/70 text-slate-400 opacity-100 shadow-lg";
   const primarySymbolTone = primarySymbolDimmed ? "text-slate-500 opacity-60" : "text-slate-100 opacity-100";
@@ -70,14 +85,12 @@ export function ChartStatusOverlays({
         </div>
       )}
 
-      {(dataState === "stale" || dataState === "delayed") && (
-        <div className={`pointer-events-none absolute inset-x-0 top-16 z-20 mx-auto flex w-fit items-center gap-2 rounded border bg-slate-950/80 px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest shadow-lg backdrop-blur-sm ${
-          dataState === "stale"
-            ? "border-orange-500/20 text-orange-300"
-            : "border-blue-500/20 text-blue-300"
-        }`}>
-          {dataState === "stale" ? "Data delayed" : "Delayed market feed"} · {marketStatus?.source || "gateway"}
-          {marketStatus?.latencyMs ? ` · ${marketStatus.latencyMs}ms` : ""}
+      {(dataState === "stale" || dataState === "delayed" || dataState === "simulated" || dataState === "error") && (
+        <div className={`pointer-events-none absolute inset-x-0 top-16 z-20 mx-auto flex max-w-[min(560px,calc(100%-2rem))] items-center gap-2 rounded border bg-slate-950/80 px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest shadow-lg backdrop-blur-sm ${statusBannerTone}`} title={statusMeta.tooltip}>
+          <span className="shrink-0">{statusMeta.label}</span>
+          <span className="text-slate-600">·</span>
+          <span className="shrink-0">{statusMeta.sourceLine}</span>
+          <span className="hidden max-w-[240px] truncate text-slate-500 lg:inline">{statusMeta.reason}</span>
         </div>
       )}
     </>
