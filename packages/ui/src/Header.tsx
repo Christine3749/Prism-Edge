@@ -167,6 +167,7 @@ export default function Header({
           >
             <span className={`h-1.5 w-1.5 rounded-full ${dotClass}`}></span>
             <span className="text-[9px] font-mono font-bold uppercase tracking-widest hidden lg:inline">{feedLabel}</span>
+            <span className="hidden xl:inline rounded-sm border border-current/20 bg-slate-950/40 px-1 text-[8px] font-mono font-black uppercase tracking-widest">{feedMeta.confidenceLabel}</span>
             <span className="hidden 2xl:inline text-[8px] font-mono font-bold uppercase tracking-widest opacity-60">{displayMarketStatus.source}</span>
           </div>
         </div>

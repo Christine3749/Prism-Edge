@@ -56,6 +56,39 @@ export interface QuantDecision {
   lineage?: DataLineage;
 }
 
+
+export type QuantModelStatus = "ready" | "degraded" | "missing";
+
+export type QuantModelKind = "dgwm" | "pytorch_head" | "baseline" | "unknown";
+
+export interface QuantModelEntry {
+  id: string;
+  name: string;
+  kind: QuantModelKind | string;
+  role: string;
+  root: string;
+  exists: boolean;
+  status: QuantModelStatus;
+  version: string;
+  gitCommit: string;
+  dirty: boolean;
+  python: string;
+  pythonExists: boolean;
+  importModule: string;
+  importable: boolean | null;
+  importError: string;
+  files: Record<string, boolean>;
+  capabilities: string[];
+  notes: string[];
+}
+
+export interface QuantModelRegistry {
+  schema: string;
+  generatedAt: string;
+  baseRoot: string;
+  defaultModelId: string;
+  models: QuantModelEntry[];
+}
 export interface QuantHealth {
   adapter: string;
   root: string;
@@ -97,5 +130,14 @@ export interface QuantRuntimeDiagnostic {
   elapsedMs: number;
   metrics: Record<string, unknown>;
   failure: Record<string, unknown>;
+  universe?: {
+    primarySymbol?: string;
+    symbols?: string[];
+    rowCount?: number;
+    targetBars?: number;
+    source?: string;
+    syntheticSymbols?: string[];
+    realSymbols?: string[];
+  };
   files: Record<string, string>;
 }

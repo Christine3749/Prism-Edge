@@ -7,6 +7,7 @@ from pydantic import BaseModel, Field
 
 from services.api.app.schemas import Candle
 from services.quant.dgwm_adapter import DgwmAdapter
+from services.quant.model_registry import build_model_registry
 
 
 router = APIRouter()
@@ -17,6 +18,8 @@ class QuantPayload(BaseModel):
     symbol: str = Field(..., examples=["BTC/USDT"])
     interval: str = Field(default="1D", examples=["1h"])
     candles: list[Candle] = Field(default_factory=list)
+    candlesBySymbol: dict[str, list[Candle]] = Field(default_factory=dict)
+    symbols: list[str] = Field(default_factory=list)
     indicators: list[str] = Field(default_factory=list)
     source: str = "msir-prism"
     provider: str = "frontend"
@@ -25,6 +28,11 @@ class QuantPayload(BaseModel):
 
 class BacktestPayload(QuantPayload):
     window: int = Field(default=80, ge=30, le=260)
+
+
+@router.get("/api/quant/models")
+def quant_models():
+    return build_model_registry()
 
 
 @router.get("/api/quant/health")
@@ -61,6 +69,11 @@ def _payload(request: QuantPayload) -> dict[str, Any]:
         "symbol": request.symbol,
         "interval": request.interval,
         "candles": [candle.model_dump() for candle in request.candles],
+        "candlesBySymbol": {
+            symbol: [candle.model_dump() for candle in candles]
+            for symbol, candles in request.candlesBySymbol.items()
+        },
+        "symbols": list(request.symbols),
         "indicators": list(request.indicators),
         "source": request.source,
         "provider": request.provider,

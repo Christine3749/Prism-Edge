@@ -229,7 +229,7 @@ def _merge_runtime_diagnostic(analysis: dict[str, Any], diagnostic: dict[str, An
     payload = diagnostic.get("payload") if isinstance(diagnostic.get("payload"), dict) else {}
     accepted = bool(diagnostic.get("accepted"))
     failure = payload.get("failure") if isinstance(payload.get("failure"), dict) else {}
-    reasons = _runtime_reasons(failure)
+    reasons = _runtime_reasons(failure, payload)
     metrics = payload.get("metrics") if isinstance(payload.get("metrics"), dict) else {}
     analysis["meta"]["engine"] = "dgwm-quant-diagnostic-cli"
     analysis["runtimeDiagnostic"] = {
@@ -238,6 +238,7 @@ def _merge_runtime_diagnostic(analysis: dict[str, Any], diagnostic: dict[str, An
         "elapsedMs": int(diagnostic.get("elapsedMs", 0)),
         "metrics": metrics,
         "failure": failure,
+        "universe": diagnostic.get("universe", {}),
         "files": diagnostic.get("files", {}),
     }
     if accepted:
@@ -255,10 +256,31 @@ def _merge_runtime_diagnostic(analysis: dict[str, Any], diagnostic: dict[str, An
     analysis["summary"] += f" DGWM 真实 diagnostic runtime 已运行但未放行：{', '.join(reasons)}。"
 
 
-def _runtime_reasons(failure: dict[str, Any]) -> list[str]:
+def _runtime_reasons(failure: dict[str, Any], payload: dict[str, Any]) -> list[str]:
     raw = failure.get("reasons", ())
     reasons = [str(item) for item in raw if str(item)] if isinstance(raw, (list, tuple)) else [str(raw)]
-    return reasons or ["dgwm_runtime_rejected"]
+    reasons = [reason for reason in reasons if reason]
+    if reasons:
+        return reasons
+
+    manifest = payload.get("manifest") if isinstance(payload.get("manifest"), dict) else {}
+    codes = manifest.get("rejection_codes") if isinstance(manifest, dict) else None
+    if isinstance(codes, (list, tuple)):
+        reasons.extend(str(code) for code in codes if str(code))
+
+    metrics = payload.get("metrics") if isinstance(payload.get("metrics"), dict) else {}
+    if isinstance(metrics, dict):
+        if float(metrics.get("strategy_positive_return_confirmed", 1.0) or 0.0) <= 0.0:
+            reasons.append("strategy_positive_return_not_confirmed")
+        weekly_lcb = metrics.get("weekly_return_lcb")
+        if isinstance(weekly_lcb, (int, float)) and float(weekly_lcb) < 0.0:
+            reasons.append("weekly_return_lcb_below_zero")
+        certificates = metrics.get("certificates") if isinstance(metrics.get("certificates"), dict) else {}
+        quarantine = certificates.get("quarantine") if isinstance(certificates.get("quarantine"), dict) else {}
+        if quarantine and quarantine.get("current_release_eligible") is False:
+            reasons.append("quarantine_current_release_ineligible")
+
+    return list(dict.fromkeys(reasons)) or ["dgwm_runtime_rejected"]
 
 
 __all__ = ("DgwmAdapter", "DgwmAdapterConfig")

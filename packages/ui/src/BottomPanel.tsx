@@ -39,6 +39,7 @@ interface BottomPanelProps {
   marketStatus?: MarketDataStatus;
   analysisResult?: AnalysisRunResponse | null;
   onAnalysisResult?: (result: AnalysisRunResponse | null) => void;
+  strategyMode?: boolean;
 }
 
 export default function BottomPanel({
@@ -49,7 +50,8 @@ export default function BottomPanel({
   lang,
   marketStatus,
   analysisResult,
-  onAnalysisResult
+  onAnalysisResult,
+  strategyMode = false
 }: BottomPanelProps) {
   const t = useTranslation(lang);
   const [activeTab, setActiveTab] = useState<BottomPanelTab>("ai");
@@ -294,10 +296,17 @@ export default function BottomPanel({
     }
   };
 
+  const expandedStyle = strategyMode
+    ? { height: "28vh", minHeight: 172, maxHeight: 312 }
+    : { height: "24vh", minHeight: 128, maxHeight: 248 };
+  const shellTone = strategyMode
+    ? "border-sky-500/25 bg-[#050914] shadow-[0_-18px_56px_rgba(2,8,23,0.48),inset_0_1px_0_rgba(34,211,238,0.08)]"
+    : "border-slate-800 bg-slate-950";
+
   return (
     <div
-      className={`border-t border-slate-800 bg-slate-950 flex flex-col justify-between shrink-0 z-30 transition-all duration-300 ${collapsed ? "h-8" : ""}`}
-      style={collapsed ? undefined : { height: "24vh", minHeight: 128, maxHeight: 248 }}
+      className={`border-t flex flex-col justify-between shrink-0 z-30 transition-[height,min-height,max-height,border-color,background-color,box-shadow] duration-500 ease-out ${shellTone} ${collapsed ? "h-8" : ""}`}
+      style={collapsed ? undefined : expandedStyle}
     >
       <BottomPanelTabs
         activeTab={activeTab}
@@ -309,15 +318,19 @@ export default function BottomPanel({
           setCollapsed(false);
         }}
         onToggleCollapsed={() => setCollapsed((value) => !value)}
+        strategyMode={strategyMode}
       />
 
       {!collapsed && (
-        <div className="flex-grow p-2 overflow-y-auto min-h-0 bg-slate-950/80">
+        <div className={`flex-grow overflow-y-auto min-h-0 transition-[padding,background-color] duration-500 ${strategyMode ? "bg-[#050914]/95 p-3" : "bg-slate-950/80 p-2"}`}>
           {activeTab === "book" && <OrderBookTab orderBook={orderBook} currentSymbol={currentSymbol} />}
           {activeTab === "trades" && <TradesTab trades={trades} currentSymbol={currentSymbol} />}
           {activeTab === "news" && <NewsTab news={news} newsLoading={newsLoading} lang={lang} />}
           {activeTab === "ai" && (
             <AiAnalysisTab
+              currentSymbol={currentSymbol}
+              candles={candles}
+              marketStatus={marketStatus}
               aiAnalysis={aiAnalysis}
               aiLoading={aiLoading}
               analysisServiceFallback={analysisServiceFallback}
@@ -334,6 +347,9 @@ export default function BottomPanel({
               onRunAnalysis={handleRunAiAnalysis}
               onRunBacktest={handleRunBacktest}
               onRunRuntime={handleRunRuntimeDiagnostic}
+              strategyMode={strategyMode}
+              news={news}
+              newsLoading={newsLoading}
             />
           )}
         </div>

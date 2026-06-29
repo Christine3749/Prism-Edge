@@ -65,7 +65,7 @@ export default function ChartContainer({
 
   return (
     <div
-      className="flex-grow flex flex-col relative bg-[#020617] overflow-hidden select-none"
+      className="flex h-full min-h-0 flex-1 flex-col relative bg-[#020617] overflow-hidden select-none"
       style={{ minHeight: 180 }}
       ref={containerRef}
       id="chart_canvas_zone"

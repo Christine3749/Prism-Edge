@@ -1,8 +1,8 @@
-import React, { useState } from "react";
-import { Search, X } from "lucide-react";
+import { useMemo, useState } from "react";
+import { Radio, Search, X } from "lucide-react";
+import { buildPrismIntelligence, describePrismIntelligence, getBiasLabel, type PrismIntelligence } from "../../shared/src/prismIntelligence";
 import { MarketDataStatus, MarketSymbol } from "../../shared/src/types";
 import { Language, useTranslation } from "../../shared/src/translations";
-import { describeMarketStatus, formatFeedAge } from "../../shared/src/marketStatus";
 
 interface WatchlistProps {
   currentSymbol: MarketSymbol;
@@ -10,10 +10,12 @@ interface WatchlistProps {
   symbolsList: MarketSymbol[];
   lang: Language;
   marketStatus?: MarketDataStatus;
-  // Drawer props for mobile adaptation
   isOpen?: boolean;
   onClose?: () => void;
+  compressed?: boolean;
 }
+
+type WatchlistFilter = "all" | "crypto" | "us" | "cn" | "hk" | "forex";
 
 export default function Watchlist({
   currentSymbol,
@@ -22,23 +24,24 @@ export default function Watchlist({
   lang,
   marketStatus,
   isOpen = false,
-  onClose
+  onClose,
+  compressed = false
 }: WatchlistProps) {
   const t = useTranslation(lang);
-  type WatchlistFilter = "all" | "crypto" | "us" | "cn" | "hk" | "forex";
+  const zh = lang === "zh" || lang === "tc";
   const [filter, setFilter] = useState<WatchlistFilter>("all");
   const [query, setQuery] = useState("");
 
   const categoryTranslationMap = {
     all: t("allMarkets"),
     crypto: "Crypto",
-    us: lang === "zh" ? "美股" : lang === "tc" ? "美股" : "US",
-    cn: lang === "zh" ? "A股" : lang === "tc" ? "A股" : "A-Share",
-    hk: lang === "zh" ? "港股" : lang === "tc" ? "港股" : "HK",
-    forex: lang === "zh" ? "外汇" : lang === "tc" ? "外匯" : "FX"
+    us: zh ? "美股" : "US",
+    cn: zh ? "A股" : "A-Share",
+    hk: zh ? "港股" : "HK",
+    forex: zh ? "外汇" : "FX"
   };
 
-  const filteredSymbols = symbolsList.filter((sym) => {
+  const filteredSymbols = useMemo(() => symbolsList.filter((sym) => {
     const symbolMarket = sym.market || sym.type;
     const matchesFilter = filter === "all" ||
       (filter === "crypto" && (symbolMarket === "crypto" || sym.type === "crypto")) ||
@@ -50,80 +53,66 @@ export default function Watchlist({
       sym.symbol.toLowerCase().includes(normalizedQuery) ||
       sym.name.toLowerCase().includes(normalizedQuery);
     return matchesFilter && matchesQuery;
-  });
+  }), [filter, query, symbolsList]);
+
+  const matrixRows = useMemo(() => filteredSymbols.map((sym) => {
+    const isSelected = sym.id === currentSymbol.id;
+    const feedState = getSymbolFeedState(sym, isSelected, marketStatus);
+    const intelligence = buildPrismIntelligence(sym, [], isSelected ? marketStatus : undefined);
+    const rowBrief = describePrismIntelligence(intelligence, sym, lang);
+    return { sym, feedState, intelligence, setup: rowBrief.setup };
+  }).sort((a, b) => b.intelligence.score - a.intelligence.score), [currentSymbol.id, filteredSymbols, lang, marketStatus]);
+
   const statusTone = marketStatus?.state === "live"
     ? "text-teal-400"
     : marketStatus?.state === "delayed"
       ? "text-blue-300"
-    : marketStatus?.state === "stale"
-      ? "text-orange-300"
-      : marketStatus?.state === "error"
-        ? "text-rose-400"
-        : "text-amber-300";
-  const feedToneMap = {
-    live: "border-teal-500/20 bg-teal-500/10 text-teal-300",
-    delayed: "border-blue-500/20 bg-blue-500/10 text-blue-300",
-    stale: "border-orange-500/20 bg-orange-500/10 text-orange-300",
-    error: "border-rose-500/20 bg-rose-500/10 text-rose-300",
-    simulated: "border-amber-500/20 bg-amber-500/10 text-amber-300",
-    loading: "border-sky-500/20 bg-sky-500/10 text-sky-300"
-  };
-  const feedLabelMap = {
-    live: "LIVE",
-    delayed: "DELAY",
-    stale: "STALE",
-    error: "ERR",
-    simulated: "SIM",
-    loading: "LOAD"
-  };
+      : marketStatus?.state === "stale"
+        ? "text-orange-300"
+        : marketStatus?.state === "error"
+          ? "text-rose-400"
+          : "text-amber-300";
 
-  const getSymbolFeedState = (symbol: MarketSymbol, selected: boolean): MarketDataStatus["state"] => {
-    if (selected && marketStatus?.state) return marketStatus.state;
-    if (symbol.lastDataState) return symbol.lastDataState;
-    if (symbol.dataProvider === "binance" || symbol.dataProvider === "coinbase") return "live";
-    if (symbol.dataProvider === "yahoo") return "delayed";
-    return "simulated";
-  };
-  const activeSource = marketStatus?.source || currentSymbol.lastSource || currentSymbol.dataProvider || "gateway";
-  const activeMarketStatus: MarketDataStatus = marketStatus || {
-    state: currentSymbol.lastDataState || getSymbolFeedState(currentSymbol, true),
-    source: activeSource,
-    provider: currentSymbol.exchange || currentSymbol.market,
-    updatedAt: currentSymbol.lastUpdatedAt,
-    reason: "Market gateway status is being resolved."
-  };
-  const activeMeta = describeMarketStatus(activeMarketStatus, lang);
-  const feedAge = formatFeedAge(activeMarketStatus.updatedAt, Date.now(), lang);
+  const desktopShell = compressed
+    ? "pointer-events-none hidden h-full w-0 min-w-0 shrink-0 overflow-hidden border-l border-transparent bg-slate-950/0 p-0 opacity-0 transition-[width,min-width,opacity,padding,border-color] duration-500 md:flex xl:w-0 xl:min-w-0"
+    : "hidden h-full w-[292px] min-w-[292px] shrink-0 border-l border-slate-800 bg-slate-950/80 p-2 opacity-100 transition-[width,min-width,opacity,padding,border-color] duration-500 md:flex xl:w-[324px] xl:min-w-[324px]";
 
   const content = (
-    <div className="w-full flex flex-col h-full select-none justify-between bg-slate-950 text-slate-200">
-      
-      {/* 1. Header & Categories Selector */}
-      <div className="p-2.5 border-b border-slate-800 shrink-0">
-        <div className="flex justify-between items-center mb-1.5">
-          <h3 className="text-[10px] font-bold uppercase tracking-widest text-slate-500">
-            {t("brandName")} {t("watchlist")}
-          </h3>
+    <div className="flex h-full w-full select-none flex-col overflow-hidden rounded-md border border-slate-800/80 bg-slate-950/95 text-slate-200 shadow-[inset_0_1px_0_rgba(148,163,184,0.05)]">
+      <div className="shrink-0 border-b border-slate-800 bg-[linear-gradient(180deg,rgba(15,23,42,0.92),rgba(2,6,23,0.98))] p-3">
+        <div className="flex items-start justify-between gap-2">
+          <div className="min-w-0">
+            <div className="flex items-center gap-2 text-cyan-300">
+              <Radio className="h-4 w-4" />
+              <h3 className="truncate text-[11px] font-black uppercase tracking-[0.22em]">
+                PRISM SIGNAL MATRIX
+              </h3>
+            </div>
+            <p className="mt-1 text-[10px] font-semibold text-slate-500">
+              {zh ? "唯一资产排序区 / 谁更值得看" : "Single asset ranking surface / what deserves attention"}
+            </p>
+          </div>
+          <div className="shrink-0 text-right font-mono text-[8px] font-black uppercase tracking-widest text-slate-500">
+            <div className={statusTone}>{marketStatus?.state || "SCAN"}</div>
+            <div className="mt-1">{filteredSymbols.length} assets</div>
+          </div>
           {onClose && (
-            <button 
+            <button
               onClick={onClose}
-              className="p-1 hover:bg-slate-900 rounded text-slate-400 hover:text-white md:hidden cursor-pointer"
+              className="cursor-pointer rounded p-1 text-slate-400 hover:bg-slate-900 hover:text-white md:hidden"
             >
               <X className="h-4 w-4" />
             </button>
           )}
         </div>
-        
-        {/* Market filters tab */}
-        <div className="flex gap-0.5 overflow-x-auto no-scrollbar bg-slate-900 p-0.5 rounded border border-slate-800 text-[9px] font-semibold text-slate-400">
+
+        <div className="mt-3 flex gap-0.5 overflow-x-auto rounded border border-slate-800 bg-slate-900 p-0.5 text-[9px] font-semibold text-slate-400 no-scrollbar">
           {(["all", "crypto", "us", "cn", "hk", "forex"] as const).map((cat) => (
             <button
               key={cat}
               onClick={() => setFilter(cat)}
-              className={`min-w-10 px-1.5 py-0.5 rounded cursor-pointer text-center truncate transition-all duration-150 ${
-                filter === cat
-                  ? "bg-slate-800 text-cyan-400 font-bold shadow-md"
-                  : "hover:text-white"
+              className={`min-w-10 cursor-pointer truncate rounded px-1.5 py-0.5 text-center transition-all duration-150 ${
+                filter === cat ? "bg-cyan-500/15 text-cyan-300 ring-1 ring-cyan-500/30" : "hover:text-white"
               }`}
             >
               {categoryTranslationMap[cat]}
@@ -139,133 +128,153 @@ export default function Watchlist({
             className="min-w-0 flex-1 bg-transparent text-[10px] text-slate-200 placeholder:text-slate-600 focus:outline-none"
           />
           <span className={`shrink-0 text-[8px] font-mono font-bold uppercase tracking-widest ${statusTone}`}>
-            {filteredSymbols.length}
+            {matrixRows.length}
           </span>
         </div>
-        <div className="mt-2 grid grid-cols-[minmax(0,1fr)_76px_52px] gap-2 px-0.5 text-[8px] font-bold uppercase tracking-widest text-slate-600">
-          <span>Symbol</span>
-          <span className="text-right">Last</span>
-          <span className="text-right">Chg%</span>
+        <div className="mt-2 grid grid-cols-[minmax(0,1fr)_58px_48px] gap-2 px-0.5 text-[8px] font-bold uppercase tracking-widest text-slate-600">
+          <span>{zh ? "标的 / 数据" : "Asset / Feed"}</span>
+          <span className="text-right">Bias</span>
+          <span className="text-right">Score</span>
         </div>
       </div>
 
-      {/* 2. List of assets */}
-      <div className="flex-grow overflow-y-auto divide-y divide-slate-900">
-        {filteredSymbols.map((sym) => {
+      <div className="min-h-0 flex-grow overflow-y-auto border-y border-slate-900 bg-slate-950/95">
+        {matrixRows.map(({ sym, feedState, intelligence, setup }) => {
           const isSelected = sym.id === currentSymbol.id;
           const isUp = sym.change24h >= 0;
-          const feedState = getSymbolFeedState(sym, isSelected);
           const feedTone = feedToneMap[feedState];
           const sourceLabel = isSelected && marketStatus?.source
             ? marketStatus.source
             : sym.lastSource || sym.dataProvider || sym.exchange || sym.type;
           return (
-            <div
+            <button
               key={sym.id}
               onClick={() => {
                 onSymbolSelect(sym);
-                if (onClose) onClose(); // Close on cell select on mobile
+                if (onClose) onClose();
               }}
-              className={`px-2.5 py-1.5 grid grid-cols-[minmax(0,1fr)_76px_52px] gap-2 items-center transition-all duration-150 cursor-pointer text-left h-[46px] ${
-                isSelected 
-                  ? "bg-slate-900 border-l-2 border-cyan-400 text-white" 
-                  : "hover:bg-slate-900/60 text-slate-300 hover:text-white"
+              className={`group w-full border-b border-slate-900/90 px-2.5 py-2 text-left transition-all duration-150 ${
+                isSelected
+                  ? "bg-cyan-500/[0.08] shadow-[inset_2px_0_0_rgba(34,211,238,0.9)]"
+                  : "hover:bg-slate-900/70"
               }`}
             >
-              <div className="flex min-w-0 flex-col">
-                <span className="font-semibold text-[11px] tracking-tight text-white truncate">{sym.id}</span>
-                <div className="flex min-w-0 items-center gap-1">
-                  <span className="truncate text-[8px] text-slate-500">
+              <div className="grid grid-cols-[minmax(0,1fr)_58px_48px] items-start gap-2">
+                <div className="min-w-0">
+                  <div className="flex min-w-0 items-center gap-1.5">
+                    <span className="truncate text-[12px] font-black tracking-tight text-white">{sym.id}</span>
+                    <span
+                      title={`${sourceLabel} · ${feedState}`}
+                      className={`shrink-0 rounded border px-1 py-[1px] font-mono text-[7px] font-black leading-none ${feedTone}`}
+                    >
+                      {feedLabelMap[feedState]}
+                    </span>
+                  </div>
+                  <div className="mt-0.5 truncate text-[8px] text-slate-500">
                     {sym.name} · {sym.exchange || sym.market || sym.type}
-                  </span>
-                  <span
-                    title={`${sourceLabel} · ${feedState}`}
-                    className={`shrink-0 rounded border px-1 py-[1px] font-mono text-[7px] font-black leading-none ${feedTone}`}
-                  >
-                    {feedLabelMap[feedState]}
-                  </span>
+                  </div>
+                  <div className="mt-1 h-1 overflow-hidden rounded-full bg-slate-900">
+                    <div
+                      className={`h-full rounded-full ${scoreBar(intelligence.score)}`}
+                      style={{ width: `${Math.max(8, intelligence.score)}%` }}
+                    />
+                  </div>
+                </div>
+
+                <div className="text-right">
+                  <div className={`text-[11px] font-black ${biasTone(intelligence.bias)}`}>
+                    {getBiasLabel(intelligence.bias, lang)}
+                  </div>
+                  <div className="mt-0.5 truncate text-[7px] font-black uppercase tracking-wider text-slate-600">
+                    {setup}
+                  </div>
+                </div>
+
+                <div className="text-right">
+                  <div className={`font-mono text-[15px] font-black leading-none ${scoreTone(intelligence.score)}`}>
+                    {intelligence.score}
+                  </div>
+                  <div className={`mt-1 text-[8px] font-mono font-black ${isUp ? "text-teal-400" : "text-rose-400"}`}>
+                    {isUp ? "+" : ""}{sym.change24h.toFixed(1)}%
+                  </div>
                 </div>
               </div>
-
-              {/* Price action numbers */}
-              <span className="min-w-0 text-right font-mono text-[11px] font-bold text-slate-100 tabular-nums">
-                {sym.price.toLocaleString(undefined, {
-                  minimumFractionDigits: sym.precision,
-                  maximumFractionDigits: sym.precision
-                })}
-              </span>
-              <span className={`text-right text-[10px] font-mono leading-none font-bold ${
-                isUp ? "text-teal-400" : "text-rose-400"
-              }`}>
-                {isUp ? "+" : ""}{sym.change24h.toFixed(2)}%
-              </span>
-            </div>
+            </button>
           );
         })}
-        {filteredSymbols.length === 0 && (
-          <div className="text-center text-xs text-slate-600 py-12 px-4">
+        {matrixRows.length === 0 && (
+          <div className="px-4 py-12 text-center text-xs text-slate-600">
             {t("noAssetsFound")}
           </div>
         )}
       </div>
-
-      {/* 3. Stat Card Bottom Footer */}
-      <div className="p-2.5 bg-slate-950 border-t border-slate-900 text-xs space-y-1.5 shrink-0">
-        <div className="flex justify-between items-center text-[9px] text-slate-500 uppercase tracking-widest">
-          <span>{lang === "zh" ? "当前聚焦资产" : lang === "tc" ? "當前聚焦資產" : "Active Asset Focus"}</span>
-          <span className={`px-1.5 py-0.5 bg-slate-900 border border-slate-800 rounded font-mono font-bold ${statusTone}`} title={activeMeta.tooltip}>
-            {activeMeta.shortLabel}
-          </span>
-        </div>
-        
-        <div className="bg-slate-900/30 p-2 rounded border border-slate-900 space-y-1">
-          <div className="flex justify-between font-mono text-[10px]">
-            <span className="text-slate-500 font-sans">{t("volume24h")}:</span>
-            <span className="text-slate-300">${(currentSymbol.volume24h).toLocaleString()}</span>
-          </div>
-          <div className="flex justify-between font-mono text-[10px]">
-            <span className="text-slate-500 font-sans">{lang === "zh" ? "数据源" : lang === "tc" ? "數據源" : "Source"}:</span>
-            <span className="max-w-36 truncate text-slate-300" title={activeMeta.tooltip}>
-              {activeMeta.sourceLine}
-            </span>
-          </div>
-          <div className="flex justify-between font-mono text-[10px]">
-            <span className="text-slate-500 font-sans">{lang === "zh" ? "最近更新" : lang === "tc" ? "最近更新" : "Updated"}:</span>
-            <span className="text-slate-300">{feedAge || "-"}</span>
-          </div>
-          <div className="flex justify-between font-mono text-[10px]">
-            <span className="text-slate-500 font-sans">{lang === "zh" ? "可信度" : lang === "tc" ? "可信度" : "Confidence"}:</span>
-            <span className={`font-extrabold uppercase ${statusTone}`}>{activeMeta.qualityLabel} · {activeMeta.confidenceLabel}</span>
-          </div>
-          <div className="flex justify-between gap-2 font-mono text-[10px]">
-            <span className="text-slate-500 font-sans">{lang === "zh" ? "原因" : lang === "tc" ? "原因" : "Reason"}:</span>
-            <span className="max-w-40 truncate text-right text-slate-400" title={activeMeta.reason}>{activeMeta.reason}</span>
-          </div>
-        </div>
-      </div>
-
     </div>
   );
 
   return (
     <>
-      {/* Desktop sidebar view */}
-      <div className="hidden md:flex w-[276px] min-w-[276px] xl:w-[300px] xl:min-w-[300px] border-l border-slate-800 shrink-0 h-full">
+      <div className={desktopShell}>
         {content}
       </div>
 
-      {/* Mobile Drawer view overlay */}
       {isOpen && (
-        <div className="md:hidden fixed inset-0 z-50 flex justify-end">
-          <div 
+        <div className="fixed inset-0 z-50 flex justify-end md:hidden">
+          <div
             className="absolute inset-0 bg-black/60 backdrop-blur-sm"
             onClick={onClose}
           ></div>
-          <div className="relative w-80 max-w-[85%] h-full bg-slate-950 border-l border-slate-800 flex flex-col shadow-2xl">
+          <div className="relative flex h-full w-80 max-w-[85%] flex-col border-l border-slate-800 bg-slate-950 shadow-2xl">
             {content}
           </div>
         </div>
       )}
     </>
   );
+}
+
+function getSymbolFeedState(symbol: MarketSymbol, selected: boolean, marketStatus?: MarketDataStatus): MarketDataStatus["state"] {
+  if (selected && marketStatus?.state) return marketStatus.state;
+  if (symbol.lastDataState) return symbol.lastDataState;
+  if (symbol.dataProvider === "binance" || symbol.dataProvider === "coinbase") return "live";
+  if (symbol.dataProvider === "yahoo") return "delayed";
+  return "simulated";
+}
+
+const feedToneMap = {
+  live: "border-teal-500/20 bg-teal-500/10 text-teal-300",
+  delayed: "border-blue-500/20 bg-blue-500/10 text-blue-300",
+  stale: "border-orange-500/20 bg-orange-500/10 text-orange-300",
+  error: "border-rose-500/20 bg-rose-500/10 text-rose-300",
+  simulated: "border-amber-500/20 bg-amber-500/10 text-amber-300",
+  loading: "border-sky-500/20 bg-sky-500/10 text-sky-300"
+};
+
+const feedLabelMap = {
+  live: "LIVE",
+  delayed: "DELAY",
+  stale: "STALE",
+  error: "ERR",
+  simulated: "SIM",
+  loading: "LOAD"
+};
+
+function scoreTone(score: number) {
+  if (score >= 74) return "text-emerald-300";
+  if (score >= 62) return "text-cyan-300";
+  if (score <= 38) return "text-rose-300";
+  return "text-slate-300";
+}
+
+function scoreBar(score: number) {
+  if (score >= 74) return "bg-emerald-300";
+  if (score >= 62) return "bg-cyan-300";
+  if (score <= 38) return "bg-rose-300";
+  return "bg-slate-500";
+}
+
+function biasTone(bias: PrismIntelligence["bias"]) {
+  if (bias === "long") return "text-emerald-300";
+  if (bias === "short") return "text-rose-300";
+  if (bias === "defense") return "text-amber-300";
+  return "text-slate-400";
 }

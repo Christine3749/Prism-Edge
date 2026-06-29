@@ -139,7 +139,15 @@ function createBaseChart(element: HTMLDivElement, height: number, settings: AppS
       vertLines: { color: settings.gridLines ? "rgba(30, 41, 59, 0.62)" : "transparent" },
       horzLines: { color: settings.gridLines ? "rgba(30, 41, 59, 0.62)" : "transparent" }
     },
-    timeScale: { borderColor: "#1e293b", timeVisible: true, secondsVisible: false },
+    timeScale: {
+      borderColor: "#1e293b",
+      timeVisible: true,
+      secondsVisible: false,
+      rightOffset: 8,
+      rightBarStaysOnScroll: true,
+      fixRightEdge: true,
+      lockVisibleTimeRangeOnResize: true
+    },
     rightPriceScale: { borderColor: "#1e293b" }
   }) as any;
 }

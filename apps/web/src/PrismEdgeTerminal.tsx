@@ -41,6 +41,7 @@ export default function PrismEdgeTerminal() {
   const [chartType, setChartType] = useState("candlestick");
   const [watchlistOpen, setWatchlistOpen] = useState(false);
   const [scannerHandleActive, setScannerHandleActive] = useState(false);
+  const [scannerExpanded, setScannerExpanded] = useState(false);
   const [chartStatusHoverActive, setChartStatusHoverActive] = useState(false);
   const [indicatorsModalOpen, setIndicatorsModalOpen] = useState(false);
   const [settingsModalOpen, setSettingsModalOpen] = useState(false);
@@ -135,33 +136,39 @@ export default function PrismEdgeTerminal() {
         />
 
 
-        <SignalScanner
-          currentSymbol={currentSymbol}
-          symbolsList={symbolsList}
-          marketStatus={marketStatus}
-          analysisResult={analysisResult}
-          lang={lang}
-          onSymbolSelect={handleSymbolSelect}
-          onHandleHoverChange={setScannerHandleActive}
-          revealHandle={scannerRevealActive}
-        />
-        <div className="flex-grow flex flex-col min-w-0 h-full">
-          <ChartContainer
-            currentSymbol={currentSymbol}
-            candles={candles}
-            indicatorConfig={indicatorConfig}
-            activeTool={activeTool}
-            onSelectTool={setActiveTool}
-            drawings={drawings}
-            onUpdateDrawings={setDrawings}
-            settings={settings}
-            currentTimeframe={timeframe}
-            chartType={chartType}
-            marketStatus={marketStatus}
-            analysisResult={analysisResult}
-            scannerHandleActive={scannerRevealActive}
-            onPrimaryInfoHoverChange={setChartStatusHoverActive}
-          />
+        <div className="flex h-full min-w-0 flex-grow flex-col">
+          <div className="flex min-h-0 flex-1">
+            <SignalScanner
+              currentSymbol={currentSymbol}
+              symbolsList={symbolsList}
+              marketStatus={marketStatus}
+              analysisResult={analysisResult}
+              lang={lang}
+              onSymbolSelect={handleSymbolSelect}
+              onHandleHoverChange={setScannerHandleActive}
+              onExpandedChange={setScannerExpanded}
+              revealHandle={scannerRevealActive}
+              integratedBottom={scannerExpanded}
+            />
+            <div className="flex h-full min-h-0 min-w-0 flex-1 flex-col">
+              <ChartContainer
+                currentSymbol={currentSymbol}
+                candles={candles}
+                indicatorConfig={indicatorConfig}
+                activeTool={activeTool}
+                onSelectTool={setActiveTool}
+                drawings={drawings}
+                onUpdateDrawings={setDrawings}
+                settings={settings}
+                currentTimeframe={timeframe}
+                chartType={chartType}
+                marketStatus={marketStatus}
+                analysisResult={analysisResult}
+                scannerHandleActive={scannerRevealActive}
+                onPrimaryInfoHoverChange={setChartStatusHoverActive}
+              />
+            </div>
+          </div>
           <BottomPanel
             currentSymbol={currentSymbol}
             candles={candles}
@@ -171,6 +178,7 @@ export default function PrismEdgeTerminal() {
             marketStatus={marketStatus}
             analysisResult={analysisResult}
             onAnalysisResult={setAnalysisResult}
+            strategyMode={scannerExpanded}
           />
         </div>
 
@@ -180,6 +188,7 @@ export default function PrismEdgeTerminal() {
           symbolsList={symbolsList}
           lang={lang}
           marketStatus={marketStatus}
+          compressed={scannerExpanded}
           isOpen={watchlistOpen}
           onClose={() => setWatchlistOpen(false)}
         />
