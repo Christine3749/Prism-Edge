@@ -1093,7 +1093,7 @@ function QuantSnapshot({ result, lang }: { result: AnalysisRunResponse; lang: La
     {
       label: labels.netReward,
       value: reward ? formatSignedPercent(reward.mean) : "-",
-      meta: reward ? `CVaR ${formatSignedPercent(reward.cvar)}` : "-"
+      meta: reward ? `Proxy CVaR ${formatSignedPercent(reward.cvar)}` : "-"
     },
     {
       label: "Bellman",
@@ -1147,7 +1147,7 @@ function getQuantLabels(lang: Language) {
   return {
     structure: zh ? "市场结构" : "Structure",
     permission: zh ? "交易许可" : "Permission",
-    netReward: zh ? "净奖励" : "Net Reward",
+    netReward: zh ? "效用代理" : "Utility Proxy",
     error: zh ? "误差" : "EDG",
     gap: zh ? "谱间隙" : "Gap",
     allowed: zh ? "允许交易" : "Allowed",
@@ -1215,3 +1215,4 @@ function formatSignedPercent(value: number) {
 function formatSignedOneDecimal(value: number) {
   return `${value >= 0 ? "+" : ""}${value.toFixed(1)}%`;
 }
+

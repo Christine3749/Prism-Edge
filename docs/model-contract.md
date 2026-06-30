@@ -28,7 +28,7 @@ Output requirements:
 - `structuralError`: quant structure uncertainty from `0` to `1`
 - `spectralGap`: structure separation / stability proxy from `0` to `1`
 - `bellmanResidual`: planning residual proxy from `0` to `1`
-- `netReward`: gross PnL minus cost, risk, and uncertainty penalties
+- `netReward`: model utility proxy after cost, risk, and uncertainty penalties; this is not realized market PnL
 - `tradePermission`: allowed/mode/reasons/diagnostics for attack, defensive, manual review, or reject
 - `diagnostics`: numeric score, momentum, EMA spread, RSI, ATR percent, and volume ratio
 - `signals`: zero or more buy/sell/watch annotations for chart overlays
@@ -50,3 +50,4 @@ Next adapter milestones:
 2. Add `/api/quant/state/compile` for point-in-time observation/state construction.
 3. Add `/api/backtest/run` and shadow trading reports once strategy outputs are stable.
 4. Replace or ensemble this adapter with the user's production DGWM strategy model.
+

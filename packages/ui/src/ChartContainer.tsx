@@ -60,7 +60,8 @@ export default function ChartContainer({
     indicatorConfig,
     settings,
     chartType,
-    isOscActive
+    isOscActive,
+    pricePrecision: currentSymbol.precision
   });
 
   return (

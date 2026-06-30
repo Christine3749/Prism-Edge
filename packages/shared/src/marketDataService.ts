@@ -40,6 +40,15 @@ function warnOnce(key: string, message: string, ...args: any[]) {
   }
 }
 
+function minimumHistoricalCandles(timeframe: string, limit: number) {
+  if (limit <= 2) return 1;
+  const normalized = timeframe.toLowerCase();
+  if (normalized === "1w" || timeframe === "1M") {
+    return Math.min(40, Math.max(12, Math.floor(limit * 0.2)));
+  }
+  return Math.min(60, Math.max(24, Math.floor(limit * 0.15)));
+}
+
 export async function fetchHistoricalCryptoKlines(
   binanceSymbol: string,
   timeframe: string,
@@ -72,19 +81,25 @@ export async function fetchHistoricalGatewayKlines(
 
   const data = await response.json() as MarketGatewayResponse;
   const candles = Array.isArray(data.candles) ? data.candles : [];
-
-  return {
-    source: data.source || "gateway",
-    updatedAt: data.updatedAt || Date.now(),
-    isLive: Boolean(data.isLive),
-    latencyMs: Math.round(performance.now() - startedAt),
-    candles: candles.filter((candle) => (
+  const source = data.source || "gateway";
+  const usableCandles = candles.filter((candle) => (
     Number.isFinite(candle.time) &&
     Number.isFinite(candle.open) &&
     Number.isFinite(candle.high) &&
     Number.isFinite(candle.low) &&
     Number.isFinite(candle.close)
-    ))
+  ));
+  const minimum = minimumHistoricalCandles(timeframe, limit);
+  if (usableCandles.length < minimum) {
+    throw new Error(`${source} returned only ${usableCandles.length} usable candles for ${symbol} ${timeframe}; expected at least ${minimum}.`);
+  }
+
+  return {
+    source,
+    updatedAt: data.updatedAt || Date.now(),
+    isLive: Boolean(data.isLive),
+    latencyMs: Math.round(performance.now() - startedAt),
+    candles: usableCandles
   };
 }
 

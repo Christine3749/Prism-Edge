@@ -106,6 +106,8 @@ export interface QuantBacktestDecision {
   time: number;
   mode: TradePermissionMode;
   allowed: boolean;
+  position?: -1 | 0 | 1 | number;
+  forwardReturn?: number;
   netReward: number;
   regime: QuantRegime;
 }
@@ -115,10 +117,20 @@ export interface QuantBacktestReport {
   adapter: string;
   symbol: string;
   interval: string;
+  window?: number;
+  horizon?: number;
+  costBps?: number;
   sampleCount: number;
+  activeBars?: number;
+  trades?: number;
   acceptedSignals: number;
   rejectedSignals: number;
+  exposurePct?: number;
+  winRate?: number;
+  avgReturnPerActiveBar?: number;
   cumulativeReturn: number;
+  buyHoldReturn?: number;
+  excessReturn?: number;
   maxDrawdown: number;
   decisions: QuantBacktestDecision[];
   serviceFallback?: boolean;
@@ -141,3 +153,5 @@ export interface QuantRuntimeDiagnostic {
   };
   files: Record<string, string>;
 }
+
+

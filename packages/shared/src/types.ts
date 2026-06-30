@@ -32,7 +32,7 @@ export interface MarketSymbol {
   market?: "crypto" | "us" | "cn" | "hk" | "forex" | "internal";
   exchange?: string;
   currency?: string;
-  dataProvider?: "binance" | "coinbase" | "yahoo" | "simulated" | "manual";
+  dataProvider?: "binance" | "coinbase" | "polygon" | "twelve-data" | "finnhub" | "alpha-vantage" | "yahoo" | "simulated" | "manual";
   yahooSymbol?: string;
   lastSource?: string;
   lastDataState?: MarketDataState;

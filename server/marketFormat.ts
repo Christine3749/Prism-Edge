@@ -51,6 +51,9 @@ export function toYahooSymbol(symbol: string) {
   if (profile?.yahooSymbol) return profile.yahooSymbol;
 
   const normalized = normalizeMarketSymbol(symbol).replace("/", "");
+  if (profile?.type === "crypto" && normalized.endsWith("USDT")) {
+    return `${normalized.slice(0, -4)}-USD`;
+  }
   if (/^[A-Z]{6}$/.test(normalized) && !normalized.endsWith("USDT")) {
     return `${normalized}=X`;
   }

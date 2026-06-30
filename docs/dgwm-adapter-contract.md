@@ -141,14 +141,14 @@ python -m cli.quant quant-diagnostic
 POST /api/backtest/run
 ```
 
-当前是轻量 rolling-window 验证，用于检查拒绝交易、净奖励和最大回撤的接口形状。
+当前是轻量 walk-forward 验证：每个信号只使用 t 时刻之前的 K 线生成，随后用真实的 t+horizon 价格变化计算前向收益，并扣除 costBps。`netReward` 在 backtest decision 中保留为兼容字段，但语义已经是 realized net PnL，不再是模型自评分。
 
 前端 `AI 智能分析` 面板已接入轻量 `Quant Lab`：
 
 1. `GET /api/quant/health` 显示 DGWM adapter 是否连通。
 2. `POST /api/backtest/run` 由用户手动触发，避免每次行情刷新都跑回测。
 3. 如果 FastAPI 暂时没起来，Node 网关会返回 `node-quant-bridge` 健康状态。
-4. Backtest 会自动降级到 `node-backtest-fallback-v1`，保持同结构摘要，避免页面卡死。
+4. Backtest 会自动降级到 `node-backtest-fallback-v2-realized`，保持同结构摘要，避免页面卡死。
 
 ## 4. 下一步接真 DGWM
 
@@ -164,3 +164,4 @@ POST /api/backtest/run
 2. DGWM 是否已有更合适的 runtime inference 入口，不需要走 release。
 3. Backtest 第一版应先用 `quant-diagnostic`，还是先接 validation runner。
 4. 哪些 rejection reason 应直接展示给用户，哪些只给研究员。
+

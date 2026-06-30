@@ -244,7 +244,9 @@ export default function BottomPanel({
           indicators: buildIndicatorList(activeIndicators),
           source: "msir-prism-web",
           provider: marketStatus?.provider || marketStatus?.source || "browser",
-          window: Math.min(120, Math.max(30, Math.floor(candles.length * 0.6)))
+          window: Math.min(120, Math.max(30, Math.floor(candles.length * 0.6))),
+          horizon: 1,
+          costBps: 5
         })
       });
       setBacktest(await readJsonOrThrow<QuantBacktestReport>(response, "backtest", lang));
@@ -507,3 +509,4 @@ function getRuntimeFallbackText(lang: Language) {
   if (lang === "tc") return "DGWM 真實診斷暫不可用，請確認 FastAPI 和 DGWM .venv 已啟動。";
   return "DGWM runtime diagnostic is unavailable. Check FastAPI and the DGWM .venv.";
 }
+

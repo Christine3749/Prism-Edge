@@ -12,3 +12,5 @@ apps/desktop/src-tauri/target/
 apps/android/android/
 
 .vercel
+.codex-preview/
+*.pid

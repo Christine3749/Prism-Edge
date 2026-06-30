@@ -2,6 +2,7 @@ const DRAW_KEY = "prism_edge_drawings_v2";
 const INDICATOR_KEY = "prism_edge_indicators_v2";
 const SETTING_KEY = "prism_edge_settings_v2";
 const WATCH_KEY = "prism_edge_watchlist_v3";
+const FAVORITES_KEY = "prism_edge_favorite_symbols_v1";
 const LEGACY_WATCH_KEYS = ["prism_edge_watchlist_v2"];
 
 export function loadItem<T>(key: string, defaultValue: T): T {
@@ -59,11 +60,16 @@ export const StorageService = {
   saveWatchlist: (val: any) => saveItem(WATCH_KEY, val),
   clearWatchlist: () => removeItem(WATCH_KEY),
 
+  loadFavoriteSymbols: (def: string[] = []) => loadItem<string[]>(FAVORITES_KEY, def),
+  saveFavoriteSymbols: (val: string[]) => saveItem(FAVORITES_KEY, Array.from(new Set(val))),
+  clearFavoriteSymbols: () => removeItem(FAVORITES_KEY),
+
   clearAll: () => {
     removeItem(DRAW_KEY);
     removeItem(INDICATOR_KEY);
     removeItem(SETTING_KEY);
     removeItem(WATCH_KEY);
+    removeItem(FAVORITES_KEY);
     LEGACY_WATCH_KEYS.forEach(removeItem);
   }
 };

@@ -14,6 +14,11 @@ export const BINANCE_ENDPOINTS = [
   "https://api.binance.com"
 ];
 
+export const POLYGON_API_KEY = process.env.POLYGON_API_KEY || process.env.MASSIVE_API_KEY || "";
+export const TWELVE_DATA_API_KEY = process.env.TWELVE_DATA_API_KEY || "";
+export const FINNHUB_API_KEY = process.env.FINNHUB_API_KEY || "";
+export const ALPHA_VANTAGE_API_KEY = process.env.ALPHA_VANTAGE_API_KEY || "";
+
 export const MARKET_SYMBOL_RE = /^[A-Z0-9.^=\-/]{1,36}$/;
 export const QUOTE_CACHE_TTL_MS = 6000;
 export const QUOTE_FAST_WAIT_MS = 900;

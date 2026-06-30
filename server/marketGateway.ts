@@ -1,4 +1,6 @@
 import { inferMarketSymbolFromInput } from "../packages/shared/src/marketCatalog";
+import { generateSimulatedHistoricalKlines } from "../packages/shared/src/mockMarketData";
+import type { MarketSymbol } from "../packages/shared/src/types";
 import {
   FALLBACK_QUOTES,
   QUOTE_CACHE_TTL_MS,
@@ -6,74 +8,200 @@ import {
 } from "./config";
 import { decimalPrecisionFor, isCryptoMarketSymbol } from "./marketFormat";
 import {
+  fetchAlphaVantageChart,
+  fetchAlphaVantageQuote,
   fetchBinanceKlines,
   fetchBinanceQuote,
   fetchCoinbaseKlines,
+  fetchCoinbaseQuote,
+  fetchFinnhubChart,
+  fetchFinnhubQuote,
+  fetchPolygonChart,
+  fetchPolygonQuote,
+  fetchTwelveDataChart,
+  fetchTwelveDataQuote,
   fetchYahooChart,
   fetchYahooQuote,
-  fetchYahooQuoteBatch
+  fetchYahooQuoteBatch,
+  hasConfiguredPremiumProvider,
+  isAlphaVantageConfigured,
+  isFinnhubConfigured,
+  isPolygonConfigured,
+  isTwelveDataConfigured
 } from "./marketProviders";
-import type { KlinePayload, MarketQuotePayload, QuotePayload } from "./types";
+import type { Candle, KlinePayload, MarketQuotePayload, QuotePayload, YahooChartPayload } from "./types";
 
 const marketCache = new Map<string, { expiresAt: number; payload: unknown }>();
 const marketRefreshInFlight = new Map<string, Promise<void>>();
 
-async function fetchMarketKlines(symbol: string, interval: string, limit: number) {
+type RouteAttempt<T> = {
+  label: string;
+  enabled: boolean;
+  run: () => Promise<T>;
+};
+
+type KlineRouteResult = {
+  candles: Candle[];
+  source: string;
+  isLive: boolean;
+  route: string[];
+  errors: string[];
+};
+
+async function runProviderRoute<T extends { source: string }>(attempts: RouteAttempt<T>[]) {
+  const route: string[] = [];
   const errors: string[] = [];
 
-  if (isCryptoMarketSymbol(symbol)) {
+  for (const attempt of attempts) {
+    if (!attempt.enabled) continue;
+    route.push(attempt.label);
     try {
-      const candles = await fetchBinanceKlines(symbol, interval, limit);
-      return { candles, source: "binance", isLive: true };
+      const payload = await attempt.run();
+      return { ...payload, route: [...route], errors };
     } catch (error: any) {
-      errors.push(`binance: ${error?.message || String(error)}`);
+      errors.push(`${attempt.label}: ${error?.message || String(error)}`);
     }
-
-    try {
-      const candles = await fetchCoinbaseKlines(symbol, interval, limit);
-      return { candles, source: "coinbase", isLive: true };
-    } catch (error: any) {
-      errors.push(`coinbase: ${error?.message || String(error)}`);
-    }
-
-    throw new Error(errors.join(" | "));
   }
 
+  throw new Error(errors.join(" | ") || "No enabled market data provider returned a payload.");
+}
+
+function chartToKlineResult(payload: YahooChartPayload, isLive = false) {
+  return {
+    candles: payload.candles,
+    source: payload.source,
+    isLive
+  };
+}
+
+function minimumKlineRows(interval: string, limit: number) {
+  if (limit <= 2) return 1;
+  const normalized = interval.toLowerCase();
+  if (normalized === "1w" || interval === "1M") {
+    return Math.min(40, Math.max(12, Math.floor(limit * 0.2)));
+  }
+  return Math.min(60, Math.max(24, Math.floor(limit * 0.15)));
+}
+
+function requireUsefulKlines<T extends Omit<KlineRouteResult, "route" | "errors">>(
+  result: T,
+  interval: string,
+  limit: number,
+  provider: string
+) {
+  const minimum = minimumKlineRows(interval, limit);
+  if (result.candles.length < minimum) {
+    throw new Error(`${provider} returned only ${result.candles.length} candle rows; expected at least ${minimum}.`);
+  }
+  return result;
+}
+
+function buildKlineAttempts(symbol: string, interval: string, limit: number): RouteAttempt<Omit<KlineRouteResult, "route" | "errors">>[] {
+  const externalAttempts: RouteAttempt<Omit<KlineRouteResult, "route" | "errors">>[] = [
+    {
+      label: "polygon",
+      enabled: isPolygonConfigured(),
+      run: async () => requireUsefulKlines(chartToKlineResult(await fetchPolygonChart(symbol, interval, limit), false), interval, limit, "Polygon")
+    },
+    {
+      label: "twelve-data",
+      enabled: isTwelveDataConfigured(),
+      run: async () => requireUsefulKlines(chartToKlineResult(await fetchTwelveDataChart(symbol, interval, limit), false), interval, limit, "Twelve Data")
+    },
+    {
+      label: "finnhub",
+      enabled: isFinnhubConfigured(),
+      run: async () => requireUsefulKlines(chartToKlineResult(await fetchFinnhubChart(symbol, interval, limit), false), interval, limit, "Finnhub")
+    },
+    {
+      label: "alpha-vantage",
+      enabled: isAlphaVantageConfigured(),
+      run: async () => requireUsefulKlines(chartToKlineResult(await fetchAlphaVantageChart(symbol, interval, limit), false), interval, limit, "Alpha Vantage")
+    },
+    {
+      label: "yahoo-delayed",
+      enabled: true,
+      run: async () => requireUsefulKlines(chartToKlineResult(await fetchYahooChart(symbol, interval, limit), false), interval, limit, "Yahoo")
+    }
+  ];
+
+  if (!isCryptoMarketSymbol(symbol)) return externalAttempts;
+
+  return [
+    {
+      label: "binance",
+      enabled: true,
+      run: async () => requireUsefulKlines({ candles: await fetchBinanceKlines(symbol, interval, limit), source: "binance", isLive: true }, interval, limit, "Binance")
+    },
+    {
+      label: "coinbase",
+      enabled: true,
+      run: async () => requireUsefulKlines({ candles: await fetchCoinbaseKlines(symbol, interval, limit), source: "coinbase", isLive: true }, interval, limit, "Coinbase")
+    },
+    ...externalAttempts
+  ];
+}
+
+function buildQuoteAttempts(symbol: string): RouteAttempt<MarketQuotePayload>[] {
+  const externalAttempts: RouteAttempt<MarketQuotePayload>[] = [
+    { label: "polygon", enabled: isPolygonConfigured(), run: () => fetchPolygonQuote(symbol) },
+    { label: "twelve-data", enabled: isTwelveDataConfigured(), run: () => fetchTwelveDataQuote(symbol) },
+    { label: "finnhub", enabled: isFinnhubConfigured(), run: () => fetchFinnhubQuote(symbol) },
+    { label: "alpha-vantage", enabled: isAlphaVantageConfigured(), run: () => fetchAlphaVantageQuote(symbol) },
+    { label: "yahoo-delayed", enabled: true, run: () => fetchYahooQuote(symbol) }
+  ];
+
+  if (!isCryptoMarketSymbol(symbol)) return externalAttempts;
+
+  return [
+    { label: "binance", enabled: true, run: () => fetchBinanceQuote(symbol) },
+    { label: "coinbase", enabled: true, run: () => fetchCoinbaseQuote(symbol) },
+    ...externalAttempts
+  ];
+}
+
+function buildSimulatedKlineResult(symbol: string, interval: string, limit: number, errors: string[]): KlineRouteResult {
+  const inferred = inferMarketSymbolFromInput(symbol);
+  const fallback = FALLBACK_QUOTES[symbol];
+  const price = fallback?.price ?? inferred?.price ?? 100;
+  const profile: MarketSymbol = inferred ?? {
+    id: symbol,
+    symbol,
+    name: `${symbol} simulated market`,
+    type: isCryptoMarketSymbol(symbol) ? "crypto" : "stock",
+    market: isCryptoMarketSymbol(symbol) ? "crypto" : "us",
+    exchange: "SIM",
+    currency: "USD",
+    dataProvider: "simulated",
+    price,
+    change24h: fallback?.change24h ?? 0,
+    volume24h: fallback?.volume24h ?? 0,
+    precision: decimalPrecisionFor(symbol, price)
+  };
+  return {
+    candles: generateSimulatedHistoricalKlines(profile, interval, limit),
+    source: "simulated",
+    isLive: false,
+    route: ["simulated"],
+    errors
+  };
+}
+
+async function fetchMarketKlines(symbol: string, interval: string, limit: number): Promise<KlineRouteResult> {
   try {
-    const payload = await fetchYahooChart(symbol, interval, limit);
-    return { candles: payload.candles, source: payload.source, isLive: false };
+    const result = await runProviderRoute(buildKlineAttempts(symbol, interval, limit));
+    if (result.candles.length === 0) throw new Error("No candle data returned by market provider route.");
+    return result;
   } catch (error: any) {
-    errors.push(`yahoo: ${error?.message || String(error)}`);
+    return buildSimulatedKlineResult(symbol, interval, limit, [error?.message || String(error)]);
   }
-
-  throw new Error(errors.join(" | "));
 }
 
 async function fetchMarketQuote(symbol: string): Promise<MarketQuotePayload> {
-  const errors: string[] = [];
-  let yahooAttempted = false;
-
-  if (isCryptoMarketSymbol(symbol)) {
-    try {
-      return await fetchBinanceQuote(symbol);
-    } catch (error: any) {
-      errors.push(`binance: ${error?.message || String(error)}`);
-    }
-  } else {
-    try {
-      yahooAttempted = true;
-      return await fetchYahooQuote(symbol);
-    } catch (error: any) {
-      errors.push(`yahoo: ${error?.message || String(error)}`);
-    }
-  }
-
   try {
-    if (yahooAttempted) throw new Error("Yahoo already attempted.");
-    return await fetchYahooQuote(symbol);
+    return await runProviderRoute(buildQuoteAttempts(symbol));
   } catch (error: any) {
-    if (!yahooAttempted) errors.push(`yahoo: ${error?.message || String(error)}`);
-    return buildFallbackQuoteOrThrow(symbol, errors);
+    return buildFallbackQuoteOrThrow(symbol, [error?.message || String(error)]);
   }
 }
 
@@ -133,10 +261,11 @@ function buildFallbackQuotePayload(symbols: string[]): QuotePayload {
 }
 
 async function fetchMarketQuotePayload(symbols: string[]): Promise<QuotePayload> {
-  const yahooSymbols = symbols.filter((symbol) => !isCryptoMarketSymbol(symbol));
+  const shouldUsePremiumRoute = hasConfiguredPremiumProvider();
+  const yahooSymbols = shouldUsePremiumRoute ? [] : symbols.filter((symbol) => !isCryptoMarketSymbol(symbol));
   const yahooBatchQuotes = yahooSymbols.length > 1
     ? await fetchYahooQuoteBatch(yahooSymbols).catch((error) => {
-      console.warn("Yahoo batch quote failed, falling back to per-symbol quotes.", error);
+      console.warn("Yahoo batch quote failed, falling back to provider route per symbol.", error);
       return new Map<string, MarketQuotePayload>();
     })
     : new Map<string, MarketQuotePayload>();
@@ -179,10 +308,10 @@ export async function getKlinePayload(symbol: string, interval: string, limit: n
   const cached = marketCache.get(cacheKey);
   if (cached && cached.expiresAt > Date.now()) return cached.payload as KlinePayload;
 
-  const { candles, source, isLive } = await fetchMarketKlines(symbol, interval, limit);
+  const { candles, source, isLive, route, errors } = await fetchMarketKlines(symbol, interval, limit);
   if (candles.length === 0) throw new Error("No candle data returned by market source.");
 
-  const payload = { symbol, interval, source, isLive, updatedAt: Date.now(), candles };
+  const payload: KlinePayload = { symbol, interval, source, isLive, updatedAt: Date.now(), candles, route, providerErrors: errors };
   marketCache.set(cacheKey, { expiresAt: Date.now() + (limit <= 2 ? 1000 : 30000), payload });
   return payload;
 }

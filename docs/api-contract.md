@@ -134,7 +134,7 @@ Returns the same quant-v2 analysis result as `/api/analysis/run`, plus adapter m
 POST /api/backtest/run
 ```
 
-Runs a lightweight rolling-window validation over the submitted candles. Current output is intended for interface validation and will be replaced by DGWM `quant-diagnostic` or release validation once the DGWM runtime request is finalized.
+Runs a lightweight walk-forward validation over the submitted candles. Signals are computed from candles up to bar `t`, then PnL is booked from realized forward price movement over `horizon` bars, after `costBps`; the report includes buy-and-hold and excess-return comparison fields.
 
 ## Market Search
 
@@ -200,3 +200,4 @@ GET /api/market/quote?symbols=BTCUSDT,AAPL,0700.HK,000001.SZ
 Returns latest price, percent change, volume, source, update timestamp, and `isLive`.
 
 `isLive: true` means live crypto gateway data. Public equity, index, A-share, Hong Kong, and forex feeds are marked `isLive: false` with `source: "yahoo-delayed"` until a licensed realtime market vendor is connected.
+

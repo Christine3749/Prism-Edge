@@ -29,6 +29,7 @@ interface UseLightweightChartParams {
   settings: AppSettings;
   chartType: string;
   isOscActive: boolean;
+  pricePrecision: number;
 }
 
 export function useLightweightChart({
@@ -39,12 +40,14 @@ export function useLightweightChart({
   indicatorConfig,
   settings,
   chartType,
-  isOscActive
+  isOscActive,
+  pricePrecision
 }: UseLightweightChartParams) {
   const [chartInstance, setChartInstance] = useState<IChartApi | null>(null);
   const [mainSeries, setMainSeries] = useState<any | null>(null);
   const indicatorSeriesRef = useRef<Record<string, any>>({});
   const oscChartRef = useRef<any>(null);
+  const lastFitKeyRef = useRef("");
 
   useEffect(() => {
     if (!containerRef.current || !mainChartRef.current) return;
@@ -56,7 +59,7 @@ export function useLightweightChart({
     const mainHeight = Math.max(20, isOscActive ? Math.floor(containerHeight * 0.68) : containerHeight - 4);
     const oscHeight = isOscActive ? Math.max(20, Math.floor(containerHeight * 0.3)) : 0;
     const chart = createBaseChart(mainChartRef.current, mainHeight, settings);
-    const targetSeries = createMainSeries(chart, chartType, settings);
+    const targetSeries = createMainSeries(chart, chartType, settings, pricePrecision);
     const subChart = isOscActive && oscillatorChartRef.current
       ? createBaseChart(oscillatorChartRef.current, oscHeight, settings)
       : null;
@@ -64,6 +67,7 @@ export function useLightweightChart({
     indicatorSeriesRef.current = createIndicatorSeries(chart, subChart, indicatorConfig);
     indicatorSeriesRef.current.volume = createVolumeSeries(chart);
     oscChartRef.current = subChart;
+    lastFitKeyRef.current = "";
     setMainSeries(targetSeries);
     setChartInstance(chart);
 
@@ -95,7 +99,7 @@ export function useLightweightChart({
       setChartInstance(null);
       setMainSeries(null);
     };
-  }, [chartType, indicatorConfig, settings, isOscActive]);
+  }, [chartType, indicatorConfig, settings, isOscActive, pricePrecision]);
 
   useEffect(() => {
     if (!mainSeries || !chartInstance) return;
@@ -116,6 +120,15 @@ export function useLightweightChart({
     refs.volume?.setData(buildVolumeData(candles, settings));
     refs.rsi?.setData(calculateRSI(candles, indicatorConfig.rsi.period) as any[]);
     setMacdData(refs, candles, indicatorConfig);
+
+    const firstTime = candles[0]?.time ?? 0;
+    const lastTime = candles[candles.length - 1]?.time ?? 0;
+    const fitKey = candles.length > 1 ? `${firstTime}:${lastTime}:${candles.length}` : "";
+    if (fitKey && lastFitKeyRef.current !== fitKey) {
+      chartInstance.timeScale().fitContent();
+      oscChartRef.current?.timeScale().fitContent();
+      lastFitKeyRef.current = fitKey;
+    }
   }, [candles, mainSeries, chartInstance, chartType, indicatorConfig, settings.upColor, settings.downColor]);
 
   return { chartInstance, mainSeries };
@@ -157,24 +170,26 @@ function createBaseChart(element: HTMLDivElement, height: number, settings: AppS
     rightPriceScale: { borderColor }
   }) as any;
 }
-function createMainSeries(chart: any, chartType: string, settings: AppSettings) {
+function createMainSeries(chart: any, chartType: string, settings: AppSettings, pricePrecision: number) {
   const lineColor = settings.theme === "light" ? "#2f9bb7" : "#2962ff";
   const areaTop = settings.theme === "light" ? "rgba(47, 155, 183, 0.12)" : "rgba(41, 98, 255, 0.28)";
   const areaBottom = settings.theme === "light" ? "rgba(47, 155, 183, 0.01)" : "rgba(41, 98, 255, 0.02)";
+  const priceFormat = buildSeriesPriceFormat(pricePrecision);
 
   if (chartType === "line") {
-    return chart.addSeries(LineSeries, { color: lineColor, lineWidth: 2, crosshairMarkerVisible: false });
+    return chart.addSeries(LineSeries, { color: lineColor, lineWidth: 2, crosshairMarkerVisible: false, priceFormat });
   }
   if (chartType === "area") {
     return chart.addSeries(AreaSeries, {
       lineColor,
       topColor: areaTop,
       bottomColor: areaBottom,
-      lineWidth: 2
+      lineWidth: 2,
+      priceFormat
     });
   }
   if (chartType === "bars") {
-    return chart.addSeries(BarSeries, { upColor: settings.upColor, downColor: settings.downColor, thinBars: false });
+    return chart.addSeries(BarSeries, { upColor: settings.upColor, downColor: settings.downColor, thinBars: false, priceFormat });
   }
   return chart.addSeries(CandlestickSeries, {
     upColor: settings.upColor,
@@ -182,9 +197,20 @@ function createMainSeries(chart: any, chartType: string, settings: AppSettings) 
     borderUpColor: settings.upColor,
     borderDownColor: settings.downColor,
     wickUpColor: settings.upColor,
-    wickDownColor: settings.downColor
+    wickDownColor: settings.downColor,
+    priceFormat
   });
 }
+
+function buildSeriesPriceFormat(precision: number) {
+  const safePrecision = Math.max(0, Math.min(8, Math.floor(Number.isFinite(precision) ? precision : 2)));
+  return {
+    type: "price" as const,
+    precision: safePrecision,
+    minMove: safePrecision === 0 ? 1 : 1 / Math.pow(10, safePrecision)
+  };
+}
+
 function createIndicatorSeries(chart: any, subChart: any, config: IndicatorConfig) {
   const refs: Record<string, any> = {};
   if (config.sma.active) refs.sma = chart.addSeries(LineSeries, { color: config.sma.color, lineWidth: 1.5, title: `SMA (${config.sma.period})` });

@@ -17,7 +17,7 @@ interface BuildMarketStatusInput {
 export function getFeedState(source: string, isLive: boolean): MarketDataState {
   if (isLive) return "live";
   const normalized = source.toLowerCase();
-  if (normalized.includes("yahoo")) return "delayed";
+  if (["yahoo", "polygon", "twelve", "finnhub", "alpha"].some((name) => normalized.includes(name))) return "delayed";
   if (normalized.includes("sim") || normalized.includes("fallback") || normalized.includes("local")) return "simulated";
   return "simulated";
 }

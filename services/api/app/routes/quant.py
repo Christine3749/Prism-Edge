@@ -28,6 +28,8 @@ class QuantPayload(BaseModel):
 
 class BacktestPayload(QuantPayload):
     window: int = Field(default=80, ge=30, le=260)
+    horizon: int = Field(default=1, ge=1, le=20)
+    costBps: float = Field(default=5, ge=0, le=100)
 
 
 @router.get("/api/quant/models")
@@ -59,7 +61,7 @@ def run_quant_decision(request: QuantPayload):
 @router.post("/api/backtest/run")
 def run_backtest(request: BacktestPayload):
     try:
-        return adapter.run_backtest(_payload(request) | {"window": request.window})
+        return adapter.run_backtest(_payload(request) | {"window": request.window, "horizon": request.horizon, "costBps": request.costBps})
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
@@ -79,3 +81,5 @@ def _payload(request: QuantPayload) -> dict[str, Any]:
         "provider": request.provider,
         "context": dict(request.context),
     }
+
+

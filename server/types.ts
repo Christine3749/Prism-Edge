@@ -43,6 +43,8 @@ export interface KlinePayload {
   updatedAt: number;
   isLive: boolean;
   candles: Candle[];
+  route?: string[];
+  providerErrors?: string[];
 }
 
 export interface QuotePayload {

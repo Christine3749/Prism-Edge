@@ -116,37 +116,79 @@ class DgwmAdapter:
         symbol = str(payload.get("symbol") or "UNKNOWN")
         interval = str(payload.get("interval") or "1D")
         candles = _normalize_candles(payload.get("candles"))
-        window = int(payload.get("window") or 80)
-        if len(candles) < max(30, window):
-            raise ValueError("backtest requires at least 30 candles")
+        horizon = _clamp_horizon(payload.get("horizon"))
+        window = _clamp_window(payload.get("window"), len(candles) - horizon - 1)
+        cost_bps = _clamp_cost_bps(payload.get("costBps"))
+        cost = cost_bps / 10000.0
+        if len(candles) < window + horizon + 1:
+            raise ValueError(f"backtest requires at least {window + horizon + 1} candles for window={window}, horizon={horizon}")
         decisions = []
         equity = 1.0
         peak = 1.0
         max_drawdown = 0.0
-        for index in range(max(30, window), len(candles) + 1):
-            slice_candles = candles[max(0, index - window):index]
+        previous_position = 0
+        active_bars = 0
+        trades = 0
+        wins = 0
+        accepted_count = 0
+        gross_sum = 0.0
+        first_index = window - 1
+        last_index = len(candles) - 1 - horizon
+        for index in range(first_index, last_index + 1):
+            slice_candles = candles[index - window + 1:index + 1]
             result = run_analysis(symbol, interval, slice_candles, list(payload.get("indicators") or []))
-            reward = float(result["netReward"]["mean"])
             allowed = bool(result["tradePermission"]["allowed"])
-            equity *= 1.0 + (reward if allowed else 0.0)
+            if allowed:
+                accepted_count += 1
+            position = _position_for_result(result) if allowed else 0
+            entry_close = float(candles[index]["close"])
+            exit_close = float(candles[index + horizon]["close"])
+            forward_return = exit_close / entry_close - 1.0 if entry_close else 0.0
+            gross_pnl = position * forward_return
+            turnover = abs(position - previous_position)
+            net_pnl = gross_pnl - turnover * cost
+            if turnover > 0 and position != 0:
+                trades += 1
+            if position != 0:
+                active_bars += 1
+                gross_sum += gross_pnl
+                if net_pnl > 0:
+                    wins += 1
+            equity *= 1.0 + net_pnl
             peak = max(peak, equity)
             max_drawdown = max(max_drawdown, (peak - equity) / peak if peak else 0.0)
+            previous_position = position
             decisions.append({
                 "time": slice_candles[-1]["time"],
                 "mode": result["tradePermission"]["mode"],
                 "allowed": allowed,
-                "netReward": reward,
+                "position": position,
+                "forwardReturn": round(forward_return, 6),
+                "netReward": round(net_pnl, 6),
                 "regime": result["regime"],
             })
+        sample_count = len(decisions)
+        cumulative_return = round(equity - 1.0, 6)
+        buy_hold_return = round(candles[last_index]["close"] / candles[first_index]["close"] - 1.0, 6)
         return {
-            "schema": "msir.prism.dgwm.backtest.v1",
-            "adapter": self.config.adapter_version,
+            "schema": "msir.prism.dgwm.backtest.v2-realized",
+            "adapter": f"{self.config.adapter_version}-realized",
             "symbol": symbol,
             "interval": interval,
-            "sampleCount": len(decisions),
-            "acceptedSignals": sum(1 for item in decisions if item["allowed"]),
-            "rejectedSignals": sum(1 for item in decisions if not item["allowed"]),
-            "cumulativeReturn": round(equity - 1.0, 6),
+            "window": window,
+            "horizon": horizon,
+            "costBps": cost_bps,
+            "sampleCount": sample_count,
+            "activeBars": active_bars,
+            "trades": trades,
+            "acceptedSignals": accepted_count,
+            "rejectedSignals": sample_count - accepted_count,
+            "exposurePct": round(active_bars / sample_count, 4) if sample_count else 0.0,
+            "winRate": round(wins / active_bars, 4) if active_bars else 0.0,
+            "avgReturnPerActiveBar": round(gross_sum / active_bars, 6) if active_bars else 0.0,
+            "cumulativeReturn": cumulative_return,
+            "buyHoldReturn": buy_hold_return,
+            "excessReturn": round(cumulative_return - buy_hold_return, 6),
             "maxDrawdown": round(max_drawdown, 6),
             "decisions": decisions[-25:],
         }
@@ -192,6 +234,39 @@ def _volume_ratio(values: list[float]) -> float:
     base = values[-21:-1] if len(values) > 21 else values[:-1]
     avg = sum(base) / len(base) if base else 0.0
     return values[-1] / avg if avg else 1.0
+
+
+def _clamp_window(raw: object, candle_count: int) -> int:
+    try:
+        requested = int(raw or 80)
+    except (TypeError, ValueError):
+        requested = 80
+    return min(max(requested, 30), max(candle_count, 30), 260)
+
+
+def _clamp_horizon(raw: object) -> int:
+    try:
+        requested = int(raw or 1)
+    except (TypeError, ValueError):
+        requested = 1
+    return min(max(requested, 1), 20)
+
+
+def _clamp_cost_bps(raw: object) -> float:
+    try:
+        requested = float(raw if raw is not None else 5)
+    except (TypeError, ValueError):
+        requested = 5.0
+    return min(max(requested, 0.0), 100.0)
+
+
+def _position_for_result(result: dict[str, Any]) -> int:
+    trend = str(result.get("trend") or "")
+    if trend == "bullish":
+        return 1
+    if trend == "bearish":
+        return -1
+    return 0
 
 
 def _stable_id(payload: dict[str, Any]) -> str:
@@ -284,3 +359,7 @@ def _runtime_reasons(failure: dict[str, Any], payload: dict[str, Any]) -> list[s
 
 
 __all__ = ("DgwmAdapter", "DgwmAdapterConfig")
+
+
+
+

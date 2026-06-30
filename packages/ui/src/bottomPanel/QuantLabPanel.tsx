@@ -107,7 +107,7 @@ export function QuantLabPanel({
         </div>
       )}
 
-      <div className="grid grid-cols-2 lg:grid-cols-6 gap-2">
+      <div className="grid grid-cols-2 lg:grid-cols-8 gap-2">
         <MetricCard
           icon={<Activity className="h-3 w-3" />}
           label={labels.adapter}
@@ -117,7 +117,9 @@ export function QuantLabPanel({
         <MetricCard label={labels.models} value={modelEntries.length ? `${readyModels}/${modelEntries.length}` : "-"} />
         <MetricCard label={labels.samples} value={backtest ? String(backtest.sampleCount) : "-"} />
         <MetricCard label={labels.accepted} value={backtest ? formatPercent(acceptedRate) : "-"} />
+        <MetricCard label={labels.exposure} value={backtest?.exposurePct !== undefined ? formatPercent(backtest.exposurePct) : "-"} />
         <MetricCard label={labels.return} value={backtest ? formatSignedPercent(backtest.cumulativeReturn) : "-"} />
+        <MetricCard label={labels.excess} value={backtest?.excessReturn !== undefined ? formatSignedPercent(backtest.excessReturn) : "-"} />
         <MetricCard label={labels.drawdown} value={backtest ? formatPercent(backtest.maxDrawdown) : "-"} />
       </div>
 
@@ -127,7 +129,7 @@ export function QuantLabPanel({
             <ShieldCheck className="h-3 w-3 text-blue-300/70" />
             {labels.adapterSource}: {backtest.adapter}
           </span>
-          <span>{backtest.serviceFallback ? labels.fallback : labels.dgwm}</span>
+          <span>{backtest.serviceFallback ? labels.fallback : labels.dgwm} · {labels.horizon} {backtest.horizon ?? 1} · {labels.cost} {backtest.costBps ?? 5}bps</span>
         </div>
       )}
 
@@ -235,11 +237,15 @@ function getLabels(lang: Language) {
     offline: zh ? "未连接" : "Offline",
     samples: zh ? "样本" : "Samples",
     accepted: zh ? "通过率" : "Pass Rate",
-    return: zh ? "收益" : "Return",
+    exposure: zh ? "曝险" : "Exposure",
+    return: zh ? "前向收益" : "Forward Return",
+    excess: zh ? "相对持有" : "Vs Hold",
     drawdown: zh ? "回撤" : "Drawdown",
     adapterSource: zh ? "引擎" : "Engine",
     fallback: zh ? "Node 兜底" : "Node fallback",
     dgwm: zh ? "DGWM 通道" : "DGWM route",
+    horizon: zh ? "持有" : "Hold",
+    cost: zh ? "成本" : "Cost",
     default: zh ? "默认" : "default",
     defaultModel: zh ? "默认模型" : "Default model",
     dirty: zh ? "dirty" : "dirty",
@@ -265,3 +271,6 @@ function formatSignedPercent(value: number) {
   const percent = value * 100;
   return `${percent >= 0 ? "+" : ""}${percent.toFixed(1)}%`;
 }
+
+
+

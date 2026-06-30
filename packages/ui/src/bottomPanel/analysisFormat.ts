@@ -32,7 +32,7 @@ export function formatAnalysisResponse(
   const structuralError = data.structuralError?.toFixed(2) ?? "-";
   const spectralGap = data.spectralGap?.toFixed(2) ?? "-";
   const bellmanResidual = data.bellmanResidual?.toFixed(2) ?? "-";
-  const netReward = typeof data.netReward?.mean === "number" ? `${(data.netReward.mean * 100).toFixed(2)}%` : "-";
+  const utilityProxy = typeof data.netReward?.mean === "number" ? `${(data.netReward.mean * 100).toFixed(2)}%` : "-";
   const permission = data.tradePermission
     ? `${data.tradePermission.mode}${data.tradePermission.allowed ? "" : ` · ${data.tradePermission.reasons.join(", ")}`}`
     : "-";
@@ -49,7 +49,7 @@ export function formatAnalysisResponse(
     `- ${lang === "zh" ? "结构误差" : lang === "tc" ? "結構誤差" : "Structural Error"}: **${structuralError}**`,
     `- ${lang === "zh" ? "谱间隙" : lang === "tc" ? "譜間隙" : "Spectral Gap"}: **${spectralGap}**`,
     `- Bellman: **${bellmanResidual}**`,
-    `- ${lang === "zh" ? "净奖励" : lang === "tc" ? "淨獎勵" : "Net Reward"}: **${netReward}**`,
+    `- ${lang === "zh" ? "效用代理" : lang === "tc" ? "效用代理" : "Utility Proxy"}: **${utilityProxy}**`,
     `- ${lang === "zh" ? "交易许可" : lang === "tc" ? "交易許可" : "Trade Permission"}: **${permission}**`,
     `- ${lang === "zh" ? "支撑" : lang === "tc" ? "支撐" : "Support"}: ${support}`,
     `- ${lang === "zh" ? "压力" : lang === "tc" ? "壓力" : "Resistance"}: ${resistance}`,
@@ -59,3 +59,4 @@ export function formatAnalysisResponse(
     data.summary
   ].join("\n");
 }
+

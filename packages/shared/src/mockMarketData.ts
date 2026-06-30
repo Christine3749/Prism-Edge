@@ -20,13 +20,15 @@ export const DEFAULT_SYMBOLS: MarketSymbol[] = [
 
 // Helper to convert timeframes into seconds
 export function timeframeToSeconds(tf: string): number {
-  const num = parseInt(tf.slice(0, -1)) || 1;
-  const unit = tf.slice(-1);
+  const raw = (tf || "1D").trim();
+  const num = parseInt(raw.slice(0, -1)) || 1;
+  const rawUnit = raw.slice(-1);
+  const unit = rawUnit === "M" ? "M" : rawUnit.toLowerCase();
   switch (unit) {
     case "m": return num * 60;
     case "h": return num * 3600;
-    case "D": return num * 86400;
-    case "W": return num * 86400 * 7;
+    case "d": return num * 86400;
+    case "w": return num * 86400 * 7;
     case "M": return num * 86400 * 30;
     default: return 86400;
   }

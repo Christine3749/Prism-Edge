@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Radio, Search, X } from "lucide-react";
+import { Radio, Search, Star, X } from "lucide-react";
 import { searchMarketSymbols } from "../../shared/src/marketCatalog";
 import { buildPrismIntelligence, describePrismIntelligence, getBiasLabel, type PrismIntelligence } from "../../shared/src/prismIntelligence";
 import { MarketDataStatus, MarketSymbol } from "../../shared/src/types";
@@ -14,9 +14,11 @@ interface WatchlistProps {
   isOpen?: boolean;
   onClose?: () => void;
   compressed?: boolean;
+  favoriteSymbols?: string[];
+  onToggleFavorite?: (symbol: MarketSymbol) => void;
 }
 
-type WatchlistFilter = "all" | "crypto" | "us" | "cn" | "hk" | "forex";
+type WatchlistFilter = "all" | "favorites" | "crypto" | "us" | "cn" | "hk" | "forex";
 
 export default function Watchlist({
   currentSymbol,
@@ -26,15 +28,19 @@ export default function Watchlist({
   marketStatus,
   isOpen = false,
   onClose,
-  compressed = false
+  compressed = false,
+  favoriteSymbols = [],
+  onToggleFavorite
 }: WatchlistProps) {
   const t = useTranslation(lang);
   const zh = lang === "zh" || lang === "tc";
   const [filter, setFilter] = useState<WatchlistFilter>("all");
   const [query, setQuery] = useState("");
+  const favoriteSet = useMemo(() => new Set(favoriteSymbols), [favoriteSymbols]);
 
   const categoryTranslationMap = {
     all: t("allMarkets"),
+    favorites: zh ? "自选" : "Fav",
     crypto: "Crypto",
     us: zh ? "美股" : "US",
     cn: zh ? "A股" : "A-Share",
@@ -46,10 +52,13 @@ export default function Watchlist({
     const normalizedQuery = query.trim().toLowerCase();
     const localMatches = symbolsList.filter((sym) => {
       const symbolMarket = sym.market || sym.type;
-      const matchesFilter = filter === "all" ||
-        (filter === "crypto" && (symbolMarket === "crypto" || sym.type === "crypto")) ||
-        (filter === "forex" && (symbolMarket === "forex" || sym.type === "forex")) ||
-        symbolMarket === filter;
+      const isFavorite = favoriteSet.has(sym.symbol);
+      const matchesFilter = filter === "favorites"
+        ? isFavorite
+        : filter === "all" ||
+          (filter === "crypto" && (symbolMarket === "crypto" || sym.type === "crypto")) ||
+          (filter === "forex" && (symbolMarket === "forex" || sym.type === "forex")) ||
+          symbolMarket === filter;
       const matchesQuery = normalizedQuery.length === 0 ||
         sym.id.toLowerCase().includes(normalizedQuery) ||
         sym.symbol.toLowerCase().includes(normalizedQuery) ||
@@ -57,21 +66,22 @@ export default function Watchlist({
       return matchesFilter && matchesQuery;
     });
 
-    if (!normalizedQuery) return localMatches;
+    if (!normalizedQuery || filter === "favorites") return localMatches;
 
     const catalogMatches = searchMarketSymbols(query, filter === "all" ? "all" : filter, 60);
     const merged = new Map<string, MarketSymbol>();
     localMatches.forEach((symbol) => merged.set(symbol.symbol, symbol));
     catalogMatches.forEach((symbol) => merged.set(symbol.symbol, symbol));
     return Array.from(merged.values());
-  }, [filter, query, symbolsList]);
+  }, [favoriteSet, filter, query, symbolsList]);
+
   const matrixRows = useMemo(() => filteredSymbols.map((sym) => {
     const isSelected = sym.id === currentSymbol.id;
     const feedState = getSymbolFeedState(sym, isSelected, marketStatus);
     const intelligence = buildPrismIntelligence(sym, [], isSelected ? marketStatus : undefined);
     const rowBrief = describePrismIntelligence(intelligence, sym, lang);
-    return { sym, feedState, intelligence, setup: rowBrief.setup };
-  }).sort((a, b) => b.intelligence.score - a.intelligence.score), [currentSymbol.id, filteredSymbols, lang, marketStatus]);
+    return { sym, feedState, intelligence, setup: rowBrief.setup, isFavorite: favoriteSet.has(sym.symbol) };
+  }).sort((a, b) => b.intelligence.score - a.intelligence.score), [currentSymbol.id, favoriteSet, filteredSymbols, lang, marketStatus]);
 
   const statusTone = marketStatus?.state === "live"
     ? "text-emerald-300"
@@ -117,7 +127,7 @@ export default function Watchlist({
         </div>
 
         <div className="mt-3 flex gap-0.5 overflow-x-auto rounded border border-slate-800 bg-slate-900 p-0.5 text-[9px] font-semibold text-slate-400 no-scrollbar">
-          {(["all", "crypto", "us", "cn", "hk", "forex"] as const).map((cat) => (
+          {(["all", "favorites", "crypto", "us", "cn", "hk", "forex"] as const).map((cat) => (
             <button
               key={cat}
               onClick={() => setFilter(cat)}
@@ -149,13 +159,14 @@ export default function Watchlist({
       </div>
 
       <div className="min-h-0 flex-grow overflow-y-auto border-y border-slate-900 bg-slate-950/95">
-        {matrixRows.map(({ sym, feedState, intelligence, setup }) => {
+        {matrixRows.map(({ sym, feedState, intelligence, setup, isFavorite }) => {
           const isSelected = sym.id === currentSymbol.id;
           const isUp = sym.change24h >= 0;
           const feedTone = feedToneMap[feedState];
           const sourceLabel = isSelected && marketStatus?.source
             ? marketStatus.source
             : sym.lastSource || sym.dataProvider || sym.exchange || sym.type;
+          const favoriteLabel = isFavorite ? (zh ? "取消自选" : "Remove favorite") : (zh ? "加入自选" : "Add favorite");
           return (
             <button
               key={sym.id}
@@ -172,6 +183,25 @@ export default function Watchlist({
               <div className="grid grid-cols-[minmax(0,1fr)_58px_48px] items-start gap-2">
                 <div className="min-w-0">
                   <div className="flex min-w-0 items-center gap-1.5">
+                    <span
+                      role="button"
+                      tabIndex={0}
+                      aria-label={favoriteLabel}
+                      title={favoriteLabel}
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        onToggleFavorite?.(sym);
+                      }}
+                      onKeyDown={(event) => {
+                        if (event.key !== "Enter" && event.key !== " ") return;
+                        event.preventDefault();
+                        event.stopPropagation();
+                        onToggleFavorite?.(sym);
+                      }}
+                      className={`shrink-0 rounded p-0.5 transition-colors ${isFavorite ? "text-amber-300" : "text-slate-600 hover:text-amber-300"}`}
+                    >
+                      <Star className={`h-3.5 w-3.5 ${isFavorite ? "fill-amber-300" : "fill-transparent"}`} />
+                    </span>
                     <span className="truncate text-[12px] font-black tracking-tight text-white">{sym.id}</span>
                     <span
                       title={`${sourceLabel} · ${feedState}`}
@@ -214,7 +244,7 @@ export default function Watchlist({
         })}
         {matrixRows.length === 0 && (
           <div className="px-4 py-12 text-center text-xs text-slate-600">
-            {t("noAssetsFound")}
+            {filter === "favorites" ? (zh ? "还没有自选，点资产旁边的星标加入。" : "No favorites yet. Use the star next to an asset.") : t("noAssetsFound")}
           </div>
         )}
       </div>
@@ -246,7 +276,7 @@ function getSymbolFeedState(symbol: MarketSymbol, selected: boolean, marketStatu
   if (selected && marketStatus?.state) return marketStatus.state;
   if (symbol.lastDataState) return symbol.lastDataState;
   if (symbol.dataProvider === "binance" || symbol.dataProvider === "coinbase") return "live";
-  if (symbol.dataProvider === "yahoo") return "delayed";
+  if (["yahoo", "polygon", "twelve-data", "finnhub", "alpha-vantage"].includes(symbol.dataProvider || "")) return "delayed";
   return "simulated";
 }
 

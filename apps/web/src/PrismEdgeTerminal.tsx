@@ -24,6 +24,7 @@ import { enrichMarketSymbol, loadHydratedWatchlist, stripVolatileSymbolFields } 
 export default function PrismEdgeTerminal() {
   const [currentSymbol, setCurrentSymbol] = useState<MarketSymbol>(() => loadHydratedWatchlist()[0] || DEFAULT_WATCHLIST_SYMBOLS[0]);
   const [symbolsList, setSymbolsList] = useState<MarketSymbol[]>(() => loadHydratedWatchlist());
+  const [favoriteSymbols, setFavoriteSymbols] = useState<string[]>(() => StorageService.loadFavoriteSymbols([]));
   const [candles, setCandles] = useState<Candle[]>([]);
   const [activeTool, setActiveTool] = useState<DrawingTool>("cursor");
   const [drawings, setDrawings] = useState<DrawingBase[]>(() => StorageService.loadDrawings([]));
@@ -77,11 +78,27 @@ export default function PrismEdgeTerminal() {
     });
   };
 
+  const handleToggleFavorite = (symbol: MarketSymbol) => {
+    const hydrated = enrichMarketSymbol(symbol);
+    setSymbolsList((prev) => {
+      if (prev.some((item) => item.symbol === hydrated.symbol)) return prev;
+      return [hydrated, ...prev].slice(0, 120);
+    });
+    setFavoriteSymbols((prev) => {
+      const next = prev.includes(hydrated.symbol)
+        ? prev.filter((item) => item !== hydrated.symbol)
+        : [...prev, hydrated.symbol];
+      StorageService.saveFavoriteSymbols(next);
+      return next;
+    });
+  };
+
   const handleSaveWorkspace = () => {
     StorageService.saveDrawings(drawings);
     StorageService.saveIndicators(indicatorConfig);
     StorageService.saveSettings(settings);
     StorageService.saveWatchlist(symbolsList.map(stripVolatileSymbolFields));
+    StorageService.saveFavoriteSymbols(favoriteSymbols);
     setWorkspaceSaved(true);
     window.setTimeout(() => setWorkspaceSaved(false), 2000);
   };
@@ -92,6 +109,7 @@ export default function PrismEdgeTerminal() {
     setIndicatorConfig(DEFAULT_INDICATOR_CONFIG);
     setSettings(DEFAULT_APP_SETTINGS);
     setSymbolsList(DEFAULT_WATCHLIST_SYMBOLS.map((symbol) => ({ ...symbol })));
+    setFavoriteSymbols([]);
     setCurrentSymbol({ ...DEFAULT_WATCHLIST_SYMBOLS[0] });
     setTimeframe("1D");
     setChartType("candlestick");
@@ -203,6 +221,8 @@ export default function PrismEdgeTerminal() {
           compressed={scannerExpanded}
           isOpen={watchlistOpen}
           onClose={() => setWatchlistOpen(false)}
+          favoriteSymbols={favoriteSymbols}
+          onToggleFavorite={handleToggleFavorite}
         />
       </div>
 
