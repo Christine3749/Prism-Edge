@@ -99,6 +99,69 @@ export function registerApiRoutes(app: Express, apiBaseUrl: string) {
     }
   });
 
+  app.get("/api/watchlist/favorites", async (req, res) => {
+    const token = readBearerTokenFromHeader(req.headers.authorization);
+    if (!token) {
+      return res.status(401).json({ error: "UNAUTHORIZED", message: "Please sign in before syncing favorites." });
+    }
+
+    try {
+      const user = await hsAuthRequest("/auth/v1/user", { method: "GET", token });
+      const favoriteState = readCloudFavoriteState(user);
+      return res.json({
+        ok: true,
+        source: "hs-user-metadata",
+        ...favoriteState
+      });
+    } catch (error: any) {
+      return res.status(error.status || 502).json({
+        error: error.code || "FAVORITES_SYNC_FAILED",
+        message: error.message || "Unable to load cloud favorites."
+      });
+    }
+  });
+
+  app.put("/api/watchlist/favorites", async (req, res) => {
+    const token = readBearerTokenFromHeader(req.headers.authorization);
+    if (!token) {
+      return res.status(401).json({ error: "UNAUTHORIZED", message: "Please sign in before syncing favorites." });
+    }
+
+    const symbols = sanitizeFavoriteSymbols(req.body?.symbols);
+    const updatedAt = new Date().toISOString();
+
+    try {
+      const user = await hsAuthRequest("/auth/v1/user", { method: "GET", token });
+      const metadata = readHsUserMetadata(user);
+      const prismEdgeMetadata = isRecord(metadata.prism_edge) ? metadata.prism_edge : {};
+      const payload = await hsAuthRequest("/auth/v1/user", {
+        method: "PUT",
+        token,
+        body: JSON.stringify({
+          data: {
+            ...metadata,
+            prism_edge: {
+              ...prismEdgeMetadata,
+              favorite_symbols: symbols,
+              favorite_symbols_updated_at: updatedAt
+            }
+          }
+        })
+      });
+      const saved = readCloudFavoriteState(payload);
+      return res.json({
+        ok: true,
+        source: "hs-user-metadata",
+        symbols: saved.symbols.length > 0 || symbols.length === 0 ? saved.symbols : symbols,
+        updatedAt: saved.updatedAt || updatedAt
+      });
+    } catch (error: any) {
+      return res.status(error.status || 502).json({
+        error: error.code || "FAVORITES_SYNC_FAILED",
+        message: error.message || "Unable to save cloud favorites."
+      });
+    }
+  });
   app.get("/api/market/klines", async (req, res) => {
     const symbol = normalizeMarketSymbol(String(req.query.symbol || ""));
     const interval = toBinanceInterval(String(req.query.interval || req.query.timeframe || "1D"));
@@ -436,6 +499,46 @@ function deriveDgwmUniverse(primary: string) {
 function isRecord(value: unknown): value is Record<string, any> {
   return Boolean(value && typeof value === "object" && !Array.isArray(value));
 }
+const FAVORITE_SYMBOL_LIMIT = 500;
+
+function sanitizeFavoriteSymbols(value: unknown) {
+  if (!Array.isArray(value)) return [];
+  const symbols: string[] = [];
+  const seen = new Set<string>();
+
+  value.forEach((item) => {
+    const symbol = normalizeMarketSymbol(String(item || ""));
+    if (!symbol || seen.has(symbol) || !isValidMarketSymbol(symbol)) return;
+    seen.add(symbol);
+    symbols.push(symbol);
+  });
+
+  return symbols.slice(0, FAVORITE_SYMBOL_LIMIT);
+}
+
+function readCloudFavoriteState(user: unknown) {
+  const metadata = readHsUserMetadata(user);
+  const prismEdgeMetadata = isRecord(metadata.prism_edge) ? metadata.prism_edge : {};
+  const legacySymbols = metadata.prism_edge_favorite_symbols;
+  const symbols = sanitizeFavoriteSymbols(
+    Array.isArray(prismEdgeMetadata.favorite_symbols)
+      ? prismEdgeMetadata.favorite_symbols
+      : legacySymbols
+  );
+  const updatedAt = typeof prismEdgeMetadata.favorite_symbols_updated_at === "string"
+    ? prismEdgeMetadata.favorite_symbols_updated_at
+    : undefined;
+  return { symbols, updatedAt };
+}
+
+function readHsUserMetadata(user: unknown) {
+  if (!isRecord(user)) return {};
+  const metadata =
+    isRecord(user.user_metadata) ? user.user_metadata :
+    isRecord(user.raw_user_meta_data) ? user.raw_user_meta_data :
+    {};
+  return { ...metadata };
+}
 async function mergeYahooSearchResults(
   query: string,
   market: string,
@@ -454,7 +557,7 @@ async function mergeYahooSearchResults(
     console.warn(`Market search remote provider failed for "${query}".`, error);
   }
 }
-async function hsAuthRequest(path: string, options: { method: "GET" | "POST"; body?: string; token?: string }) {
+async function hsAuthRequest(path: string, options: { method: "GET" | "POST" | "PUT"; body?: string; token?: string }) {
   const baseUrl = String(process.env.HS_SUPABASE_URL || process.env.SUPABASE_URL || "").replace(/\/+$/, "");
   const anonKey = String(process.env.HS_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY || "");
   if (!baseUrl || !anonKey) {
@@ -500,4 +603,5 @@ function readBearerTokenFromHeader(header: unknown) {
   const match = value.match(/^Bearer\s+(.+)$/i);
   return match?.[1]?.trim() || "";
 }
+
 

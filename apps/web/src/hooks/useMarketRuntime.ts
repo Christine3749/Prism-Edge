@@ -187,6 +187,7 @@ export function useMarketRuntime(params: UseMarketRuntimeParams) {
         updatedAt: result.updatedAt,
         latencyMs: result.latencyMs,
         freshnessMs: Date.now() - result.updatedAt,
+        route: result.route,
         reason: result.isLiveBinance
           ? "Real candle gateway connected."
           : state === "delayed"

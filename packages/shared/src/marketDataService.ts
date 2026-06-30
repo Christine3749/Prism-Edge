@@ -9,6 +9,8 @@ interface MarketGatewayResponse {
   source?: string;
   updatedAt?: number;
   isLive?: boolean;
+  route?: string[];
+  providerErrors?: string[];
 }
 
 interface QuoteGatewayResponse {
@@ -62,7 +64,7 @@ export async function fetchHistoricalGatewayKlines(
   symbol: string,
   timeframe: string,
   limit = 200
-): Promise<{ candles: Candle[]; source: string; updatedAt: number; isLive: boolean; latencyMs: number }> {
+): Promise<{ candles: Candle[]; source: string; updatedAt: number; isLive: boolean; latencyMs: number; route?: string[]; providerErrors?: string[] }> {
   const startedAt = performance.now();
   const params = new URLSearchParams({
     symbol,
@@ -99,6 +101,8 @@ export async function fetchHistoricalGatewayKlines(
     updatedAt: data.updatedAt || Date.now(),
     isLive: Boolean(data.isLive),
     latencyMs: Math.round(performance.now() - startedAt),
+    route: Array.isArray(data.route) ? data.route : undefined,
+    providerErrors: Array.isArray(data.providerErrors) ? data.providerErrors : undefined,
     candles: usableCandles
   };
 }
@@ -111,7 +115,7 @@ function isLiveGatewaySource(source: string) {
 export async function loadMarketData(
   symbol: MarketSymbol,
   timeframe: string
-): Promise<{ candles: Candle[]; isLiveBinance: boolean; source: string; updatedAt: number; latencyMs?: number; fallbackReason?: string }> {
+): Promise<{ candles: Candle[]; isLiveBinance: boolean; source: string; updatedAt: number; latencyMs?: number; fallbackReason?: string; route?: string[]; providerErrors?: string[] }> {
   try {
     try {
       const hist = await fetchHistoricalGatewayKlines(symbol.symbol, timeframe, 200);
@@ -120,7 +124,9 @@ export async function loadMarketData(
         isLiveBinance: hist.isLive || isLiveGatewaySource(hist.source),
         source: hist.source,
         updatedAt: hist.updatedAt,
-        latencyMs: hist.latencyMs
+        latencyMs: hist.latencyMs,
+        route: hist.route,
+        providerErrors: hist.providerErrors
       };
     } catch (err) {
       warnOnce(
@@ -155,7 +161,7 @@ export async function loadMarketData(
 export async function getHistoricalCandles(
   symbol: MarketSymbol,
   interval: string
-): Promise<{ candles: Candle[]; isLiveBinance: boolean; source: string; updatedAt: number; latencyMs?: number; fallbackReason?: string }> {
+): Promise<{ candles: Candle[]; isLiveBinance: boolean; source: string; updatedAt: number; latencyMs?: number; fallbackReason?: string; route?: string[]; providerErrors?: string[] }> {
   return loadMarketData(symbol, interval);
 }
 

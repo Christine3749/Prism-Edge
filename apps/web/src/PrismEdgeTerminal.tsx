@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { DEFAULT_WATCHLIST_SYMBOLS } from "@shared/marketCatalog";
+import { useEffect, useState, type Dispatch, type SetStateAction } from "react";
+import { DEFAULT_WATCHLIST_SYMBOLS, inferMarketSymbolFromInput, resolveMarketSymbol, sortMarketSymbols } from "@shared/marketCatalog";
 import { StorageService } from "@shared/storage";
 import { useTranslation } from "@shared/translations";
 import type { AnalysisRunResponse, AppSettings, Candle, DrawingBase, DrawingTool, IndicatorConfig, MarketDataStatus, MarketSymbol } from "@shared/types";
@@ -19,12 +19,22 @@ import { useLanguagePreference } from "./hooks/useLanguagePreference";
 import { useLayoutPersistence } from "./hooks/useLayoutPersistence";
 import { useMarketRuntime } from "./hooks/useMarketRuntime";
 import { useToast } from "./hooks/useToast";
+import {
+  hasCloudFavoriteSession,
+  loadCloudFavoriteSymbols,
+  mergeFavoriteSymbols,
+  saveCloudFavoriteSymbols,
+  verifyCloudFavoriteSymbols
+} from "./services/favoriteSync";
 import { enrichMarketSymbol, loadHydratedWatchlist, stripVolatileSymbolFields } from "./services/watchlistStorage";
+
+type FavoriteSyncState = "local" | "syncing" | "synced" | "verified" | "error";
 
 export default function PrismEdgeTerminal() {
   const [currentSymbol, setCurrentSymbol] = useState<MarketSymbol>(() => loadHydratedWatchlist()[0] || DEFAULT_WATCHLIST_SYMBOLS[0]);
   const [symbolsList, setSymbolsList] = useState<MarketSymbol[]>(() => loadHydratedWatchlist());
   const [favoriteSymbols, setFavoriteSymbols] = useState<string[]>(() => StorageService.loadFavoriteSymbols([]));
+  const [favoriteSyncState, setFavoriteSyncState] = useState<FavoriteSyncState>(() => hasCloudFavoriteSession() ? "syncing" : "local");
   const [candles, setCandles] = useState<Candle[]>([]);
   const [activeTool, setActiveTool] = useState<DrawingTool>("cursor");
   const [drawings, setDrawings] = useState<DrawingBase[]>(() => StorageService.loadDrawings([]));
@@ -68,6 +78,69 @@ export default function PrismEdgeTerminal() {
   });
 
   const scannerRevealActive = scannerHandleActive || chartStatusHoverActive;
+  const syncFavoriteSymbolsToCloud = (symbols: string[]) => {
+    if (!hasCloudFavoriteSession()) {
+      setFavoriteSyncState("local");
+      return;
+    }
+    setFavoriteSyncState("syncing");
+    void saveCloudFavoriteSymbols(symbols)
+      .then(async (result) => {
+        if (!result.signedIn) {
+          setFavoriteSyncState("local");
+          return;
+        }
+        setFavoriteSyncState("synced");
+        const replay = await verifyCloudFavoriteSymbols(result.symbols);
+        setFavoriteSyncState(replay.signedIn && replay.verified ? "verified" : "error");
+      })
+      .catch((error) => {
+        setFavoriteSyncState("error");
+        console.warn("Favorite cloud sync save failed.", error);
+      });
+  };
+
+  useEffect(() => {
+    if (!hasCloudFavoriteSession()) {
+      setFavoriteSyncState("local");
+      return;
+    }
+
+    setFavoriteSyncState("syncing");
+
+    const controller = new AbortController();
+    let cancelled = false;
+
+    void loadCloudFavoriteSymbols(controller.signal)
+      .then((cloud) => {
+        if (cancelled) return;
+        if (!cloud.signedIn) {
+          setFavoriteSyncState("local");
+          return;
+        }
+        setFavoriteSymbols((localSymbols) => {
+          const merged = mergeFavoriteSymbols(cloud.symbols, localSymbols);
+          StorageService.saveFavoriteSymbols(merged);
+          addKnownFavoriteSymbolsToWatchlist(merged, setSymbolsList);
+          if (merged.join("|") !== cloud.symbols.join("|")) {
+            syncFavoriteSymbolsToCloud(merged);
+          }
+          return merged;
+        });
+        setFavoriteSyncState("synced");
+      })
+      .catch((error) => {
+        if (!controller.signal.aborted) {
+          setFavoriteSyncState("error");
+          console.warn("Favorite cloud sync load failed.", error);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+      controller.abort();
+    };
+  }, []);
 
   const handleSymbolSelect = (symbol: MarketSymbol) => {
     const hydrated = enrichMarketSymbol(symbol);
@@ -89,6 +162,7 @@ export default function PrismEdgeTerminal() {
         ? prev.filter((item) => item !== hydrated.symbol)
         : [...prev, hydrated.symbol];
       StorageService.saveFavoriteSymbols(next);
+      syncFavoriteSymbolsToCloud(next);
       return next;
     });
   };
@@ -99,6 +173,7 @@ export default function PrismEdgeTerminal() {
     StorageService.saveSettings(settings);
     StorageService.saveWatchlist(symbolsList.map(stripVolatileSymbolFields));
     StorageService.saveFavoriteSymbols(favoriteSymbols);
+    syncFavoriteSymbolsToCloud(favoriteSymbols);
     setWorkspaceSaved(true);
     window.setTimeout(() => setWorkspaceSaved(false), 2000);
   };
@@ -223,6 +298,7 @@ export default function PrismEdgeTerminal() {
           onClose={() => setWatchlistOpen(false)}
           favoriteSymbols={favoriteSymbols}
           onToggleFavorite={handleToggleFavorite}
+          favoriteSyncState={favoriteSyncState}
         />
       </div>
 
@@ -249,3 +325,28 @@ export default function PrismEdgeTerminal() {
     </div>
   );
 }
+
+function addKnownFavoriteSymbolsToWatchlist(
+  favoriteSymbols: string[],
+  setSymbolsList: Dispatch<SetStateAction<MarketSymbol[]>>
+) {
+  setSymbolsList((prev) => {
+    const merged = new Map(prev.map((symbol) => [symbol.symbol, symbol] as const));
+    favoriteSymbols.forEach((symbol) => {
+      if (merged.has(symbol)) return;
+      const resolved = resolveMarketSymbol(symbol) || inferMarketSymbolFromInput(symbol);
+      if (resolved) {
+        merged.set(resolved.symbol, enrichMarketSymbol(resolved));
+      }
+    });
+    return sortMarketSymbols(Array.from(merged.values())).slice(0, 120);
+  });
+}
+
+
+
+
+
+
+
+
