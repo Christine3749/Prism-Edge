@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { Radio, Search, X } from "lucide-react";
+import { searchMarketSymbols } from "../../shared/src/marketCatalog";
 import { buildPrismIntelligence, describePrismIntelligence, getBiasLabel, type PrismIntelligence } from "../../shared/src/prismIntelligence";
 import { MarketDataStatus, MarketSymbol } from "../../shared/src/types";
 import { Language, useTranslation } from "../../shared/src/translations";
@@ -41,20 +42,29 @@ export default function Watchlist({
     forex: zh ? "外汇" : "FX"
   };
 
-  const filteredSymbols = useMemo(() => symbolsList.filter((sym) => {
-    const symbolMarket = sym.market || sym.type;
-    const matchesFilter = filter === "all" ||
-      (filter === "crypto" && (symbolMarket === "crypto" || sym.type === "crypto")) ||
-      (filter === "forex" && (symbolMarket === "forex" || sym.type === "forex")) ||
-      symbolMarket === filter;
+  const filteredSymbols = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
-    const matchesQuery = normalizedQuery.length === 0 ||
-      sym.id.toLowerCase().includes(normalizedQuery) ||
-      sym.symbol.toLowerCase().includes(normalizedQuery) ||
-      sym.name.toLowerCase().includes(normalizedQuery);
-    return matchesFilter && matchesQuery;
-  }), [filter, query, symbolsList]);
+    const localMatches = symbolsList.filter((sym) => {
+      const symbolMarket = sym.market || sym.type;
+      const matchesFilter = filter === "all" ||
+        (filter === "crypto" && (symbolMarket === "crypto" || sym.type === "crypto")) ||
+        (filter === "forex" && (symbolMarket === "forex" || sym.type === "forex")) ||
+        symbolMarket === filter;
+      const matchesQuery = normalizedQuery.length === 0 ||
+        sym.id.toLowerCase().includes(normalizedQuery) ||
+        sym.symbol.toLowerCase().includes(normalizedQuery) ||
+        sym.name.toLowerCase().includes(normalizedQuery);
+      return matchesFilter && matchesQuery;
+    });
 
+    if (!normalizedQuery) return localMatches;
+
+    const catalogMatches = searchMarketSymbols(query, filter === "all" ? "all" : filter, 60);
+    const merged = new Map<string, MarketSymbol>();
+    localMatches.forEach((symbol) => merged.set(symbol.symbol, symbol));
+    catalogMatches.forEach((symbol) => merged.set(symbol.symbol, symbol));
+    return Array.from(merged.values());
+  }, [filter, query, symbolsList]);
   const matrixRows = useMemo(() => filteredSymbols.map((sym) => {
     const isSelected = sym.id === currentSymbol.id;
     const feedState = getSymbolFeedState(sym, isSelected, marketStatus);
