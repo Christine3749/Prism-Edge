@@ -65,7 +65,7 @@ export default function ChartContainer({
 
   return (
     <div
-      className="flex h-full min-h-0 flex-1 flex-col relative bg-[#020617] overflow-hidden select-none"
+      className="flex h-full min-h-0 flex-1 flex-col relative bg-[#000814] overflow-hidden select-none"
       style={{ minHeight: 180 }}
       ref={containerRef}
       id="chart_canvas_zone"
@@ -82,7 +82,7 @@ export default function ChartContainer({
       />
 
       <div
-        className="w-full shrink-0 relative bg-slate-950 border-t border-slate-900"
+        className="w-full shrink-0 relative bg-[#000814] border-t border-[#12324a]"
         ref={oscillatorChartRef}
         style={{
           height: isOscActive ? "30%" : "0px",
@@ -106,7 +106,7 @@ export default function ChartContainer({
         overlayHeight={isOscActive ? "70%" : "100%"}
       />
 
-      <div className="absolute right-3 top-3 text-[9px] font-mono text-slate-500 bg-slate-950/70 px-2 py-0.5 rounded border border-slate-800/70 select-none z-20 uppercase tracking-widest hidden xl:block">
+      <div className="absolute right-3 top-3 text-[9px] font-mono text-slate-500 bg-[#000814]/78 px-2 py-0.5 rounded border border-[#12324a]/70 select-none z-20 uppercase tracking-widest hidden xl:block">
         Focus: {currentSymbol.id} • {currentTimeframe}
       </div>
     </div>

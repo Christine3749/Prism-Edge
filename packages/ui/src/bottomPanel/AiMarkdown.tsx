@@ -12,7 +12,7 @@ function renderLine(line: string, key: number) {
   const trimmed = line.trim();
   if (trimmed.startsWith("###") || trimmed.startsWith("##")) {
     return (
-      <h4 key={key} className="text-cyan-400 font-bold text-xs tracking-tight pt-2 border-b border-slate-800 pb-0.5 uppercase">
+      <h4 key={key} className="text-blue-300/75 font-bold text-xs tracking-tight pt-2 border-b border-slate-800 pb-0.5 uppercase">
         {trimmed.replace(/^###?\s*/, "")}
       </h4>
     );
@@ -29,7 +29,7 @@ function renderLine(line: string, key: number) {
   if (trimmed.startsWith("-") || trimmed.startsWith("•") || trimmed.startsWith("*")) {
     return (
       <div key={key} className="flex gap-2 items-start pl-2">
-        <span className="text-cyan-500 mt-0.5 select-none">•</span>
+        <span className="text-blue-400/70 mt-0.5 select-none">•</span>
         <span className="flex-grow">{content.length > 0 ? content : trimmed.replace(/^[-•*]\s*/, "")}</span>
       </div>
     );

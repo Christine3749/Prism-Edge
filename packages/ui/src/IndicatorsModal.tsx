@@ -60,7 +60,7 @@ export default function IndicatorsModal({
         <div className="px-4 py-3 bg-slate-900 border-t border-slate-800 flex justify-end">
           <button
             onClick={onClose}
-            className="px-4 py-1.5 bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-extrabold text-xs rounded-lg transition-all cursor-pointer flex items-center gap-1.5 shadow-md uppercase tracking-wider"
+            className="px-4 py-1.5 bg-[#123a63] hover:bg-[#174976] text-slate-100 font-extrabold text-xs rounded-lg transition-all cursor-pointer flex items-center gap-1.5 shadow-md uppercase tracking-wider"
           >
             <Check className="h-3.5 w-3.5 stroke-[2.5]" />
             <span>Apply Indicators</span>

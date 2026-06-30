@@ -122,25 +122,31 @@ export function useLightweightChart({
 }
 
 function createBaseChart(element: HTMLDivElement, height: number, settings: AppSettings) {
+  const light = settings.theme === "light";
+  const gridColor = light ? "rgba(118, 137, 156, 0.14)" : "rgba(18, 50, 74, 0.72)";
+  const borderColor = light ? "#d8e1ea" : "#12324a";
+  const crosshairColor = light ? "rgba(78, 101, 124, 0.30)" : "rgba(34, 211, 238, 0.42)";
+  const crosshairLabel = light ? "#eef3f8" : "#06213a";
+
   return createChart(element, {
     width: element.clientWidth,
     height,
     layout: {
-      background: { color: settings.solidBackground ? "#020617" : "transparent" },
-      textColor: "#9ca3af",
+      background: { color: settings.solidBackground ? (light ? "#f7fafc" : "#000814") : "transparent" },
+      textColor: light ? "#5f6f80" : "#9fb7c9",
       fontFamily: "Inter, ui-monospace, sans-serif",
       attributionLogo: false
     },
     crosshair: {
-      vertLine: { color: "rgba(148, 163, 184, 0.42)", style: LineStyle.Dashed, labelBackgroundColor: "#0f172a" },
-      horzLine: { color: "rgba(148, 163, 184, 0.42)", style: LineStyle.Dashed, labelBackgroundColor: "#0f172a" }
+      vertLine: { color: crosshairColor, style: LineStyle.Dashed, labelBackgroundColor: crosshairLabel },
+      horzLine: { color: crosshairColor, style: LineStyle.Dashed, labelBackgroundColor: crosshairLabel }
     },
     grid: {
-      vertLines: { color: settings.gridLines ? "rgba(30, 41, 59, 0.62)" : "transparent" },
-      horzLines: { color: settings.gridLines ? "rgba(30, 41, 59, 0.62)" : "transparent" }
+      vertLines: { color: settings.gridLines ? gridColor : "transparent" },
+      horzLines: { color: settings.gridLines ? gridColor : "transparent" }
     },
     timeScale: {
-      borderColor: "#1e293b",
+      borderColor,
       timeVisible: true,
       secondsVisible: false,
       rightOffset: 8,
@@ -148,19 +154,22 @@ function createBaseChart(element: HTMLDivElement, height: number, settings: AppS
       fixRightEdge: true,
       lockVisibleTimeRangeOnResize: true
     },
-    rightPriceScale: { borderColor: "#1e293b" }
+    rightPriceScale: { borderColor }
   }) as any;
 }
-
 function createMainSeries(chart: any, chartType: string, settings: AppSettings) {
+  const lineColor = settings.theme === "light" ? "#2f9bb7" : "#2962ff";
+  const areaTop = settings.theme === "light" ? "rgba(47, 155, 183, 0.12)" : "rgba(41, 98, 255, 0.28)";
+  const areaBottom = settings.theme === "light" ? "rgba(47, 155, 183, 0.01)" : "rgba(41, 98, 255, 0.02)";
+
   if (chartType === "line") {
-    return chart.addSeries(LineSeries, { color: "#2962ff", lineWidth: 2, crosshairMarkerVisible: false });
+    return chart.addSeries(LineSeries, { color: lineColor, lineWidth: 2, crosshairMarkerVisible: false });
   }
   if (chartType === "area") {
     return chart.addSeries(AreaSeries, {
-      lineColor: "#2962ff",
-      topColor: "rgba(41, 98, 255, 0.28)",
-      bottomColor: "rgba(41, 98, 255, 0.02)",
+      lineColor,
+      topColor: areaTop,
+      bottomColor: areaBottom,
       lineWidth: 2
     });
   }
@@ -176,7 +185,6 @@ function createMainSeries(chart: any, chartType: string, settings: AppSettings) 
     wickDownColor: settings.downColor
   });
 }
-
 function createIndicatorSeries(chart: any, subChart: any, config: IndicatorConfig) {
   const refs: Record<string, any> = {};
   if (config.sma.active) refs.sma = chart.addSeries(LineSeries, { color: config.sma.color, lineWidth: 1.5, title: `SMA (${config.sma.period})` });

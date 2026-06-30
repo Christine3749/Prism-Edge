@@ -120,7 +120,7 @@ export default function DrawingToolbar({
   return (
     <>
       {/* Desktop Vertical Layout (Hidden on Mobile) */}
-      <div className={`hidden sm:flex shrink-0 flex-col items-center py-3 justify-between bg-slate-950 border-r border-slate-800 transition-all duration-300 z-30 ${collapsed ? "w-8" : "w-14"}`}>
+      <div className={`hidden sm:flex shrink-0 flex-col items-center py-3 justify-between bg-[#000814] border-r border-[#12324a] transition-all duration-300 z-30 ${collapsed ? "w-8" : "w-14"}`}>
         {!collapsed ? (
           <>
             {/* Drawing Tools List */}
@@ -134,8 +134,8 @@ export default function DrawingToolbar({
                     onClick={() => onSelectTool(t.id)}
                     className={`w-10 h-10 flex items-center justify-center rounded-md transition-all duration-150 group relative cursor-pointer ${
                       isActive 
-                        ? "bg-cyan-500 text-slate-950 shadow-lg font-bold scale-105" 
-                        : "text-slate-400 hover:text-white hover:bg-slate-900"
+                        ? "bg-[#123a63] text-blue-50 shadow-lg font-bold scale-105" 
+                        : "text-slate-400 hover:text-white hover:bg-[#031426]"
                     }`}
                     id={`drawing_tool_${t.id}`}
                     title={texts.label}
@@ -163,7 +163,7 @@ export default function DrawingToolbar({
             {/* Collapse Trigger arrow */}
             <button
               onClick={() => setCollapsed(true)}
-              className="w-8 h-6 flex items-center justify-center rounded hover:bg-slate-900 text-slate-500 hover:text-slate-200 cursor-pointer transition-all mt-4"
+              className="w-8 h-6 flex items-center justify-center rounded hover:bg-[#031426] text-slate-500 hover:text-slate-200 cursor-pointer transition-all mt-4"
               title={lang === "zh" ? "收起侧栏" : lang === "tc" ? "收起側欄" : "Minimize panel"}
             >
               <ChevronLeft className="h-4 w-4" />
@@ -172,7 +172,7 @@ export default function DrawingToolbar({
         ) : (
           <button
             onClick={() => setCollapsed(false)}
-            className="w-8 h-full flex items-center justify-center text-slate-500 hover:text-cyan-400 hover:bg-slate-900/60 cursor-pointer transition-all"
+            className="w-8 h-full flex items-center justify-center text-slate-500 hover:text-blue-300/75 hover:bg-[#031426]/72 cursor-pointer transition-all"
             title={lang === "zh" ? "展开绘图工具" : lang === "tc" ? "展開繪圖工具" : "Expand Drawing Tools"}
           >
             <ChevronRight className="h-4 w-4" />
@@ -181,7 +181,7 @@ export default function DrawingToolbar({
       </div>
 
       {/* Mobile Floating Horizontal Tool Tray (Visible ONLY on Mobile) */}
-      <div className="sm:hidden fixed bottom-[calc(24vh+0.75rem)] left-1/2 -translate-x-1/2 bg-slate-950/95 backdrop-blur-md border border-slate-800 px-3 py-1.5 rounded-full flex items-center gap-1.5 shadow-2xl z-40 max-w-[95%] overflow-x-auto no-scrollbar">
+      <div className="sm:hidden fixed bottom-[calc(24vh+0.75rem)] left-1/2 -translate-x-1/2 bg-[#000814]/95 backdrop-blur-md border border-[#12324a] px-3 py-1.5 rounded-full flex items-center gap-1.5 shadow-2xl z-40 max-w-[95%] overflow-x-auto no-scrollbar">
         {tools.map((t) => {
           const isActive = activeTool === t.id;
           const texts = getToolText(t.id);
@@ -191,7 +191,7 @@ export default function DrawingToolbar({
               onClick={() => onSelectTool(t.id)}
               className={`w-8 h-8 flex items-center justify-center rounded-full transition-all shrink-0 ${
                 isActive 
-                  ? "bg-cyan-500 text-slate-950 shadow-md font-bold scale-105" 
+                  ? "bg-[#123a63] text-blue-50 shadow-md font-bold scale-105" 
                   : "text-slate-400 hover:text-white"
               }`}
               title={texts.label}
@@ -201,7 +201,7 @@ export default function DrawingToolbar({
           );
         })}
         {drawingsCount > 0 && (
-          <div className="w-px h-5 bg-slate-800 shrink-0 mx-0.5"></div>
+          <div className="w-px h-5 bg-[#06213a] shrink-0 mx-0.5"></div>
         )}
         {drawingsCount > 0 && (
           <button

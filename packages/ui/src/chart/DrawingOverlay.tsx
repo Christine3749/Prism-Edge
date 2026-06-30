@@ -81,7 +81,7 @@ export function DrawingOverlay({
     setCurrentDrawing({
       id,
       type: activeTool,
-      color: "#22d3ee",
+      color: "#3b6f91",
       strokeWidth: 2,
       points: [anchors, anchors],
       isCompleted: false

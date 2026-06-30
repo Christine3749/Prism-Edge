@@ -11,7 +11,7 @@ export function NewsTab({ news, newsLoading, lang }: NewsTabProps) {
   if (newsLoading) {
     return (
       <div className="flex flex-col items-center justify-center h-full py-8 text-slate-500 gap-1.5">
-        <span className="h-4 w-4 rounded-full border-2 border-cyan-400 border-t-transparent animate-spin"></span>
+        <span className="h-4 w-4 rounded-full border-2 border-blue-500/30 border-t-transparent animate-spin"></span>
         <span>{lang === "zh" ? "正在连接安全市场数据源..." : lang === "tc" ? "正在連接安全市場數據源..." : "Connecting to secure market feeds..."}</span>
       </div>
     );
@@ -29,7 +29,7 @@ export function NewsTab({ news, newsLoading, lang }: NewsTabProps) {
                 <div className="flex items-center justify-between text-[9px]">
                   <span className="text-slate-500 font-semibold">{item.source} • {item.time}</span>
                   <span className={`px-1.5 py-0.2 rounded uppercase font-mono text-[8px] font-bold ${
-                    isBullish ? "bg-teal-500/10 text-teal-400" : isBearish ? "bg-rose-500/10 text-rose-400" : "bg-slate-500/10 text-slate-400"
+                    isBullish ? "bg-emerald-500/20 text-emerald-300" : isBearish ? "bg-rose-500/10 text-rose-400" : "bg-slate-500/10 text-slate-400"
                   }`}>
                     {item.sentiment}
                   </span>

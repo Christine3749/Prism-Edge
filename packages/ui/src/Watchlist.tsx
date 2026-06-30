@@ -64,9 +64,9 @@ export default function Watchlist({
   }).sort((a, b) => b.intelligence.score - a.intelligence.score), [currentSymbol.id, filteredSymbols, lang, marketStatus]);
 
   const statusTone = marketStatus?.state === "live"
-    ? "text-teal-400"
+    ? "text-emerald-300"
     : marketStatus?.state === "delayed"
-      ? "text-blue-300"
+      ? "text-blue-300/75"
       : marketStatus?.state === "stale"
         ? "text-orange-300"
         : marketStatus?.state === "error"
@@ -82,7 +82,7 @@ export default function Watchlist({
       <div className="shrink-0 border-b border-slate-800 bg-[linear-gradient(180deg,rgba(15,23,42,0.92),rgba(2,6,23,0.98))] p-3">
         <div className="flex items-start justify-between gap-2">
           <div className="min-w-0">
-            <div className="flex items-center gap-2 text-cyan-300">
+            <div className="flex items-center gap-2 text-blue-300/70">
               <Radio className="h-4 w-4" />
               <h3 className="truncate text-[11px] font-black uppercase tracking-[0.22em]">
                 PRISM SIGNAL MATRIX
@@ -112,7 +112,7 @@ export default function Watchlist({
               key={cat}
               onClick={() => setFilter(cat)}
               className={`min-w-10 cursor-pointer truncate rounded px-1.5 py-0.5 text-center transition-all duration-150 ${
-                filter === cat ? "bg-cyan-500/15 text-cyan-300 ring-1 ring-cyan-500/30" : "hover:text-white"
+                filter === cat ? "bg-[#071f36] text-blue-200/75 ring-1 ring-blue-600/25" : "hover:text-white"
               }`}
             >
               {categoryTranslationMap[cat]}
@@ -120,7 +120,7 @@ export default function Watchlist({
           ))}
         </div>
         <div className="mt-2 flex h-7 items-center gap-1.5 rounded border border-slate-800 bg-slate-950 px-2">
-          <Search className="h-3 w-3 shrink-0 text-cyan-400" />
+          <Search className="h-3 w-3 shrink-0 text-blue-300/75" />
           <input
             value={query}
             onChange={(event) => setQuery(event.target.value)}
@@ -155,7 +155,7 @@ export default function Watchlist({
               }}
               className={`group w-full border-b border-slate-900/90 px-2.5 py-2 text-left transition-all duration-150 ${
                 isSelected
-                  ? "bg-cyan-500/[0.08] shadow-[inset_2px_0_0_rgba(34,211,238,0.9)]"
+                  ? "bg-blue-500/20 shadow-[inset_2px_0_0_rgba(54,96,130,0.72)]"
                   : "hover:bg-slate-900/70"
               }`}
             >
@@ -194,7 +194,7 @@ export default function Watchlist({
                   <div className={`font-mono text-[15px] font-black leading-none ${scoreTone(intelligence.score)}`}>
                     {intelligence.score}
                   </div>
-                  <div className={`mt-1 text-[8px] font-mono font-black ${isUp ? "text-teal-400" : "text-rose-400"}`}>
+                  <div className={`mt-1 text-[8px] font-mono font-black ${isUp ? "text-emerald-300" : "text-rose-400"}`}>
                     {isUp ? "+" : ""}{sym.change24h.toFixed(1)}%
                   </div>
                 </div>
@@ -241,12 +241,12 @@ function getSymbolFeedState(symbol: MarketSymbol, selected: boolean, marketStatu
 }
 
 const feedToneMap = {
-  live: "border-teal-500/20 bg-teal-500/10 text-teal-300",
-  delayed: "border-blue-500/20 bg-blue-500/10 text-blue-300",
+  live: "border-emerald-500/25 bg-emerald-500/20 text-emerald-300",
+  delayed: "border-blue-500/20 bg-blue-500/10 text-blue-300/75",
   stale: "border-orange-500/20 bg-orange-500/10 text-orange-300",
   error: "border-rose-500/20 bg-rose-500/10 text-rose-300",
   simulated: "border-amber-500/20 bg-amber-500/10 text-amber-300",
-  loading: "border-sky-500/20 bg-sky-500/10 text-sky-300"
+  loading: "border-blue-500/30 bg-blue-500/10 text-blue-300/70"
 };
 
 const feedLabelMap = {
@@ -260,14 +260,14 @@ const feedLabelMap = {
 
 function scoreTone(score: number) {
   if (score >= 74) return "text-emerald-300";
-  if (score >= 62) return "text-cyan-300";
+  if (score >= 62) return "text-blue-300/70";
   if (score <= 38) return "text-rose-300";
   return "text-slate-300";
 }
 
 function scoreBar(score: number) {
   if (score >= 74) return "bg-emerald-300";
-  if (score >= 62) return "bg-cyan-300";
+  if (score >= 62) return "bg-blue-500/25";
   if (score <= 38) return "bg-rose-300";
   return "bg-slate-500";
 }

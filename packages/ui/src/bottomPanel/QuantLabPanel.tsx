@@ -54,10 +54,10 @@ export function QuantLabPanel({
   const quantProLocked = Boolean(featureAccess?.active && (!featureAccess.runtimeDiagnostic || !featureAccess.backtest));
 
   return (
-    <div className="border border-cyan-500/15 bg-cyan-950/10 rounded-lg p-2.5 space-y-2">
+    <div className="border border-blue-600/35 bg-blue-950/70 rounded-lg p-2.5 space-y-2">
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-2 min-w-0">
-          <FlaskConical className="h-3.5 w-3.5 text-cyan-300 shrink-0" />
+          <FlaskConical className="h-3.5 w-3.5 text-blue-300/70 shrink-0" />
           <div className="min-w-0">
             <div className="text-[10px] font-black text-slate-100 uppercase tracking-widest">
               {labels.title}
@@ -69,7 +69,7 @@ export function QuantLabPanel({
         </div>
         <div className="flex items-center gap-1">
           {featureAccess && (
-            <span className={`hidden sm:inline-flex h-7 items-center rounded border px-2 text-[9px] font-black uppercase tracking-wider ${featureAccess.active ? "border-cyan-500/30 text-cyan-300" : "border-amber-500/30 text-amber-300"}`}>
+            <span className={`hidden sm:inline-flex h-7 items-center rounded border px-2 text-[9px] font-black uppercase tracking-wider ${featureAccess.active ? "border-blue-600/35 text-blue-300/70" : "border-amber-500/30 text-amber-300"}`}>
               {featureAccess.loading ? labels.checking : featureAccess.planLabel}
             </span>
           )}
@@ -86,7 +86,7 @@ export function QuantLabPanel({
             onClick={onRunBacktest}
             disabled={!canRun || loading || backtestLocked}
             title={backtestLocked ? labels.quantProRequired : labels.run}
-            className="h-7 px-2 rounded border border-cyan-500/40 bg-cyan-500/10 text-cyan-200 text-[10px] font-bold flex items-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-cyan-500/20"
+            className="h-7 px-2 rounded border border-blue-600/35 bg-[#123a63] text-slate-200 text-[10px] font-bold flex items-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-[#174976]"
           >
             <PlayCircle className="h-3 w-3" />
             <span>{loading ? labels.running : labels.run}</span>
@@ -124,7 +124,7 @@ export function QuantLabPanel({
       {backtest && (
         <div className="flex items-center justify-between gap-2 text-[9px] text-slate-500">
           <span className="flex items-center gap-1">
-            <ShieldCheck className="h-3 w-3 text-cyan-300" />
+            <ShieldCheck className="h-3 w-3 text-blue-300/70" />
             {labels.adapterSource}: {backtest.adapter}
           </span>
           <span>{backtest.serviceFallback ? labels.fallback : labels.dgwm}</span>
@@ -178,7 +178,7 @@ function ModelTile({
     <div className="min-w-0 border border-slate-800 bg-slate-950/60 rounded-md px-2 py-1.5" title={model.root}>
       <div className="flex items-center justify-between gap-1.5 min-w-0">
         <span className="flex items-center gap-1 min-w-0 text-[9px] font-black text-slate-100 uppercase tracking-wider">
-          <Cpu className="h-3 w-3 text-cyan-300 shrink-0" />
+          <Cpu className="h-3 w-3 text-blue-300/70 shrink-0" />
           <span className="truncate">{model.name}</span>
         </span>
         <span className={`shrink-0 text-[8px] font-black uppercase ${statusTone(model.status)}`}>

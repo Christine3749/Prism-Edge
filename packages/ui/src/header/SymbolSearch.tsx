@@ -60,11 +60,11 @@ export function SymbolSearch({ currentSymbol, onSymbolSelect, t }: SymbolSearchP
     <div className="relative shrink-0">
       <button
         onClick={() => setSearchOpen(!searchOpen)}
-        className="flex h-7 items-center gap-1.5 px-2 bg-slate-900 hover:bg-slate-800 border border-slate-800 hover:border-cyan-500/50 rounded text-[11px] text-slate-200 transition-all cursor-pointer font-medium w-32 xl:w-40 text-left justify-between"
+        className="flex h-7 items-center gap-1.5 px-2 bg-slate-900 hover:bg-slate-800 border border-slate-800 hover:border-blue-600/35 rounded text-[11px] text-slate-200 transition-all cursor-pointer font-medium w-32 xl:w-40 text-left justify-between"
         id="symbol_search_btn"
       >
         <div className="flex items-center gap-1 md:gap-1.5 truncate">
-          <Search className="h-3 md:h-3.5 w-3 md:w-3.5 text-cyan-400" />
+          <Search className="h-3 md:h-3.5 w-3 md:w-3.5 text-blue-300/75" />
           <span className="truncate">{currentSymbol.id}</span>
         </div>
         <span className="text-[9px] px-1 bg-slate-800 text-slate-400 rounded font-mono uppercase">

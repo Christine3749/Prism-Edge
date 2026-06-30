@@ -26,7 +26,7 @@ export function NumberField({ label, value, min, max, step, onChange, className 
         max={max}
         step={step}
         onChange={(e) => onChange(Number(e.target.value))}
-        className={`bg-slate-900 border border-slate-800 text-white px-2 py-1 rounded focus:outline-none focus:border-cyan-500 font-mono text-xs ${className || ""}`}
+        className={`bg-slate-900 border border-slate-800 text-white px-2 py-1 rounded focus:outline-none focus:border-blue-600/35 font-mono text-xs ${className || ""}`}
       />
     </div>
   );

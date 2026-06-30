@@ -72,7 +72,7 @@ export default function SettingsModal({
                 <select
                   value={settings.theme}
                   onChange={(e) => handleChange("theme", e.target.value)}
-                  className="bg-slate-900 border border-slate-800 text-slate-200 px-2 py-1 rounded focus:outline-none focus:border-cyan-500 font-sans text-xs w-28 cursor-pointer"
+                  className="bg-slate-900 border border-slate-800 text-slate-200 px-2 py-1 rounded focus:outline-none focus:border-blue-600/35 font-sans text-xs w-28 cursor-pointer"
                 >
                   <option value="dark" className="bg-slate-950">Deep Dark</option>
                   <option value="light" className="bg-slate-950">Aura Light</option>
@@ -85,7 +85,7 @@ export default function SettingsModal({
                   type="checkbox"
                   checked={settings.autoSaveLayout}
                   onChange={(e) => handleChange("autoSaveLayout", e.target.checked)}
-                  className="rounded border-slate-800 text-cyan-500 focus:ring-cyan-500 bg-slate-950 h-4 w-4"
+                  className="rounded border-slate-800 text-blue-400/70 focus:ring-blue-600/25 bg-slate-950 h-4 w-4"
                 />
               </label>
             </div>
@@ -104,7 +104,7 @@ export default function SettingsModal({
                 <select
                   value={settings.useInternationalColor ? "international" : "chinese"}
                   onChange={(e) => handleChange("useInternationalColor", e.target.value === "international")}
-                  className="bg-slate-900 border border-slate-800 text-slate-200 px-2 py-1 rounded focus:outline-none focus:border-cyan-500 font-sans text-xs w-40 cursor-pointer"
+                  className="bg-slate-900 border border-slate-800 text-slate-200 px-2 py-1 rounded focus:outline-none focus:border-blue-600/35 font-sans text-xs w-40 cursor-pointer"
                 >
                   <option value="international" className="bg-slate-950">International (绿色涨/红色跌)</option>
                   <option value="chinese" className="bg-slate-950">Chinese Standard (红色涨/绿色跌)</option>
@@ -152,7 +152,7 @@ export default function SettingsModal({
                   type="checkbox"
                   checked={settings.gridLines}
                   onChange={(e) => handleChange("gridLines", e.target.checked)}
-                  className="rounded border-slate-800 text-cyan-500 focus:ring-cyan-500 bg-slate-950 h-4 w-4"
+                  className="rounded border-slate-800 text-blue-400/70 focus:ring-blue-600/25 bg-slate-950 h-4 w-4"
                 />
               </label>
 
@@ -162,7 +162,7 @@ export default function SettingsModal({
                   type="checkbox"
                   checked={settings.solidBackground}
                   onChange={(e) => handleChange("solidBackground", e.target.checked)}
-                  className="rounded border-slate-800 text-cyan-500 focus:ring-cyan-500 bg-slate-950 h-4 w-4"
+                  className="rounded border-slate-800 text-blue-400/70 focus:ring-blue-600/25 bg-slate-950 h-4 w-4"
                 />
               </label>
             </div>
@@ -176,7 +176,7 @@ export default function SettingsModal({
               <select
                 value={settings.timezone}
                 onChange={(e) => handleChange("timezone", e.target.value)}
-                className="bg-slate-900 border border-slate-800 text-slate-200 px-2 py-1.5 rounded focus:outline-none focus:border-cyan-500 text-xs w-full cursor-pointer font-sans"
+                className="bg-slate-900 border border-slate-800 text-slate-200 px-2 py-1.5 rounded focus:outline-none focus:border-blue-600/35 text-xs w-full cursor-pointer font-sans"
               >
                 {timezones.map((tz) => (
                   <option key={tz.value} value={tz.value} className="bg-slate-950">
@@ -193,7 +193,7 @@ export default function SettingsModal({
         <div className="px-4 py-3 bg-slate-900 border-t border-slate-800 flex justify-end">
           <button
             onClick={onClose}
-            className="px-4 py-1.5 bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-extrabold text-xs rounded-lg transition-all cursor-pointer flex items-center gap-1.5 shadow-md uppercase tracking-wider"
+            className="px-4 py-1.5 bg-[#123a63] hover:bg-[#174976] text-slate-100 font-extrabold text-xs rounded-lg transition-all cursor-pointer flex items-center gap-1.5 shadow-md uppercase tracking-wider"
           >
             <Check className="h-3.5 w-3.5 stroke-[2.5]" />
             <span>Apply Settings</span>

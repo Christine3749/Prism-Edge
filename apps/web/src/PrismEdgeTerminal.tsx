@@ -99,12 +99,23 @@ export default function PrismEdgeTerminal() {
     showToast(t("toastResetSuccess"));
   };
 
+  const handleToggleTheme = () => {
+    setSettings((prev) => {
+      const next: AppSettings = {
+        ...prev,
+        theme: prev.theme === "light" ? "dark" : "light"
+      };
+      StorageService.saveSettings(next);
+      return next;
+    });
+  };
+
   const activeClass = settings.theme === "light"
-    ? "bg-slate-50 text-slate-900 border-slate-200"
-    : "bg-slate-950 text-slate-100 border-slate-900";
+    ? "prism-terminal--light bg-[#f5f7fa] text-[#17202c] border-[#d8e1ea]"
+    : "prism-terminal--dark bg-[#000814] text-slate-100 border-[#12324a]";
 
   return (
-    <div className={`h-screen w-screen flex flex-col overflow-hidden font-sans transition-colors duration-200 ${activeClass}`}>
+    <div className={`prism-terminal h-screen w-screen flex flex-col overflow-hidden font-sans transition-colors duration-200 ${activeClass}`}>
       <Header
         currentSymbol={currentSymbol}
         onSymbolSelect={handleSymbolSelect}
@@ -123,6 +134,7 @@ export default function PrismEdgeTerminal() {
         marketStatus={marketStatus}
         lang={lang}
         onLangChange={setLang}
+        onToggleTheme={handleToggleTheme}
         onToggleWatchlist={() => setWatchlistOpen((open) => !open)}
       />
 

@@ -31,7 +31,7 @@ export function ChartStatusOverlays({
   const candleChangePercent = latestCandle && previousCandle && previousCandle.close !== 0
     ? (candleChange / previousCandle.close) * 100
     : 0;
-  const ohlcTone = candleChange >= 0 ? "text-teal-400" : "text-rose-400";
+  const ohlcTone = candleChange >= 0 ? "text-emerald-300" : "text-rose-400";
   const dataState = marketStatus?.state || (candles.length > 0 ? "live" : "loading");
   const statusMeta = describeMarketStatus(marketStatus || {
     state: dataState,
@@ -40,15 +40,15 @@ export function ChartStatusOverlays({
     updatedAt: currentSymbol.lastUpdatedAt
   });
   const statusBannerTone = {
-    delayed: "border-blue-500/20 text-blue-300",
+    delayed: "border-blue-500/20 text-blue-300/75",
     stale: "border-orange-500/20 text-orange-300",
     simulated: "border-amber-500/20 text-amber-300",
     error: "border-rose-500/20 text-rose-300",
-    loading: "border-sky-500/20 text-sky-300",
-    live: "border-teal-500/20 text-teal-300"
+    loading: "border-blue-500/30 text-blue-300/70",
+    live: "border-emerald-500/25 text-emerald-300"
   }[dataState];
   const primarySymbolDimmed = dimPrimaryInfo || primaryInfoHovered;
-  const primaryInfoTone = "border-slate-800/70 bg-slate-950/70 text-slate-400 opacity-100 shadow-lg";
+  const primaryInfoTone = "border-[#12324a]/70 bg-[#000814]/78 text-slate-400 opacity-100 shadow-lg";
   const primarySymbolTone = primarySymbolDimmed ? "text-slate-500 opacity-60" : "text-slate-100 opacity-100";
   const primaryValueTone = "text-slate-200";
   const primaryMoveTone = ohlcTone;
@@ -79,14 +79,14 @@ export function ChartStatusOverlays({
       )}
 
       {dataState === "loading" && (
-        <div className="pointer-events-none absolute inset-x-0 top-16 z-20 mx-auto flex w-fit items-center gap-2 rounded border border-sky-500/20 bg-slate-950/80 px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest text-sky-300 shadow-lg backdrop-blur-sm">
-          <span className="h-3 w-3 rounded-full border-2 border-sky-300 border-t-transparent animate-spin"></span>
+        <div className="pointer-events-none absolute inset-x-0 top-16 z-20 mx-auto flex w-fit items-center gap-2 rounded border border-blue-500/30 bg-[#000814]/80 px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest text-blue-300/70 shadow-lg backdrop-blur-sm">
+          <span className="h-3 w-3 rounded-full border-2 border-blue-500/25 border-t-transparent animate-spin"></span>
           Loading market candles
         </div>
       )}
 
       {(dataState === "stale" || dataState === "delayed" || dataState === "simulated" || dataState === "error") && (
-        <div className={`pointer-events-none absolute inset-x-0 top-16 z-20 mx-auto flex max-w-[min(560px,calc(100%-2rem))] items-center gap-2 rounded border bg-slate-950/80 px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest shadow-lg backdrop-blur-sm ${statusBannerTone}`} title={statusMeta.tooltip}>
+        <div className={`pointer-events-none absolute inset-x-0 top-16 z-20 mx-auto flex max-w-[min(560px,calc(100%-2rem))] items-center gap-2 rounded border bg-[#000814]/80 px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest shadow-lg backdrop-blur-sm ${statusBannerTone}`} title={statusMeta.tooltip}>
           <span className="shrink-0">{statusMeta.label}</span>
           <span className="text-slate-600">·</span>
           <span className="shrink-0">{statusMeta.sourceLine}</span>

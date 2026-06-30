@@ -42,9 +42,9 @@ function BookSide({
   precision: number;
 }) {
   const isAsk = side === "ask";
-  const textClass = isAsk ? "text-rose-400" : "text-teal-400";
-  const hoverClass = isAsk ? "hover:bg-rose-950/10" : "hover:bg-teal-950/10";
-  const depthClass = isAsk ? "bg-rose-500/5" : "bg-teal-500/5";
+  const textClass = isAsk ? "text-rose-400" : "text-emerald-300";
+  const hoverClass = isAsk ? "hover:bg-rose-950/10" : "hover:bg-emerald-950";
+  const depthClass = isAsk ? "bg-rose-500/5" : "bg-emerald-500/20";
   return (
     <div className="flex flex-col">
       <div className="grid text-slate-500 border-b border-slate-900 pb-1 font-bold text-[9px] uppercase" style={bookGridTemplate}>

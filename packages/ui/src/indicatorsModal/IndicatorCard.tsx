@@ -23,7 +23,7 @@ export function IndicatorCard({
             type="checkbox"
             checked={active}
             onChange={(e) => onToggle(e.target.checked)}
-            className="rounded border-slate-800 text-cyan-500 focus:ring-cyan-500 bg-slate-950 h-4 w-4"
+            className="rounded border-slate-800 text-blue-400/70 focus:ring-blue-600/25 bg-slate-950 h-4 w-4"
           />
           <span>{label}</span>
         </label>

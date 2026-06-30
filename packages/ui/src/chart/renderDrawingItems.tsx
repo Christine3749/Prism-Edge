@@ -83,13 +83,13 @@ export function renderCurrentDrawing(
           y={Math.min(coord1.y, coord2.y)}
           width={Math.abs(coord2.x - coord1.x)}
           height={Math.abs(coord2.y - coord1.y)}
-          fill="#06b6d4"
+          fill="#2f5f85"
           fillOpacity="0.08"
-          stroke="#06b6d4"
+          stroke="#2f5f85"
           strokeWidth="1"
           strokeDasharray="4,4"
         />
-        <text x={(coord1.x + coord2.x) / 2} y={(coord1.y + coord2.y) / 2} fill="#06b6d4" className="text-[10px] bg-slate-950 px-1 font-mono font-bold">
+        <text x={(coord1.x + coord2.x) / 2} y={(coord1.y + coord2.y) / 2} fill="#2f5f85" className="text-[10px] bg-slate-950 px-1 font-mono font-bold">
           {deltaPercent}%
         </text>
       </g>
@@ -124,7 +124,7 @@ function renderFibonacci(draw: DrawingBase, getCoordinates: CoordinateResolver, 
     { label: "1.000", ratio: 0, color: "#f43f5e" },
     { label: "0.618", ratio: 0.382, color: "#fb7185" },
     { label: "0.500", ratio: 0.5, color: "#f472b6" },
-    { label: "0.382", ratio: 0.618, color: "#06b6d4" },
+    { label: "0.382", ratio: 0.618, color: "#2f5f85" },
     { label: "0.236", ratio: 0.764, color: "#2dd4bf" },
     { label: "0.000", ratio: 1, color: "#10b981" }
   ];
@@ -159,13 +159,13 @@ function renderRuler(draw: DrawingBase, getCoordinates: CoordinateResolver, prec
 
   return (
     <g key={draw.id}>
-      <rect x={Math.min(coord1.x, coord2.x)} y={Math.min(coord1.y, coord2.y)} width={Math.abs(coord2.x - coord1.x)} height={Math.abs(coord2.y - coord1.y)} fill="#06b6d4" fillOpacity="0.06" stroke="#06b6d4" strokeWidth="1.5" strokeDasharray="4,4" />
+      <rect x={Math.min(coord1.x, coord2.x)} y={Math.min(coord1.y, coord2.y)} width={Math.abs(coord2.x - coord1.x)} height={Math.abs(coord2.y - coord1.y)} fill="#2f5f85" fillOpacity="0.06" stroke="#2f5f85" strokeWidth="1.5" strokeDasharray="4,4" />
       <g transform={`translate(${midX - 58}, ${midY - 14})`}>
-        <rect width="116" height="28" rx="6" fill="#020617" stroke="#06b6d4" strokeWidth="1" />
+        <rect width="116" height="28" rx="6" fill="#020617" stroke="#2f5f85" strokeWidth="1" />
         <text x="58" y="11" fill="#e2e8f0" textAnchor="middle" className="text-[9px] font-mono font-bold select-none">
           Change: {deltaPrice > 0 ? "+" : ""}{deltaPrice.toFixed(precision)}
         </text>
-        <text x="58" y="21" fill="#06b6d4" textAnchor="middle" className="text-[9px] font-mono font-black select-none">
+        <text x="58" y="21" fill="#2f5f85" textAnchor="middle" className="text-[9px] font-mono font-black select-none">
           Percent: {deltaPercent}%
         </text>
       </g>

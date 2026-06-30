@@ -76,6 +76,12 @@ export default function BottomPanel({
   useEffect(() => {
     currentSymbolRef.current = currentSymbol;
   }, [currentSymbol]);
+
+  useEffect(() => {
+    if (!strategyMode) return;
+    setActiveTab("ai");
+    setCollapsed(false);
+  }, [strategyMode]);
   useEffect(() => {
     const controller = new AbortController();
     setFeatureAccess((prev) => ({ ...prev, loading: true }));
@@ -296,12 +302,13 @@ export default function BottomPanel({
     }
   };
 
+  const visibleTab: BottomPanelTab = strategyMode ? "ai" : activeTab;
   const expandedStyle = strategyMode
-    ? { height: "28vh", minHeight: 172, maxHeight: 312 }
+    ? { height: "22vh", minHeight: 168, maxHeight: 236 }
     : { height: "24vh", minHeight: 128, maxHeight: 248 };
   const shellTone = strategyMode
-    ? "border-sky-500/25 bg-[#050914] shadow-[0_-18px_56px_rgba(2,8,23,0.48),inset_0_1px_0_rgba(34,211,238,0.08)]"
-    : "border-slate-800 bg-slate-950";
+    ? "border-[#1d4d6d] bg-[#000814] shadow-[0_-18px_56px_rgba(0,20,40,0.58),inset_0_1px_0_rgba(54,96,130,0.04)]"
+    : "border-[#12324a] bg-[#000814]";
 
   return (
     <div
@@ -309,7 +316,7 @@ export default function BottomPanel({
       style={collapsed ? undefined : expandedStyle}
     >
       <BottomPanelTabs
-        activeTab={activeTab}
+        activeTab={visibleTab}
         collapsed={collapsed}
         marketStatus={marketStatus}
         t={t}
@@ -322,11 +329,11 @@ export default function BottomPanel({
       />
 
       {!collapsed && (
-        <div className={`flex-grow overflow-y-auto min-h-0 transition-[padding,background-color] duration-500 ${strategyMode ? "bg-[#050914]/95 p-3" : "bg-slate-950/80 p-2"}`}>
-          {activeTab === "book" && <OrderBookTab orderBook={orderBook} currentSymbol={currentSymbol} />}
-          {activeTab === "trades" && <TradesTab trades={trades} currentSymbol={currentSymbol} />}
-          {activeTab === "news" && <NewsTab news={news} newsLoading={newsLoading} lang={lang} />}
-          {activeTab === "ai" && (
+        <div className={`flex-grow overflow-y-auto min-h-0 transition-[padding,background-color] duration-500 ${strategyMode ? "bg-[#000814] p-0" : "bg-[#000814]/80 p-2"}`}>
+          {visibleTab === "book" && <OrderBookTab orderBook={orderBook} currentSymbol={currentSymbol} />}
+          {visibleTab === "trades" && <TradesTab trades={trades} currentSymbol={currentSymbol} />}
+          {visibleTab === "news" && <NewsTab news={news} newsLoading={newsLoading} lang={lang} />}
+          {visibleTab === "ai" && (
             <AiAnalysisTab
               currentSymbol={currentSymbol}
               candles={candles}

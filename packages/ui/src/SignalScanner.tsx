@@ -1,4 +1,4 @@
-import { Activity, AlertTriangle, ChevronRight, Database, ListChecks, Newspaper, Radar, ShieldAlert, Sparkles, Target, Zap } from "lucide-react";
+import { Activity, AlertTriangle, ChevronRight, Database, ListChecks, Newspaper, ShieldAlert, Sparkles, Target, Zap } from "lucide-react";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { buildPrismIntelligence, describePrismIntelligence, type PrismIntelligence } from "../../shared/src/prismIntelligence";
 import type { AnalysisRunResponse, MarketDataStatus, MarketSymbol, NewsItem } from "../../shared/src/types";
@@ -110,9 +110,9 @@ export default function SignalScanner({
     [currentSymbol, marketStatus, analysisResult, newsItems, lang]
   );
   const handleRevealTone = revealHandle || !collapsed
-    ? "border-cyan-400/70 bg-slate-900 text-sky-300 opacity-100 shadow-[0_0_34px_rgba(34,211,238,0.28)]"
-    : "border-cyan-400/15 bg-slate-950/20 text-sky-300/0 opacity-25 shadow-none";
-  const workspaceWidth = "clamp(760px, 50vw, 960px)";
+    ? "border-blue-500/30 bg-[#031426] text-blue-200/75 opacity-100 shadow-[0_0_34px_rgba(54,96,130,0.28)]"
+    : "border-blue-500/30 bg-[#000814]/35 text-blue-300/70 opacity-25 shadow-none";
+  const workspaceWidth = "clamp(900px, 46vw, 1180px)";
 
   return (
     <aside
@@ -123,7 +123,7 @@ export default function SignalScanner({
       }}
     >
       <div
-        className={`absolute inset-y-0 left-0 flex flex-col border-r border-slate-800/80 bg-[#050914] text-slate-200 shadow-[18px_0_40px_rgba(2,6,23,0.26)] transition-[transform,opacity,filter] duration-500 ${
+        className={`absolute inset-y-0 left-0 flex flex-col border-r border-[#12324a]/80 bg-[#000814] text-slate-200 shadow-[18px_0_44px_rgba(0,18,38,0.42)] transition-[transform,opacity,filter] duration-500 ${
           collapsed ? "pointer-events-none -translate-x-5 opacity-0 blur-[1px]" : "translate-x-0 opacity-100 blur-0"
         }`}
         style={{ width: workspaceWidth, transitionTimingFunction: "cubic-bezier(0.22, 1, 0.36, 1)" }}
@@ -219,112 +219,93 @@ function SingleAssetWarRoom({
   const sourceLabel = marketStatus?.provider || marketStatus?.source || currentSymbol.dataProvider || currentSymbol.lastSource || currentSymbol.exchange || "gateway";
   const feedState = marketStatus?.state || currentSymbol.lastDataState || "local";
   const priceText = formatDeskPrice(currentSymbol.price, currentSymbol.precision);
-  const changeTone = currentSymbol.change24h >= 0 ? "text-emerald-300" : "text-rose-300";
-  const deskTabs = zh
-    ? ["THESIS", "EVENTS", "NEWS", "FLOW", "RISK", "DGWM", "SHORTS", "INSIDERS", "FEED"]
-    : ["THESIS", "EVENTS", "NEWS", "FLOW", "RISK", "DGWM", "SHORTS", "INSIDERS", "FEED"];
+  const deskTabs = ["FUNDAMENTALS", "EVENTS", "NEWS", "FLOW", "RISK", "DGWM", "SHORTS", "INSIDERS", "FEED"];
   const marketCapProxy = currentSymbol.type === "crypto" ? "CRYPTO" : (currentSymbol.exchange || currentSymbol.market || "EQUITY").toUpperCase();
+  const thesisState = intelligence.score >= 68
+    ? (zh ? "可推进" : "Advance")
+    : intelligence.score >= 52
+      ? (zh ? "等待确认" : "Wait Confirm")
+      : (zh ? "降低优先级" : "De-prioritize");
+  const thesisStateTone = intelligence.score >= 68
+    ? "text-emerald-300"
+    : intelligence.score >= 52
+      ? "text-amber-300"
+      : "text-rose-300";
+  const confirmationText = zh
+    ? `${intelligence.confidencePct}% 可信 / ${events.length} 事件`
+    : `${intelligence.confidencePct}% trust / ${events.length} events`;
+  const invalidationText = zh
+    ? `${brief.risk} / ${formatSigned(intelligence.drawdownPct)}% 回撤`
+    : `${brief.risk} / ${formatSigned(intelligence.drawdownPct)}% drawdown`;
+  const thesisRows = [
+    { label: zh ? "主判断" : "Primary Read", value: brief.bias, detail: brief.setup, tone: warBiasTone(intelligence.bias) },
+    { label: zh ? "确认条件" : "Confirmation", value: confirmationText, detail: sourceLabel, tone: "text-emerald-300" },
+    { label: zh ? "失效边界" : "Invalidation", value: invalidationText, detail: feedState, tone: warRiskTone(intelligence.risk) }
+  ];
 
   return (
     <>
-      <div className="border-b border-slate-800 bg-[#070b12]">
-        <div className="flex h-7 items-center gap-5 overflow-x-auto border-b border-slate-900 bg-[#05070d] px-3 pr-10 no-scrollbar">
-          {deskTabs.map((item, index) => (
-            <span
-              key={item}
-              className={`shrink-0 font-mono text-[8px] font-black uppercase tracking-[0.18em] ${index === 0 ? "text-cyan-300" : "text-slate-500"}`}
-            >
-              {item}
-            </span>
-          ))}
-        </div>
-
-        <div className="grid grid-cols-[minmax(0,1fr)_178px] gap-3 p-3 pr-9">
-          <div className="min-w-0">
-            <div className="flex items-center gap-2 text-[9px] font-black uppercase tracking-[0.24em] text-cyan-300">
-              <Radar className="h-3.5 w-3.5" />
-              {zh ? "单票作战室" : "Single Asset War Room"}
-            </div>
-            <div className="mt-2 flex min-w-0 items-end gap-2">
-              <h2 className="truncate text-[19px] font-black leading-none text-white">{currentSymbol.id}</h2>
-              <span className="mb-0.5 shrink-0 border border-slate-700 bg-[#0b111c] px-1.5 py-0.5 font-mono text-[8px] font-black uppercase tracking-wider text-slate-400">
-                {marketCapProxy}
+      <div className="border-b border-[#12324a] bg-[#000814]">
+        <div className="flex h-8 items-center justify-between gap-3 overflow-hidden border-b border-[#12324a] bg-[#000814] px-2 pr-10">
+          <div data-desk-tabs className="flex min-w-0 items-center gap-1 overflow-x-auto no-scrollbar">
+            {deskTabs.map((item, index) => (
+              <span
+                key={item}
+                className={`shrink-0 border-r border-[#0c253a] px-3 py-2 font-mono text-[8px] font-black uppercase tracking-[0.2em] ${index === 0 ? "bg-blue-500/25 text-blue-100/80 shadow-[inset_0_-2px_0_rgba(54,96,130,0.75)]" : "text-slate-500"}`}
+              >
+                {item}
               </span>
-              <span className="mb-0.5 shrink-0 font-mono text-[10px] font-black text-slate-300">{priceText}</span>
-              <span className={`mb-0.5 shrink-0 font-mono text-[10px] font-black ${changeTone}`}>
-                {formatSigned(currentSymbol.change24h)}%
-              </span>
-            </div>
-            <div className="mt-1 truncate text-[9px] font-semibold text-slate-500">
-              {currentSymbol.name} / {sourceLabel} / {feedState}
-            </div>
+            ))}
           </div>
-
-          <div className="grid grid-cols-2 gap-1.5">
-            <WarRoomMicroStat label={zh ? "评分" : "Score"} value={String(intelligence.score)} tone={warScoreTone(intelligence.score)} />
-            <WarRoomMicroStat label={zh ? "事件" : "Events"} value={String(events.length)} tone="text-cyan-300" />
-            <WarRoomMicroStat label={zh ? "防御" : "Defense"} value={String(stats.defense)} tone="text-amber-300" />
-            <WarRoomMicroStat label={zh ? "数据" : "Feed"} value={String(stats.feedIssues)} tone={stats.feedIssues > 0 ? "text-amber-300" : "text-emerald-300"} />
+          <div className="hidden shrink-0 items-center gap-2 font-mono text-[8px] font-black uppercase tracking-[0.18em] text-slate-500 2xl:flex">
+            <span className="text-blue-300/70">{currentSymbol.id}</span>
+            <span>/</span>
+            <span>{sourceLabel}</span>
+            <span>/</span>
+            <span>{feedState}</span>
+            <span>/</span>
+            <span className={warScoreTone(intelligence.score)}>MSIR {intelligence.score}</span>
           </div>
         </div>
       </div>
 
-      <div className="min-h-0 flex-1 overflow-y-auto bg-[#05070d] p-2.5">
-        <div className="grid grid-cols-[minmax(0,1.02fr)_minmax(268px,0.98fr)] gap-2.5">
-          <div className="min-w-0 space-y-2.5">
-            <section className="border border-slate-800 bg-[#080b12]">
-              <div className="flex items-center justify-between border-b border-slate-800 bg-[#0b1119] px-3 py-2">
-                <div className="font-mono text-[8px] font-black uppercase tracking-[0.22em] text-cyan-300">
-                  {zh ? "作战假设" : "Battle Thesis"}
-                </div>
-                <div className="font-mono text-[8px] font-black uppercase tracking-widest text-slate-500">
-                  {strategy.stage} / {strategy.execution}
-                </div>
-              </div>
-              <div className="grid grid-cols-[minmax(0,1fr)_94px] gap-3 p-3">
-                <div className="min-w-0">
-                  <h3 className="truncate text-[16px] font-black text-slate-100">{brief.headline}</h3>
-                  <p className="mt-2 line-clamp-3 text-[10px] leading-relaxed text-slate-400">{brief.action}</p>
-                </div>
-                <div className="border-l border-slate-800 pl-3 text-right font-mono">
-                  <div className={`text-[34px] font-black leading-none ${warScoreTone(intelligence.score)}`}>{intelligence.score}</div>
-                  <div className="mt-1 text-[8px] font-black uppercase tracking-widest text-slate-500">MSIR</div>
-                  <div className="mt-2 border border-cyan-400/25 bg-cyan-400/[0.06] px-1.5 py-1 text-[8px] font-black text-cyan-200">
-                    {intelligence.confidencePct}% CONF
-                  </div>
-                </div>
-              </div>
-              <div className="grid grid-cols-4 border-t border-slate-800">
-                <WarRoomMetricCell label={zh ? "方向" : "Bias"} value={brief.bias} tone={warBiasTone(intelligence.bias)} />
-                <WarRoomMetricCell label={zh ? "结构" : "Setup"} value={brief.setup} tone="text-cyan-300" />
-                <WarRoomMetricCell label={zh ? "风险" : "Risk"} value={brief.risk} tone={warRiskTone(intelligence.risk)} />
-                <WarRoomMetricCell label={zh ? "执行" : "Exec"} value={brief.action.split(" ")[0] || strategy.execution} tone="text-slate-200" />
-              </div>
-              <div className="space-y-2 border-t border-slate-800 p-3">
-                <WarRoomBar label={zh ? "证据可信" : "Evidence Confidence"} value={intelligence.confidencePct} tone="cyan" left="LOW" right="LOCK" />
-                <WarRoomBar label={zh ? "量能热度" : "Volume Heat"} value={Math.min(100, intelligence.volumeRatio * 46)} tone="emerald" left="DRY" right="FLOW" />
-              </div>
-            </section>
+      <div className="min-h-0 flex-1 overflow-y-auto bg-[#000814]" style={{ backgroundImage: "linear-gradient(rgba(54,96,130,0.045) 1px, transparent 1px), linear-gradient(90deg, rgba(54,96,130,0.04) 1px, transparent 1px), radial-gradient(circle at 18% 0%, rgba(42,82,120,0.08), transparent 34%)", backgroundSize: "24px 24px, 24px 24px, 100% 100%" }}>
+        <div className="grid min-h-full grid-rows-[270px_minmax(360px,1fr)]">
+          <WarRoomFundamentalSnapshot
+            currentSymbol={currentSymbol}
+            intelligence={intelligence}
+            brief={brief}
+            sourceLabel={sourceLabel}
+            feedState={feedState}
+            marketCapProxy={marketCapProxy}
+            priceText={priceText}
+            thesisState={thesisState}
+            thesisStateTone={thesisStateTone}
+            lang={lang}
+          />
 
-            <WarRoomNewsPanel
-              newsItems={newsItems}
-              loading={newsLoading}
-              symbol={currentSymbol}
-              lang={lang}
-            />
-          </div>
+          <div className="grid min-h-0 grid-cols-[minmax(0,1.02fr)_minmax(312px,0.82fr)]">
+            <div className="min-w-0">
+              <WarRoomNarrativeList
+                newsItems={newsItems}
+                loading={newsLoading}
+                events={events}
+                symbol={currentSymbol}
+                lang={lang}
+              />
+              <StrategyEventTape events={events} lang={lang} onSymbolSelect={onSymbolSelect} />
+            </div>
 
-          <div className="min-w-0 space-y-2.5">
-            <WarRoomPressurePanel
-              intelligence={intelligence}
-              brief={brief}
-              sourceLabel={sourceLabel}
-              feedState={feedState}
-              analysisLinked={Boolean(analysisResult)}
-              lang={lang}
-            />
-            <WarRoomActionStack suggestions={suggestions} lang={lang} />
-            <StrategyEventTape events={events} lang={lang} onSymbolSelect={onSymbolSelect} />
+            <div className="min-w-0">
+              <WarRoomOrderGraphPanel
+                intelligence={intelligence}
+                symbol={currentSymbol}
+                sourceLabel={sourceLabel}
+                feedState={feedState}
+                lang={lang}
+              />
+              <WarRoomActionStack suggestions={suggestions} lang={lang} />
+            </div>
           </div>
         </div>
 
@@ -339,8 +320,8 @@ function SingleAssetWarRoom({
       </div>
 
       {!integratedBottom && (
-        <div className="border-t border-slate-900 bg-[#05070d] p-2.5">
-          <div className="border border-slate-800 bg-[#080b12] p-2 text-[9px] leading-relaxed text-slate-500">
+        <div className="border-t border-[#12324a] bg-[#000814] p-2.5">
+          <div className="border border-[#12324a] bg-[#061a2b] p-2 text-[9px] leading-relaxed text-slate-500">
             <div className="mb-1 font-mono font-black uppercase tracking-widest text-slate-400">
               {zh ? "作战室职责" : "War Room Role"}
             </div>
@@ -354,20 +335,51 @@ function SingleAssetWarRoom({
   );
 }
 
-function WarRoomMicroStat({ label, value, tone }: { label: string; value: string; tone: string }) {
+
+function WarRoomRightStat({ label, value, tone }: { label: string; value: string; tone: string }) {
   return (
-    <div className="border border-slate-800 bg-[#080d15] px-2 py-1.5">
-      <div className="truncate font-mono text-[7px] font-black uppercase tracking-widest text-slate-600">{label}</div>
-      <div className={`mt-0.5 truncate font-mono text-[13px] font-black ${tone}`}>{value}</div>
+    <div className="flex min-w-0 items-center justify-between gap-2 border-b border-[#12324a] px-3 last:border-b-0">
+      <div className="flex min-w-0 items-center gap-1.5 truncate font-mono text-[7px] font-black uppercase tracking-widest text-slate-600">
+        <span className="h-1.5 w-1.5 shrink-0 bg-blue-500/25" />
+        {label}
+      </div>
+      <div className={`shrink-0 font-mono text-[18px] font-black ${tone}`}>{value}</div>
+    </div>
+  );
+}
+
+function WarRoomMemoCell({ label, value, detail, tone }: { label: string; value: string; detail: string; tone: string }) {
+  return (
+    <div className="relative min-w-0 border-r border-[#12324a] bg-[#031426] px-3 py-2 last:border-r-0">
+      <div className="absolute inset-x-0 top-0 h-[2px] bg-blue-500/25" />
+      <div className="flex items-center gap-1.5 truncate font-mono text-[7px] font-black uppercase tracking-widest text-slate-600">
+        <span className="h-1.5 w-1.5 shrink-0 bg-amber-300/70" />
+        {label}
+      </div>
+      <div className={`mt-1 truncate text-[11px] font-black ${tone}`}>{value}</div>
+      <div className="mt-0.5 truncate font-mono text-[7px] uppercase tracking-wider text-slate-600">{detail}</div>
+    </div>
+  );
+}
+
+function WarRoomRailStat({ label, value, tone }: { label: string; value: string; tone: string }) {
+  return (
+    <div className="flex min-w-0 items-center justify-between gap-2 border-b border-[#12324a] px-3 last:border-b-0">
+      <div className="flex min-w-0 items-center gap-1.5 truncate font-mono text-[7px] font-black uppercase tracking-widest text-slate-600">
+        <span className="h-1.5 w-1.5 shrink-0 bg-slate-500" />
+        {label}
+      </div>
+      <div className={`truncate text-right font-mono text-[11px] font-black ${tone}`}>{value}</div>
     </div>
   );
 }
 
 function WarRoomMetricCell({ label, value, tone }: { label: string; value: string; tone: string }) {
   return (
-    <div className="min-w-0 border-r border-slate-800 px-2.5 py-2 last:border-r-0">
+    <div className="relative min-w-0 border-r border-[#12324a] bg-[#031426] px-2.5 py-2 last:border-r-0">
+      <div className="absolute inset-x-0 top-0 h-[2px] bg-blue-500/25" />
       <div className="truncate font-mono text-[7px] font-black uppercase tracking-widest text-slate-600">{label}</div>
-      <div className={`mt-1 truncate text-[10px] font-black ${tone}`}>{value}</div>
+      <div className={`mt-1 truncate text-[11px] font-black ${tone}`}>{value}</div>
     </div>
   );
 }
@@ -375,7 +387,7 @@ function WarRoomMetricCell({ label, value, tone }: { label: string; value: strin
 function WarRoomBar({ label, value, tone, left, right }: { label: string; value: number; tone: "cyan" | "emerald" | "amber" | "rose"; left: string; right: string }) {
   const width = Math.max(4, Math.min(100, Math.round(value)));
   const fill = {
-    cyan: "bg-cyan-300",
+    cyan: "bg-blue-500/25",
     emerald: "bg-emerald-300",
     amber: "bg-amber-300",
     rose: "bg-rose-300"
@@ -387,7 +399,7 @@ function WarRoomBar({ label, value, tone, left, right }: { label: string; value:
         <span>{label}</span>
         <span className="text-slate-400">{width}</span>
       </div>
-      <div className="mt-1 h-1.5 bg-slate-950">
+      <div className="mt-1 h-1.5 bg-[#000814]">
         <div className={`h-full ${fill}`} style={{ width: `${width}%` }} />
       </div>
       <div className="mt-1 flex items-center justify-between font-mono text-[7px] font-black uppercase tracking-widest text-slate-700">
@@ -398,23 +410,459 @@ function WarRoomBar({ label, value, tone, left, right }: { label: string; value:
   );
 }
 
-function WarRoomNewsPanel({ newsItems, loading, symbol, lang }: { newsItems: NewsItem[]; loading: boolean; symbol: MarketSymbol; lang: Language }) {
+function WarRoomFundamentalSnapshot({
+  currentSymbol,
+  intelligence,
+  brief,
+  sourceLabel,
+  feedState,
+  marketCapProxy,
+  priceText,
+  thesisState,
+  thesisStateTone,
+  lang
+}: {
+  currentSymbol: MarketSymbol;
+  intelligence: PrismIntelligence;
+  brief: ReturnType<typeof describePrismIntelligence>;
+  sourceLabel: string;
+  feedState: string;
+  marketCapProxy: string;
+  priceText: string;
+  thesisState: string;
+  thesisStateTone: string;
+  lang: Language;
+}) {
   const zh = lang === "zh" || lang === "tc";
-  const rows = newsItems.slice(0, 4);
+  const volatility = Math.max(0.7, intelligence.volatilityPct || Math.abs(currentSymbol.change24h) || 1.2);
+  const daySpread = Math.min(8, Math.max(0.8, volatility * 0.72));
+  const rangeSpread = Math.min(48, Math.max(14, Math.abs(intelligence.drawdownPct) * 1.6 + volatility * 4));
+  const dayLow = currentSymbol.price * (1 - daySpread / 100);
+  const dayHigh = currentSymbol.price * (1 + daySpread / 100);
+  const rangeLow = currentSymbol.price * (1 - rangeSpread / 100);
+  const rangeHigh = currentSymbol.price * (1 + rangeSpread / 100);
+  const dayPosition = clampPercent(50 + currentSymbol.change24h * 8);
+  const rangePosition = clampPercent(72 + intelligence.momentumPct * 5 - Math.abs(intelligence.drawdownPct));
+  const volumeValue = currentSymbol.volume24h > 0 ? formatCompactStat(currentSymbol.volume24h) : `${intelligence.volumeRatio.toFixed(1)}x`;
+  const capProxy = currentSymbol.price > 0
+    ? `${formatCompactStat(currentSymbol.price * Math.max(currentSymbol.volume24h, 1_000_000))} ${currentSymbol.currency || "USD"}`
+    : marketCapProxy;
+  const freeFloat = `${Math.max(8, Math.min(97, Math.round(intelligence.confidencePct * 0.92)))}%`;
+  const floatProxy = `${formatCompactStat(Math.max(50_000, currentSymbol.volume24h * 0.28 || 2_400_000))} ${currentSymbol.type === "crypto" ? "units" : "shrs"}`;
+  const sharesProxy = `${formatCompactStat(Math.max(120_000, currentSymbol.volume24h * 0.74 || 8_800_000))} ${currentSymbol.type === "crypto" ? "units" : "shrs"}`;
+  const narrative = zh
+    ? [
+      `${currentSymbol.name} 当前围绕 ${brief.setup} 展开，MSIR ${intelligence.score}，趋势判断为 ${brief.bias}。`,
+      `成交量代理为 ${intelligence.volumeRatio.toFixed(1)}x，回撤压力 ${formatSigned(intelligence.drawdownPct)}%，先看价格是否继续守住关键流动性区域。`,
+      `此模块对应参考图里的 Company Highlights：用于把基本面摘要、区间位置和右侧核心指标压到同一屏。`
+    ]
+    : [
+      `${currentSymbol.name} is staged around ${brief.setup}; MSIR ${intelligence.score} and bias is ${brief.bias}.`,
+      `Volume proxy reads ${intelligence.volumeRatio.toFixed(1)}x, drawdown pressure is ${formatSigned(intelligence.drawdownPct)}%, and liquidity confirmation remains the next check.`,
+      `This mirrors the Company Highlights panel: thesis text, range position, and key stats in one work surface.`
+    ];
 
   return (
-    <section className="border border-slate-800 bg-[#080b12]">
-      <div className="flex items-center justify-between border-b border-amber-300/20 bg-[#111008] px-3 py-2">
-        <div className="flex items-center gap-1.5 font-mono text-[8px] font-black uppercase tracking-[0.22em] text-amber-300">
-          <Newspaper className="h-3 w-3" />
-          {zh ? "重大行为 / 新闻" : "Major Behavior / News"}
-        </div>
-        <div className="font-mono text-[8px] font-black uppercase tracking-widest text-emerald-300">
-          {rows.length > 0 ? (zh ? "催化" : "Catalyst") : "SCAN"}
+    <section className="border-b border-[#12324a] bg-[#010915]">
+      <div className="min-w-0">
+        <div className="grid h-full grid-rows-[54px_minmax(0,1fr)_32px]">
+          <div className="grid grid-cols-[minmax(0,1fr)_410px] border-b border-[#12324a] bg-[#020b18] px-3 py-1.5">
+            <div className="min-w-0">
+              <div className="flex items-center gap-2 font-mono text-[8px] font-black uppercase tracking-[0.24em] text-blue-300/70">
+                <Target className="h-3 w-3" />
+                {zh ? "基本面摘要 / 作战亮点" : "Company Highlights / Thesis"}
+              </div>
+              <div className="mt-1 flex min-w-0 items-center gap-2">
+                <span className="truncate text-[18px] font-black leading-none text-slate-100">{currentSymbol.id}</span>
+                <span className="border border-[#1d4d6d] bg-[#031426] px-1.5 py-0.5 font-mono text-[7px] font-black uppercase tracking-wider text-slate-400">{marketCapProxy}</span>
+                <span className={`font-mono text-[10px] font-black ${currentSymbol.change24h >= 0 ? "text-emerald-300" : "text-rose-300"}`}>{formatSigned(currentSymbol.change24h)}%</span>
+              </div>
+            </div>
+            <div className="flex min-w-0 items-center self-stretch">
+              <WarRoomRangeGradient
+                dayLeft={formatDeskPrice(dayLow, currentSymbol.precision)}
+                dayRight={formatDeskPrice(dayHigh, currentSymbol.precision)}
+                dayValue={dayPosition}
+                rangeLeft={formatDeskPrice(rangeLow, currentSymbol.precision)}
+                rangeRight={formatDeskPrice(rangeHigh, currentSymbol.precision)}
+                rangeValue={rangePosition}
+              />
+            </div>
+          </div>
+
+          <div className="grid min-h-0 grid-cols-[minmax(0,1fr)_150px]">
+            <div className="flex h-full min-h-0 min-w-0 flex-col justify-between p-3">
+              <div className="space-y-2 text-[9px] font-semibold leading-relaxed text-slate-300">
+                {narrative.map((line) => <p key={line} className="line-clamp-2">{line}</p>)}
+              </div>
+              <div className="grid grid-cols-4 border border-[#12324a] bg-[#031426]/72">
+                <WarRoomMetricCell label={zh ? "价格" : "Price"} value={priceText} tone="text-slate-100" />
+                <WarRoomMetricCell label={zh ? "状态" : "State"} value={thesisState} tone={thesisStateTone} />
+                <WarRoomMetricCell label={zh ? "可信" : "Trust"} value={`${intelligence.confidencePct}%`} tone="text-emerald-300" />
+                <WarRoomMetricCell label="DGWM" value={intelligence.score >= 62 ? "READY" : "WAIT"} tone={intelligence.score >= 62 ? "text-blue-300/70" : "text-amber-300"} />
+              </div>
+            </div>
+            <div className="border-l border-[#12324a] bg-[#010d1c] p-2">
+              <WarRoomKeyStatsRail
+                stats={[
+                  { label: zh ? "市值代理" : "Market Cap", value: capProxy },
+                  { label: zh ? "成交量" : "Volume", value: volumeValue },
+                  { label: zh ? "流通供给" : "Shares Out", value: sharesProxy },
+                  { label: zh ? "自由流通" : "Free Float", value: `${floatProxy} / ${freeFloat}` }
+                ]}
+              />
+            </div>
+          </div>
+
+          <div className="flex min-w-0 items-center gap-2 overflow-hidden border-t border-[#12324a] bg-[#031827] px-3 font-mono text-[7px] font-black uppercase tracking-[0.18em] text-slate-500">
+            <span className="text-blue-300/70">{sourceLabel}</span>
+            <span>/</span>
+            <span>{feedState}</span>
+            <span>/</span>
+            <span>{brief.risk}</span>
+            <span>/</span>
+            <span className="truncate">{currentSymbol.name}</span>
+          </div>
         </div>
       </div>
-      <div className="grid grid-cols-[minmax(0,1fr)_84px] gap-2 p-3">
-        <div className="min-w-0 border border-slate-800 bg-[#070b11] p-2.5">
+
+    </section>
+  );
+}
+
+function WarRoomRangeGradient({
+  dayLeft,
+  dayRight,
+  dayValue,
+  rangeLeft,
+  rangeRight,
+  rangeValue
+}: {
+  dayLeft: string;
+  dayRight: string;
+  dayValue: number;
+  rangeLeft: string;
+  rangeRight: string;
+  rangeValue: number;
+}) {
+  return (
+    <div className="war-range-pair grid w-full min-w-0 grid-cols-2 items-center gap-5 font-mono text-[7px] font-black uppercase tracking-wider text-slate-500">
+      <RangeGradientRow label="DAY" left={dayLeft} right={dayRight} value={dayValue} markerTone="white" />
+      <RangeGradientRow label="52 WEEK" left={rangeLeft} right={rangeRight} value={rangeValue} markerTone="cyan" />
+    </div>
+  );
+}
+
+function RangeGradientRow({ label, left, right, value, markerTone }: { label: string; left: string; right: string; value: number; markerTone: "white" | "cyan" }) {
+  const clamped = clampPercent(value);
+  const markerClass = markerTone === "cyan"
+    ? "bg-blue-200/70 shadow-[0_0_10px_rgba(54,96,130,0.52)]"
+    : "bg-white shadow-[0_0_10px_rgba(255,255,255,0.5)]";
+  return (
+    <div className="war-range-row min-w-0">
+      <div className="war-range-meta grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2 text-[6px] tracking-[0.12em] text-slate-500">
+        <span className="truncate text-left">{left}</span>
+        <span className="shrink-0 text-center text-[7px] tracking-[0.14em] text-slate-300">{label}</span>
+        <span className="truncate text-right">{right}</span>
+      </div>
+      <div className="war-range-track relative mt-1 h-2 bg-[#000814] shadow-[inset_0_0_0_1px_rgba(18,50,74,0.82)]">
+        <div
+          className="war-range-fill absolute inset-0"
+          style={{
+            background: "linear-gradient(90deg, rgba(251,113,133,0.9) 0%, rgba(210,116,128,0.76) 25%, rgba(60,65,73,0.78) 48%, rgba(44,196,207,0.82) 72%, rgba(93,245,237,0.94) 100%)"
+          }}
+        />
+        <div className="war-range-topline absolute inset-x-0 top-0 h-px bg-white/18" />
+        <div className="war-range-bottomline absolute inset-x-0 bottom-0 h-px bg-black/55" />
+        <div className={`war-range-marker absolute -top-1 h-4 w-[2px] ${markerClass}`} style={{ left: `${clamped}%` }} />
+      </div>
+    </div>
+  );
+}
+function WarRoomKeyStatsRail({ stats }: { stats: Array<{ label: string; value: string }> }) {
+  return (
+    <div className="grid h-full content-center gap-2">
+      {stats.map((item) => (
+        <div key={item.label} className="text-center font-mono">
+          <div className="text-[8px] font-black uppercase tracking-widest text-slate-400">{item.label}</div>
+          <div className="mx-auto mt-1 w-fit max-w-full truncate border border-slate-500/70 bg-[#05080d] px-2 py-0.5 text-[9px] font-black text-slate-100 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.03)]">
+            {item.value}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function WarRoomNarrativeList({ newsItems, loading, events, symbol, lang }: { newsItems: NewsItem[]; loading: boolean; events: IntelEvent[]; symbol: MarketSymbol; lang: Language }) {
+  const zh = lang === "zh" || lang === "tc";
+  const newsRows = newsItems.slice(0, 5).map((item, index) => ({
+    id: item.id,
+    title: item.title,
+    meta: `${item.source} / ${item.time}`,
+    tag: item.sentiment === "neutral" ? "MT Narrative" : item.sentiment.toUpperCase(),
+    tone: item.sentiment === "bearish" ? "rose" : item.sentiment === "bullish" ? "emerald" : "amber" as IntelEvent["tone"],
+    stars: catalystStarScore(item, index, symbol.change24h)
+  }));
+  const fallbackRows = events.slice(0, 5).map((item, index) => ({
+    id: item.id,
+    title: item.title,
+    meta: item.meta,
+    tag: item.tone === "amber" ? (zh ? "为什么重要" : "Why It Matters") : "MT Narrative",
+    tone: item.tone,
+    stars: Math.max(3, Math.min(5, item.tone === "slate" ? 3 : 4 + (index === 0 ? 1 : 0)))
+  }));
+  const rows = (newsRows.length > 0 ? newsRows : fallbackRows).slice(0, 5);
+  while (rows.length < 5) {
+    rows.push({ id: `placeholder-${rows.length}`, title: loading ? (zh ? "正在同步事件叙事" : "Syncing market narrative") : (zh ? "等待新的材料事件" : "Awaiting material event"), meta: "PRISM SENTINEL", tag: "MT Narrative", tone: "amber", stars: 3 });
+  }
+
+  return (
+    <section className="border-b border-[#12324a] bg-[#010915]">
+      <div className="flex h-8 items-center justify-between border-b border-[#12324a] bg-[#031827] px-3">
+        <div className="flex items-center gap-1.5 font-mono text-[8px] font-black uppercase tracking-[0.22em] text-amber-300">
+          <Newspaper className="h-3 w-3" />
+          {zh ? "叙事新闻 / 事件评分" : "Narrative News / Event Ratings"}
+        </div>
+        <div className="font-mono text-[8px] font-black uppercase tracking-widest text-slate-500">MT NARRATIVE</div>
+      </div>
+      <div className="divide-y divide-[#12324a]">
+        {rows.map((item) => (
+          <div key={item.id} className="grid grid-cols-[minmax(0,1fr)_132px] items-center gap-3 px-3 py-2.5">
+            <div className="min-w-0">
+              <div className="truncate text-[10px] font-black text-slate-200">{item.title}</div>
+              <div className="mt-0.5 truncate font-mono text-[7px] uppercase tracking-wider text-slate-600">{item.meta}</div>
+            </div>
+            <div className="flex items-center justify-end gap-2">
+              <span className={`shrink-0 border px-1.5 py-0.5 font-mono text-[7px] font-black uppercase tracking-wider ${eventTagTone(item.tone)}`}>{item.tag}</span>
+              <span className="font-mono text-[9px] tracking-[0.08em]">
+                {Array.from({ length: 5 }).map((_, index) => <span key={index} className={index < item.stars ? "text-amber-300" : "text-slate-700"}>★</span>)}
+              </span>
+            </div>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function WarRoomOrderGraphPanel({ intelligence, symbol, sourceLabel, feedState, lang }: { intelligence: PrismIntelligence; symbol: MarketSymbol; sourceLabel: string; feedState: string; lang: Language }) {
+  const zh = lang === "zh" || lang === "tc";
+  const depth = buildDepthValues(intelligence, symbol);
+  const spread = Math.max(0.03, Math.min(2.8, intelligence.volatilityPct * 0.18 + Math.abs(symbol.change24h) * 0.05));
+
+  return (
+    <section className="border-b border-[#12324a] bg-[#010915]">
+      <div className="flex h-8 items-center justify-between border-b border-[#12324a] bg-[#031827] px-3">
+        <div className="flex items-center gap-1.5 font-mono text-[8px] font-black uppercase tracking-[0.22em] text-blue-300/70">
+          <Activity className="h-3 w-3" />
+          {zh ? "订单压力 / 深度图" : "Order Pressure / Depth"}
+        </div>
+        <div className="font-mono text-[8px] font-black uppercase tracking-widest text-slate-500">{sourceLabel} / {feedState}</div>
+      </div>
+      <div className="border-b border-[#12324a] bg-[#020b18] px-3 py-2">
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center gap-1 font-mono text-[8px] font-black uppercase tracking-wider">
+            <span className="border border-blue-500/30 bg-blue-500/25 px-2 py-1 text-blue-200/75">ORDER GRAPH</span>
+            <span className="border border-[#12324a] bg-[#000814] px-2 py-1 text-slate-500">ORDER BOOK</span>
+          </div>
+          <div className="font-mono text-[7px] font-black uppercase tracking-widest text-slate-500">{symbol.id} / {zh ? "代理深度" : "proxy depth"}</div>
+        </div>
+      </div>
+      <div className="p-3">
+        <div className="overflow-hidden border border-[#12324a] bg-[#05080d] shadow-[inset_0_0_0_1px_rgba(54,96,130,0.035),0_18px_36px_rgba(0,0,0,0.22)]">
+          <WarRoomStepDepthChart bids={depth.bids} asks={depth.asks} />
+        </div>
+        <div className="mt-3 grid grid-cols-3 border border-[#12324a]">
+          <WarRoomMetricCell label={zh ? "中间价" : "Mid"} value={formatDeskPrice(symbol.price, symbol.precision)} tone="text-blue-300/70" />
+          <WarRoomMetricCell label={zh ? "价差" : "Spread"} value={`${spread.toFixed(2)}%`} tone={spread > 1.2 ? "text-amber-300" : "text-emerald-300"} />
+          <WarRoomMetricCell label={zh ? "深度" : "Depth"} value={depth.bias} tone={depth.bias === "BID HEAVY" ? "text-blue-300/70" : depth.bias === "ASK HEAVY" ? "text-rose-300" : "text-slate-300"} />
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function WarRoomStepDepthChart({ bids, asks }: { bids: number[]; asks: number[] }) {
+  const average = (values: number[]) => values.reduce((sum, value) => sum + value, 0) / Math.max(1, values.length);
+  const bidPower = Math.max(48, Math.min(96, average(bids)));
+  const askPower = Math.max(8, Math.min(82, average(asks)));
+  const bidLift = (bidPower - 68) * 0.22;
+  const askLift = (askPower - 34) * 0.18;
+  const baseline = 218;
+  const bidTop = 70 - bidLift;
+  const bidShelfA = 109 - bidLift * 0.45;
+  const bidShelfB = 151 - bidLift * 0.2;
+  const bidCliff = 207 - bidLift * 0.08;
+  const askStart = 216 - askLift * 0.12;
+  const askShelf = 204 - askLift * 0.35;
+  const askRamp = 181 - askLift * 0.62;
+  const askTop = 136 - askLift;
+  const bidLine = buildSmoothDepthPath([
+    [58, bidTop],
+    [104, bidTop + 3],
+    [132, bidShelfA],
+    [185, bidShelfA + 9],
+    [216, bidShelfB],
+    [262, bidShelfB + 10],
+    [294, bidCliff],
+    [330, baseline - 3],
+    [368, baseline]
+  ]);
+  const bidArea = `${bidLine} L 368 ${baseline} L 58 ${baseline} Z`;
+  const askLine = buildSmoothDepthPath([
+    [368, baseline],
+    [452, askStart],
+    [512, askShelf],
+    [584, askRamp],
+    [620, askTop]
+  ]);
+  const askArea = `${askLine} L 620 ${baseline} L 368 ${baseline} Z`;
+
+  return (
+    <svg className="war-room-depth-chart h-[220px] w-full" viewBox="0 0 640 260" preserveAspectRatio="none" aria-hidden="true">
+      <defs>
+        <linearGradient id="ortexDepthSurface" x1="0" x2="1" y1="0" y2="1">
+          <stop offset="0" stopColor="var(--depth-surface-0, #0a1518)" />
+          <stop offset="0.48" stopColor="var(--depth-surface-mid, #070708)" />
+          <stop offset="1" stopColor="var(--depth-surface-1, #100a0a)" />
+        </linearGradient>
+        <radialGradient id="ortexDepthMist" cx="50%" cy="44%" r="72%">
+          <stop offset="0" stopColor="var(--depth-mist-0, #11343a)" stopOpacity="var(--depth-mist-opacity-0, 0.2)" />
+          <stop offset="0.55" stopColor="var(--depth-mist-1, #071013)" stopOpacity="var(--depth-mist-opacity-1, 0.12)" />
+          <stop offset="1" stopColor="var(--depth-mist-2, #000000)" stopOpacity="var(--depth-mist-opacity-2, 0)" />
+        </radialGradient>
+        <linearGradient id="ortexDepthBaseline" x1="0" x2="1" y1="0" y2="0">
+          <stop offset="0" stopColor="var(--depth-baseline-bid, #38f5ee)" stopOpacity="var(--depth-baseline-opacity, 0.55)" />
+          <stop offset="0.48" stopColor="var(--depth-baseline-mid-bid, #20434a)" stopOpacity="var(--depth-baseline-opacity, 0.55)" />
+          <stop offset="0.62" stopColor="var(--depth-baseline-mid-ask, #552020)" stopOpacity="var(--depth-baseline-opacity-soft, 0.45)" />
+          <stop offset="1" stopColor="var(--depth-baseline-ask, #ff6658)" stopOpacity="var(--depth-baseline-opacity, 0.55)" />
+        </linearGradient>
+        <linearGradient id="ortexBidDepthFill" x1="0" x2="0" y1="0" y2="1">
+          <stop offset="0" stopColor="var(--depth-bid-fill-0, #45fff6)" stopOpacity="var(--depth-bid-fill-opacity-0, 0.88)" />
+          <stop offset="0.48" stopColor="var(--depth-bid-fill-1, #20bdc0)" stopOpacity="var(--depth-bid-fill-opacity-1, 0.58)" />
+          <stop offset="0.78" stopColor="var(--depth-bid-fill-2, #12656d)" stopOpacity="var(--depth-bid-fill-opacity-2, 0.34)" />
+          <stop offset="1" stopColor="var(--depth-bid-fill-3, #0a2023)" stopOpacity="var(--depth-bid-fill-opacity-3, 0.2)" />
+        </linearGradient>
+        <linearGradient id="ortexAskDepthFill" x1="0" x2="0" y1="0" y2="1">
+          <stop offset="0" stopColor="var(--depth-ask-fill-0, #ff796e)" stopOpacity="var(--depth-ask-fill-opacity-0, 0.86)" />
+          <stop offset="0.54" stopColor="var(--depth-ask-fill-1, #cf4a43)" stopOpacity="var(--depth-ask-fill-opacity-1, 0.52)" />
+          <stop offset="0.82" stopColor="var(--depth-ask-fill-2, #6d2522)" stopOpacity="var(--depth-ask-fill-opacity-2, 0.34)" />
+          <stop offset="1" stopColor="var(--depth-ask-fill-3, #271010)" stopOpacity="var(--depth-ask-fill-opacity-3, 0.2)" />
+        </linearGradient>
+        <filter id="ortexDepthGlow" x="-20%" y="-20%" width="140%" height="140%">
+          <feGaussianBlur stdDeviation="3.8" result="blur" />
+          <feMerge>
+            <feMergeNode in="blur" />
+            <feMergeNode in="SourceGraphic" />
+          </feMerge>
+        </filter>
+        <filter id="ortexDepthSoftEdge" x="-10%" y="-10%" width="120%" height="120%">
+          <feGaussianBlur stdDeviation="1.15" />
+        </filter>
+      </defs>
+      <rect x="0" y="0" width="640" height="260" fill="url(#ortexDepthSurface)" />
+      <rect x="0" y="0" width="640" height="260" fill="url(#ortexDepthMist)" />
+      {[52, 92, 132, 172, 212].map((y) => <line key={y} x1="52" x2="622" y1={y} y2={y} stroke="var(--depth-grid-y, #3a302e)" strokeWidth="0.8" strokeOpacity="var(--depth-grid-opacity, 0.42)" />)}
+      {[88, 208, 328, 448, 568].map((x) => <line key={x} x1={x} x2={x} y1="36" y2="232" stroke="var(--depth-grid-x, #263942)" strokeWidth="0.8" strokeOpacity="var(--depth-grid-opacity, 0.42)" />)}
+      {["12.5", "10.0", "7.5", "5.0", "2.5", "0"].map((label, index) => (
+        <text key={label} x="18" y={54 + index * 34} fill="var(--depth-axis-text, #4a3a38)" opacity="var(--depth-axis-opacity, 0.58)" fontSize="10" fontFamily="monospace" fontWeight="700">{label}</text>
+      ))}
+      <path d={bidArea} className="depth-glow" fill="var(--depth-bid-haze, #37f7ef)" opacity="var(--depth-bid-haze-opacity, 0.22)" filter="url(#ortexDepthGlow)" />
+      <path d={askArea} className="depth-glow" fill="var(--depth-ask-haze, #ff675b)" opacity="var(--depth-ask-haze-opacity, 0.2)" filter="url(#ortexDepthGlow)" />
+      <path d={bidArea} fill="url(#ortexBidDepthFill)" />
+      <path d={askArea} fill="url(#ortexAskDepthFill)" />
+      <path d={bidLine} fill="none" className="depth-soft-edge" stroke="var(--depth-bid-soft-edge, #b6fff9)" strokeWidth="5.5" strokeOpacity="var(--depth-soft-edge-opacity, 0.13)" strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke" filter="url(#ortexDepthSoftEdge)" />
+      <path d={askLine} fill="none" className="depth-soft-edge" stroke="var(--depth-ask-soft-edge, #ffd2cc)" strokeWidth="5.5" strokeOpacity="var(--depth-soft-edge-opacity, 0.12)" strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke" filter="url(#ortexDepthSoftEdge)" />
+      <path d={bidLine} fill="none" stroke="var(--depth-bid-line, #4cf8ef)" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke" />
+      <path d={askLine} fill="none" stroke="var(--depth-ask-line, #ff7468)" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke" />
+      <line x1="54" x2="620" y1={baseline} y2={baseline} stroke="url(#ortexDepthBaseline)" strokeWidth="2" />
+      <line x1="366" x2="366" y1="42" y2="226" stroke="var(--depth-center-line, #1d5360)" strokeWidth="0.9" strokeDasharray="4 6" strokeOpacity="var(--depth-center-opacity, 0.72)" />
+      {["17.1", "17.4", "17.7", "18.0", "18.3"].map((label, index) => (
+        <text key={label} x={78 + index * 124} y="246" fill="var(--depth-axis-text, #3c3835)" opacity="var(--depth-axis-opacity-strong, 0.68)" fontSize="10" fontFamily="monospace" fontWeight="700">{label}</text>
+      ))}
+      <rect x="0" y="0" width="640" height="260" fill="none" stroke="var(--depth-frame, #12324a)" strokeOpacity="var(--depth-frame-opacity, 0.45)" />
+    </svg>
+  );
+}
+function buildSmoothDepthPath(points: Array<[number, number]>) {
+  if (points.length === 0) return "";
+  if (points.length === 1) return `M ${points[0][0]} ${points[0][1]}`;
+
+  const tension = 0.28;
+  let path = `M ${points[0][0]} ${points[0][1]}`;
+  for (let index = 0; index < points.length - 1; index += 1) {
+    const previous = points[Math.max(0, index - 1)];
+    const current = points[index];
+    const next = points[index + 1];
+    const nextAfter = points[Math.min(points.length - 1, index + 2)];
+    const cp1x = current[0] + (next[0] - previous[0]) * tension;
+    const cp1y = current[1] + (next[1] - previous[1]) * tension;
+    const cp2x = next[0] - (nextAfter[0] - current[0]) * tension;
+    const cp2y = next[1] - (nextAfter[1] - current[1]) * tension;
+    path += ` C ${cp1x} ${cp1y} ${cp2x} ${cp2y} ${next[0]} ${next[1]}`;
+  }
+  return path;
+}
+function buildDepthValues(intelligence: PrismIntelligence, symbol: MarketSymbol) {
+  const momentum = Math.max(-8, Math.min(8, intelligence.momentumPct));
+  const volumeBoost = Math.max(0, Math.min(18, (intelligence.volumeRatio - 1) * 12));
+  const stress = Math.max(0, Math.min(22, Math.abs(intelligence.drawdownPct) * 1.5));
+  const bidBase = 74 + momentum * 2 + volumeBoost - stress * 0.4;
+  const askBase = 28 - momentum * 1.4 + stress + (symbol.change24h < 0 ? 12 : 0);
+  const bids = [bidBase + 18, bidBase + 8, bidBase - 5, bidBase - 28, bidBase - 58].map(clampPercent);
+  const asks = [askBase - 22, askBase - 12, askBase, askBase + 16, askBase + 34, askBase + 48].map(clampPercent);
+  const bidSum = bids.reduce((sum, value) => sum + value, 0);
+  const askSum = asks.reduce((sum, value) => sum + value, 0);
+  const bias = bidSum > askSum * 1.18 ? "BID HEAVY" : askSum > bidSum * 1.18 ? "ASK HEAVY" : "BALANCED";
+  return { bids, asks, bias };
+}
+
+function buildStepAreaPath(values: number[], x0: number, x1: number, baseline: number, maxHeight: number) {
+  const step = (x1 - x0) / values.length;
+  let path = `M ${x0} ${baseline}`;
+  values.forEach((value, index) => {
+    const x = x0 + index * step;
+    const nextX = x0 + (index + 1) * step;
+    const y = baseline - (clampPercent(value) / 100) * maxHeight;
+    path += ` L ${x} ${y} L ${nextX} ${y}`;
+  });
+  return `${path} L ${x1} ${baseline} Z`;
+}
+
+function buildStepLinePath(values: number[], x0: number, x1: number, baseline: number, maxHeight: number) {
+  const step = (x1 - x0) / values.length;
+  let path = "";
+  values.forEach((value, index) => {
+    const x = x0 + index * step;
+    const nextX = x0 + (index + 1) * step;
+    const y = baseline - (clampPercent(value) / 100) * maxHeight;
+    path += `${index === 0 ? "M" : "L"} ${x} ${y} L ${nextX} ${y} `;
+  });
+  return path.trim();
+}
+
+function clampPercent(value: number) {
+  if (!Number.isFinite(value)) return 50;
+  return Math.max(4, Math.min(96, value));
+}
+function WarRoomNewsPanel({ newsItems, loading, symbol, lang }: { newsItems: NewsItem[]; loading: boolean; symbol: MarketSymbol; lang: Language }) {
+  const zh = lang === "zh" || lang === "tc";
+  const rows = newsItems.slice(0, 5);
+  const impact = Math.max(42, Math.min(91, 52 + rows.length * 8 + Math.abs(symbol.change24h || 0) * 3)).toFixed(0);
+
+  return (
+    <section className="border-b border-[#12324a] bg-[#010915]">
+      <div className="flex h-8 items-center justify-between border-b border-[#12324a] bg-[#031827] px-3">
+        <div className="flex items-center gap-1.5 font-mono text-[8px] font-black uppercase tracking-[0.22em] text-amber-300">
+          <Newspaper className="h-3 w-3" />
+          {zh ? "事件 / 材料新闻" : "Events / Material News"}
+        </div>
+        <div className="font-mono text-[8px] font-black uppercase tracking-widest text-slate-500">IMPACT {impact}</div>
+      </div>
+
+      <div className="grid grid-cols-[minmax(0,1fr)_84px] border-b border-[#12324a]">
+        <div className="min-w-0 p-3">
           <div className="font-mono text-[7px] font-black uppercase tracking-[0.18em] text-slate-500">
             PRISM MARKET PULSE / {symbol.id}
           </div>
@@ -425,18 +873,19 @@ function WarRoomNewsPanel({ newsItems, loading, symbol, lang }: { newsItems: New
             {rows[0]?.summary || (zh ? "当前先按价格结构和量化参数处理。" : "Proceed using price structure and quant parameters until a stronger catalyst appears.")}
           </div>
         </div>
-        <div className="border border-amber-300/20 bg-amber-300/[0.045] p-2 text-right">
-          <div className="font-mono text-[7px] font-black uppercase tracking-widest text-amber-300">IMPACT</div>
-          <div className="mt-2 font-mono text-[25px] font-black leading-none text-emerald-300">{Math.max(42, Math.min(91, 52 + rows.length * 8 + Math.abs(symbol.change24h || 0) * 3)).toFixed(0)}</div>
+        <div className="border-l border-blue-500/30 bg-[#031426] p-2 text-right">
+          <div className="font-mono text-[7px] font-black uppercase tracking-widest text-amber-300">SCORE</div>
+          <div className="mt-2 font-mono text-[28px] font-black leading-none text-emerald-300">{impact}</div>
           <div className="mt-3 space-y-1 font-mono text-[7px] font-black uppercase tracking-widest text-slate-500">
             <div>{zh ? "事件" : "Events"} {rows.length}</div>
-            <div>{zh ? "方向" : "Bias"} {symbol.change24h >= 0 ? "UP" : "DOWN"}</div>
+            <div>{symbol.change24h >= 0 ? "BULLISH" : "BEARISH"}</div>
           </div>
         </div>
       </div>
-      <div className="divide-y divide-slate-800 border-t border-slate-800">
-        {(rows.length > 0 ? rows : [null, null, null]).map((item, index) => (
-          <div key={item?.id || `empty-${index}`} className="grid grid-cols-[minmax(0,1fr)_70px] gap-2 px-3 py-2">
+
+      <div className="divide-y divide-[#12324a]">
+        {(rows.length > 0 ? rows : [null, null, null, null]).map((item, index) => (
+          <div key={item?.id || `empty-${index}`} className="grid grid-cols-[minmax(0,1fr)_86px] gap-3 px-3 py-2">
             <div className="min-w-0">
               <div className="truncate text-[9px] font-bold text-slate-300">
                 {item?.title || (loading ? "Loading catalyst row" : "Awaiting verified catalyst")}
@@ -446,7 +895,9 @@ function WarRoomNewsPanel({ newsItems, loading, symbol, lang }: { newsItems: New
               </div>
             </div>
             <div className="text-right font-mono text-[7px] font-black uppercase tracking-widest">
-              <span className={item ? sentimentTone(item.sentiment) : "text-slate-500"}>{item?.sentiment || "..."}</span>
+              <span className={`border px-1.5 py-0.5 ${item ? eventTagTone(item.sentiment === "bearish" ? "rose" : item.sentiment === "bullish" ? "emerald" : "amber") : "border-slate-700 text-slate-500"}`}>
+                {item?.sentiment || "SCAN"}
+              </span>
             </div>
           </div>
         ))}
@@ -477,27 +928,25 @@ function WarRoomPressurePanel({
   const modelPressure = analysisLinked ? 88 : 46;
 
   return (
-    <section className="border border-slate-800 bg-[#080b12]">
-      <div className="flex items-center justify-between border-b border-slate-800 bg-[#0b1119] px-3 py-2">
-        <div className="flex items-center gap-1.5 font-mono text-[8px] font-black uppercase tracking-[0.22em] text-cyan-300">
+    <section className="border-b border-[#12324a] bg-[#010915]">
+      <div className="flex h-8 items-center justify-between border-b border-[#12324a] bg-[#031827] px-3">
+        <div className="flex items-center gap-1.5 font-mono text-[8px] font-black uppercase tracking-[0.22em] text-blue-300/70">
           <Activity className="h-3 w-3" />
-          {zh ? "压力曲线" : "Pressure Graph"}
+          {zh ? "压力图" : "Pressure Graph"}
         </div>
         <div className="font-mono text-[8px] font-black uppercase tracking-widest text-slate-500">{sourceLabel} / {feedState}</div>
       </div>
-      <div className="grid grid-cols-[minmax(0,1fr)_92px] gap-3 p-3">
-        <div className="min-w-0 border border-slate-800 bg-[#060a10] p-2">
-          <WarRoomMiniDepth
-            values={[trendPressure, volumePressure, intelligence.confidencePct, shortPressure, modelPressure]}
-          />
+      <div className="p-3">
+        <div className="border border-[#12324a] bg-[#031426] p-2">
+          <WarRoomMiniDepth values={[trendPressure, volumePressure, intelligence.confidencePct, shortPressure, modelPressure]} />
         </div>
-        <div className="space-y-1.5">
-          <WarRoomMicroStat label={zh ? "结构" : "Setup"} value={brief.setup} tone="text-cyan-300" />
-          <WarRoomMicroStat label={zh ? "风险" : "Risk"} value={brief.risk} tone={warRiskTone(intelligence.risk)} />
-          <WarRoomMicroStat label="DGWM" value={analysisLinked ? "LINK" : "WAIT"} tone={analysisLinked ? "text-emerald-300" : "text-amber-300"} />
+        <div className="mt-3 grid grid-cols-3 border border-[#12324a]">
+          <WarRoomMetricCell label={zh ? "结构" : "Setup"} value={brief.setup} tone="text-blue-300/70" />
+          <WarRoomMetricCell label={zh ? "风险" : "Risk"} value={brief.risk} tone={warRiskTone(intelligence.risk)} />
+          <WarRoomMetricCell label="DGWM" value={analysisLinked ? "LINK" : "WAIT"} tone={analysisLinked ? "text-emerald-300" : "text-amber-300"} />
         </div>
       </div>
-      <div className="space-y-2 border-t border-slate-800 p-3">
+      <div className="space-y-2 border-t border-[#12324a] p-3">
         <WarRoomBar label={zh ? "趋势压力" : "Trend Pressure"} value={trendPressure} tone="cyan" left="LOW" right="BREAK" />
         <WarRoomBar label={zh ? "回撤压力" : "Drawdown Pressure"} value={shortPressure} tone={shortPressure > 62 ? "rose" : "amber"} left="CALM" right="STRESS" />
       </div>
@@ -514,18 +963,18 @@ function WarRoomMiniDepth({ values }: { values: number[] }) {
   const area = `0,72 ${points} 100,72`;
 
   return (
-    <svg className="h-32 w-full" viewBox="0 0 100 78" preserveAspectRatio="none" aria-hidden="true">
+    <svg className="h-40 w-full" viewBox="0 0 100 78" preserveAspectRatio="none" aria-hidden="true">
       <defs>
         <linearGradient id="warRoomDepthFill" x1="0" x2="0" y1="0" y2="1">
-          <stop offset="0" stopColor="#22d3ee" stopOpacity="0.62" />
-          <stop offset="1" stopColor="#22d3ee" stopOpacity="0.04" />
+          <stop offset="0" stopColor="#3b6f91" stopOpacity="0.62" />
+          <stop offset="1" stopColor="#3b6f91" stopOpacity="0.04" />
         </linearGradient>
       </defs>
-      {[14, 28, 42, 56, 70].map((y) => <line key={y} x1="0" x2="100" y1={y} y2={y} stroke="#1e293b" strokeWidth="0.7" />)}
-      {[20, 40, 60, 80].map((x) => <line key={x} x1={x} x2={x} y1="0" y2="76" stroke="#111827" strokeWidth="0.7" />)}
+      {[14, 28, 42, 56, 70].map((y) => <line key={y} x1="0" x2="100" y1={y} y2={y} stroke="#22506d" strokeWidth="0.7" />)}
+      {[20, 40, 60, 80].map((x) => <line key={x} x1={x} x2={x} y1="0" y2="76" stroke="#12324a" strokeWidth="0.7" />)}
       <polygon points={area} fill="url(#warRoomDepthFill)" />
-      <polyline points={points} fill="none" stroke="#22d3ee" strokeWidth="2" vectorEffect="non-scaling-stroke" />
-      <line x1="0" x2="100" y1="72" y2="72" stroke="#334155" strokeWidth="1" />
+      <polyline points={points} fill="none" stroke="#3b6f91" strokeWidth="2" vectorEffect="non-scaling-stroke" />
+      <line x1="0" x2="100" y1="72" y2="72" stroke="#2a668a" strokeWidth="1" />
     </svg>
   );
 }
@@ -534,18 +983,18 @@ function WarRoomActionStack({ suggestions, lang }: { suggestions: StrategySugges
   const zh = lang === "zh" || lang === "tc";
 
   return (
-    <section className="border border-slate-800 bg-[#080b12]">
-      <div className="flex items-center justify-between border-b border-slate-800 bg-[#0b1119] px-3 py-2">
-        <div className="flex items-center gap-1.5 font-mono text-[8px] font-black uppercase tracking-[0.22em] text-cyan-300">
+    <section className="bg-[#010b17]">
+      <div className="flex h-8 items-center justify-between border-b border-[#12324a] bg-[#031827] px-3">
+        <div className="flex items-center gap-1.5 font-mono text-[8px] font-black uppercase tracking-[0.22em] text-blue-300/70">
           <ListChecks className="h-3 w-3" />
-          {zh ? "执行检查" : "Execution Checks"}
+          {zh ? "执行门控" : "Execution Gates"}
         </div>
         <div className="font-mono text-[8px] font-black uppercase tracking-widest text-slate-500">DGWM GATE</div>
       </div>
-      <div className="divide-y divide-slate-800">
-        {suggestions.slice(0, 4).map((item, index) => (
-          <div key={item.id} className="grid grid-cols-[30px_minmax(0,1fr)_54px] gap-2 px-3 py-2">
-            <div className="font-mono text-[9px] font-black text-cyan-300">{String(index + 1).padStart(2, "0")}</div>
+      <div className="divide-y divide-[#12324a]">
+        {suggestions.slice(0, 5).map((item, index) => (
+          <div key={item.id} className="grid grid-cols-[34px_minmax(0,1fr)_62px] gap-2 px-3 py-2">
+            <div className="font-mono text-[9px] font-black text-blue-300/70">{String(index + 1).padStart(2, "0")}</div>
             <div className="min-w-0">
               <div className="truncate text-[10px] font-black text-slate-200">{item.title}</div>
               <div className="mt-0.5 line-clamp-1 text-[8px] text-slate-500">{item.body}</div>
@@ -560,6 +1009,19 @@ function WarRoomActionStack({ suggestions, lang }: { suggestions: StrategySugges
   );
 }
 
+function formatCompactStat(value: number) {
+  if (!Number.isFinite(value) || value <= 0) return "--";
+  const units = [
+    { suffix: "T", divisor: 1_000_000_000_000 },
+    { suffix: "B", divisor: 1_000_000_000 },
+    { suffix: "M", divisor: 1_000_000 },
+    { suffix: "K", divisor: 1_000 }
+  ];
+  const unit = units.find((item) => value >= item.divisor);
+  if (!unit) return value.toFixed(value >= 100 ? 0 : 1);
+  const scaled = value / unit.divisor;
+  return `${scaled >= 100 ? scaled.toFixed(0) : scaled.toFixed(1)}${unit.suffix}`;
+}
 function formatDeskPrice(price: number, precision: number) {
   if (!Number.isFinite(price) || price <= 0) return "--";
   return price.toLocaleString(undefined, {
@@ -570,7 +1032,7 @@ function formatDeskPrice(price: number, precision: number) {
 
 function warScoreTone(score: number) {
   if (score >= 74) return "text-emerald-300";
-  if (score >= 62) return "text-cyan-300";
+  if (score >= 62) return "text-blue-300/70";
   if (score <= 38) return "text-rose-300";
   return "text-slate-300";
 }
@@ -592,42 +1054,42 @@ function StrategyEventTape({ events, lang, onSymbolSelect }: { events: IntelEven
   const zh = lang === "zh" || lang === "tc";
 
   return (
-    <div className="rounded-md border border-slate-800 bg-slate-900/40">
-      <div className="flex items-center justify-between border-b border-slate-800/80 bg-[#0d1524]/70 px-2.5 py-2">
-        <div className="flex items-center gap-1.5 text-[8px] font-black uppercase tracking-[0.2em] text-sky-200">
+    <section className="bg-[#010b17]">
+      <div className="flex h-8 items-center justify-between border-b border-[#12324a] bg-[#031827] px-3">
+        <div className="flex items-center gap-1.5 font-mono text-[8px] font-black uppercase tracking-[0.22em] text-blue-300/70">
           <Activity className="h-3 w-3" />
           {zh ? "事件流" : "Event Tape"}
         </div>
-        <div className="font-mono text-[7px] font-black uppercase tracking-widest text-slate-600">
+        <div className="font-mono text-[8px] font-black uppercase tracking-widest text-slate-500">
           {zh ? "原因链" : "Cause Chain"}
         </div>
       </div>
-      <div className="divide-y divide-slate-900">
-        {events.slice(0, 5).map((event) => (
+      <div className="divide-y divide-[#12324a]">
+        {events.slice(0, 5).map((event, index) => (
           <button
             key={event.id}
             type="button"
             onClick={() => event.symbol && onSymbolSelect(event.symbol)}
             disabled={!event.symbol}
-            className="group flex w-full items-start gap-2 px-2.5 py-2 text-left transition-colors hover:bg-slate-900/80 disabled:cursor-default"
+            className="group grid w-full grid-cols-[28px_minmax(0,1fr)_76px] gap-2 px-3 py-2 text-left transition-colors hover:bg-[#061a2b] disabled:cursor-default"
           >
-            <div className={`mt-0.5 shrink-0 ${eventIconTone(event.tone)}`}>{event.icon}</div>
-            <div className="min-w-0 flex-1">
-              <div className="flex items-center justify-between gap-2">
+            <div className="font-mono text-[9px] font-black text-blue-300/70">{String(index + 1).padStart(2, "0")}</div>
+            <div className="min-w-0">
+              <div className="flex min-w-0 items-center gap-1.5">
+                <div className={`shrink-0 ${eventIconTone(event.tone)}`}>{event.icon}</div>
                 <div className="truncate text-[10px] font-black text-slate-200">{event.title}</div>
-                <div className={`shrink-0 rounded border px-1.5 py-[1px] font-mono text-[7px] font-black uppercase tracking-wider ${eventTagTone(event.tone)}`}>
-                  {event.meta}
-                </div>
               </div>
-              <div className="mt-1 line-clamp-2 text-[8px] leading-relaxed text-slate-500 group-hover:text-slate-400">{event.body}</div>
+              <div className="mt-1 line-clamp-1 text-[8px] leading-relaxed text-slate-500 group-hover:text-slate-400">{event.body}</div>
+            </div>
+            <div className={`self-start border px-1.5 py-0.5 text-right font-mono text-[7px] font-black uppercase tracking-wider ${eventTagTone(event.tone)}`}>
+              {event.meta}
             </div>
           </button>
         ))}
       </div>
-    </div>
+    </section>
   );
 }
-
 function EvidenceStrip({
   currentSymbol,
   marketStatus,
@@ -689,9 +1151,9 @@ function EvidenceStrip({
   ];
 
   return (
-    <div className="mt-3 overflow-hidden rounded-lg border border-slate-700/70 bg-[#090f1a]/90 shadow-[inset_0_1px_0_rgba(255,255,255,0.035)]">
-      <div className="flex items-center justify-between border-b border-slate-800/80 bg-[#0d1524]/70 px-2.5 py-2">
-        <div className="flex items-center gap-1.5 text-[8px] font-black uppercase tracking-[0.2em] text-sky-200">
+    <div className="mt-3 overflow-hidden rounded-lg border border-[#1d4d6d]/70 bg-[#031426]/90 shadow-[inset_0_1px_0_rgba(255,255,255,0.035)]">
+      <div className="flex items-center justify-between border-b border-[#12324a]/80 bg-[#06213a]/70 px-2.5 py-2">
+        <div className="flex items-center gap-1.5 text-[8px] font-black uppercase tracking-[0.2em] text-blue-200/70">
           <Database className="h-3 w-3" />
           {zh ? "各类指标" : "Evidence Strip"}
         </div>
@@ -699,7 +1161,7 @@ function EvidenceStrip({
           {currentSymbol.id} · {zh ? "证据压缩" : "signal compression"}
         </div>
       </div>
-      <div className="grid grid-cols-6 divide-x divide-slate-800/80">
+      <div className="grid grid-cols-6 divide-x divide-[#12324a]/80">
         {items.map((item) => (
           <EvidenceTile key={item.label} item={item} />
         ))}
@@ -714,7 +1176,7 @@ function EvidenceTile({ item }: { item: EvidenceItem }) {
       <div className="truncate text-[7px] font-black uppercase tracking-widest text-slate-600">{item.label}</div>
       <div className={`mt-1 truncate font-mono text-[14px] font-black ${evidenceTone(item.tone)}`}>{item.value}</div>
       <div className="mt-0.5 truncate text-[7px] font-bold text-slate-500">{item.sub}</div>
-      <div className="mt-2 h-1 overflow-hidden rounded-full bg-[#050914]">
+      <div className="mt-2 h-1 overflow-hidden rounded-full bg-[#000814]">
         <div className={`h-full rounded-full ${evidenceBar(item.tone)}`} style={{ width: `${Math.max(6, Math.min(100, item.width))}%` }} />
       </div>
     </div>
@@ -722,7 +1184,7 @@ function EvidenceTile({ item }: { item: EvidenceItem }) {
 }
 function FeedMetric({ icon, label, value, tone }: { icon: ReactNode; label: string; value: string; tone: string }) {
   return (
-    <div className="rounded-md border border-slate-700/60 bg-[#090f1a]/90 px-1.5 py-1.5">
+    <div className="rounded-md border border-[#1d4d6d]/60 bg-[#031426]/90 px-1.5 py-1.5">
       <div className="flex items-center gap-1 text-[7px] font-black uppercase tracking-wider text-slate-600">
         {icon}
         <span>{label}</span>
@@ -742,39 +1204,39 @@ function StrategyLensCard({ strategy, lang }: { strategy: StrategyLens; lang: La
     <div className={`mt-2 rounded-md border p-2.5 ${strategyShell(strategy.tone)}`}>
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
-          <div className="text-[8px] font-black uppercase tracking-[0.2em] text-sky-200">
+          <div className="text-[8px] font-black uppercase tracking-[0.2em] text-blue-200/70">
             {zh ? "专栏分析" : "Column Analysis"}
           </div>
           <div className="mt-1 truncate text-[13px] font-black text-white">{strategy.title}</div>
         </div>
         <div className="text-right font-mono">
-          <div className="text-[22px] font-black leading-none text-sky-200">{strategy.score}</div>
+          <div className="text-[22px] font-black leading-none text-blue-200/70">{strategy.score}</div>
           <div className="mt-1 text-[7px] font-black uppercase tracking-widest text-slate-500">MSIR</div>
         </div>
       </div>
       <div className="mt-2 line-clamp-2 text-[9px] leading-relaxed text-slate-500">{strategy.body}</div>
       <div className="mt-2 grid grid-cols-4 gap-1.5">
-        <StrategyCell label={zh ? "阶段" : "Stage"} value={strategy.stage} tone="text-sky-300" />
+        <StrategyCell label={zh ? "阶段" : "Stage"} value={strategy.stage} tone="text-blue-300/70" />
         <StrategyCell label={zh ? "方向" : "Bias"} value={strategy.direction} tone="text-emerald-300" />
         <StrategyCell label={zh ? "风险" : "Risk"} value={strategy.risk} tone={strategy.tone === "rose" || strategy.tone === "amber" ? "text-amber-300" : "text-slate-300"} />
-        <StrategyCell label={zh ? "执行" : "Action"} value={strategy.execution} tone="text-sky-300" />
+        <StrategyCell label={zh ? "执行" : "Action"} value={strategy.execution} tone="text-blue-300/70" />
       </div>
-      <div className="mt-2 rounded border border-slate-800 bg-slate-950/60 p-2">
+      <div className="mt-2 rounded border border-[#12324a] bg-[#000814]/60 p-2">
         <div className="flex items-center justify-between text-[8px] font-black uppercase tracking-widest text-slate-500">
           <span>{zh ? "证据链可信度" : "Evidence Confidence"}</span>
-          <span className="font-mono text-sky-300">{strategy.confidence}%</span>
+          <span className="font-mono text-blue-300/70">{strategy.confidence}%</span>
         </div>
-        <div className="mt-1.5 h-1 overflow-hidden rounded-full bg-slate-900">
+        <div className="mt-1.5 h-1 overflow-hidden rounded-full bg-[#031426]">
           <div
-            className="h-full rounded-full bg-sky-300"
+            className="h-full rounded-full bg-blue-500/25"
             style={{ width: `${Math.max(6, strategy.confidence)}%` }}
           />
         </div>
       </div>
       <div className="mt-2 grid grid-cols-3 gap-1.5">
         {gates.map((gate, index) => (
-          <div key={gate} className="rounded border border-slate-800 bg-slate-950/60 px-1.5 py-1.5">
-            <div className="font-mono text-[7px] font-black text-sky-300">{String(index + 1).padStart(2, "0")}</div>
+          <div key={gate} className="rounded border border-[#12324a] bg-[#000814]/60 px-1.5 py-1.5">
+            <div className="font-mono text-[7px] font-black text-blue-300/70">{String(index + 1).padStart(2, "0")}</div>
             <div className="mt-0.5 truncate text-[8px] font-black text-slate-300">{gate}</div>
           </div>
         ))}
@@ -784,7 +1246,7 @@ function StrategyLensCard({ strategy, lang }: { strategy: StrategyLens; lang: La
 }
 function StrategyCell({ label, value, tone }: { label: string; value: string; tone: string }) {
   return (
-    <div className="min-w-0 rounded border border-slate-800 bg-slate-950/70 px-1.5 py-1.5 text-center">
+    <div className="min-w-0 rounded border border-[#12324a] bg-[#000814]/70 px-1.5 py-1.5 text-center">
       <div className="truncate text-[7px] font-black uppercase tracking-wider text-slate-600">{label}</div>
       <div className={`mt-0.5 truncate text-[9px] font-black ${tone}`}>{value}</div>
     </div>
@@ -816,7 +1278,7 @@ function CatalystBrief({ newsItems, loading, symbol, lang }: { newsItems: NewsIt
   const primaryTrust = catalystTrustScore(primary);
 
   return (
-    <div className="overflow-hidden rounded-lg border border-slate-700/70 bg-[#070b12]/95 shadow-[0_18px_48px_rgba(0,0,0,0.22),inset_0_1px_0_rgba(255,255,255,0.035)]">
+    <div className="overflow-hidden rounded-lg border border-slate-700/70 bg-[#03111f]/95 shadow-[0_18px_48px_rgba(0,0,0,0.22),inset_0_1px_0_rgba(255,255,255,0.035)]">
       <div className="flex items-center justify-between border-b border-amber-300/15 bg-[linear-gradient(90deg,rgba(37,28,11,0.72),rgba(7,11,18,0.96))] px-3 py-2">
         <div className="flex items-center gap-1.5 text-[8px] font-black uppercase tracking-[0.22em] text-amber-200">
           <Newspaper className="h-3.5 w-3.5" />
@@ -829,7 +1291,7 @@ function CatalystBrief({ newsItems, loading, symbol, lang }: { newsItems: NewsIt
 
       <div className="p-3">
         <div className="grid grid-cols-[minmax(0,1fr)_88px] gap-2.5">
-          <div className="min-w-0 rounded-md border border-slate-700/70 bg-[#0b101b]/86 p-2.5">
+          <div className="min-w-0 rounded-md border border-slate-700/70 bg-[#041827]/86 p-2.5">
             <div className="flex items-center gap-2 text-[7px] font-black uppercase tracking-[0.18em] text-slate-500">
               <span>{source}</span>
               <span className="h-1 w-1 rounded-full bg-amber-300/70" />
@@ -839,7 +1301,7 @@ function CatalystBrief({ newsItems, loading, symbol, lang }: { newsItems: NewsIt
             <div className="mt-2 line-clamp-2 text-[9px] leading-relaxed text-slate-500">{summary}</div>
           </div>
 
-          <div className="rounded-md border border-amber-300/20 bg-[#120f08]/72 p-2 text-right">
+          <div className="rounded-md border border-amber-300/20 bg-[#06111d]/72 p-2 text-right">
             <div className="text-[7px] font-black uppercase tracking-widest text-amber-200/70">Impact</div>
             <div className={`mt-2 font-mono text-[24px] font-black leading-none ${impact ? eventTone : "text-slate-600"}`}>{impact || "--"}</div>
             <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-black/40">
@@ -858,7 +1320,7 @@ function CatalystBrief({ newsItems, loading, symbol, lang }: { newsItems: NewsIt
           <CatalystMetric label={zh ? "来源" : "Source"} value={primary?.source || "PRISM"} tone="text-amber-200" />
         </div>
 
-        <div className="mt-2 divide-y divide-slate-800/70 overflow-hidden rounded-md border border-slate-800/80 bg-[#050914]/80">
+        <div className="mt-2 divide-y divide-[#12324a]/70 overflow-hidden rounded-md border border-[#12324a]/80 bg-[#031426]/80">
           {visibleItems.map((item, index) => (
             <div key={item?.id || index} className="px-2.5 py-2">
               <div className="flex items-center justify-between gap-2 text-[7px] font-black uppercase tracking-wider text-slate-600">
@@ -909,7 +1371,7 @@ function catalystTrustScore(item: NewsItem | null | undefined) {
 }
 function CatalystMetric({ label, value, tone }: { label: string; value: string; tone: string }) {
   return (
-    <div className="min-w-0 rounded-md border border-slate-800/90 bg-[#080d17]/86 px-2 py-1.5">
+    <div className="min-w-0 rounded-md border border-[#12324a]/90 bg-[#031426]/86 px-2 py-1.5">
       <div className="truncate text-[7px] font-black uppercase tracking-wider text-slate-600">{label}</div>
       <div className={`mt-0.5 truncate font-mono text-[10px] font-black ${tone}`}>{value}</div>
     </div>
@@ -925,13 +1387,13 @@ function StrategyAdvicePanel({ suggestions, lang }: { suggestions: StrategySugge
   const zh = lang === "zh" || lang === "tc";
 
   return (
-    <div className="mt-2 overflow-hidden rounded-lg border border-slate-700/70 bg-[#070b12]/95 p-2.5 shadow-[0_18px_48px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.035)]">
+    <div className="mt-2 overflow-hidden rounded-lg border border-slate-700/70 bg-[#03111f]/95 p-2.5 shadow-[0_18px_48px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.035)]">
       <div className="flex items-center justify-between gap-2">
-        <div className="flex items-center gap-1.5 text-[8px] font-black uppercase tracking-[0.2em] text-sky-200">
+        <div className="flex items-center gap-1.5 text-[8px] font-black uppercase tracking-[0.2em] text-blue-200/70">
           <ListChecks className="h-3 w-3" />
           {zh ? "策略建议" : "Strategy Notes"}
         </div>
-        <div className="rounded border border-sky-300/20 bg-sky-300/10 px-1.5 py-0.5 font-mono text-[7px] font-black uppercase tracking-widest text-sky-200">
+        <div className="rounded border border-blue-500/25 bg-blue-500/25 px-1.5 py-0.5 font-mono text-[7px] font-black uppercase tracking-widest text-blue-200/70">
           {zh ? "下一步" : "Next"}
         </div>
       </div>
@@ -944,7 +1406,7 @@ function StrategyAdvicePanel({ suggestions, lang }: { suggestions: StrategySugge
               <div className="min-w-0 flex-1">
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0">
-                    <div className="font-mono text-[7px] font-black text-sky-300">{String(index + 1).padStart(2, "0")}</div>
+                    <div className="font-mono text-[7px] font-black text-blue-300/70">{String(index + 1).padStart(2, "0")}</div>
                     <div className="mt-0.5 truncate text-[10px] font-black text-slate-100">{item.title}</div>
                   </div>
                   <div className="shrink-0 text-right">
@@ -1262,21 +1724,21 @@ function getLabels(lang: Language) {
 }
 
 function strategyShell(tone: StrategyLens["tone"]) {
-  if (tone === "cyan") return "border-sky-300/25 bg-[#080f1d]/95 shadow-[inset_0_1px_0_rgba(125,211,252,0.08)]";
-  if (tone === "amber") return "border-amber-300/30 bg-[#100d08]/92 shadow-[inset_0_1px_0_rgba(252,211,77,0.08)]";
-  if (tone === "rose") return "border-rose-300/25 bg-[#120910]/92 shadow-[inset_0_1px_0_rgba(253,164,175,0.06)]";
-  if (tone === "emerald") return "border-emerald-300/20 bg-[#07110f]/92 shadow-[inset_0_1px_0_rgba(110,231,183,0.06)]";
-  return "border-slate-700/70 bg-[#080d17]/95 shadow-[inset_0_1px_0_rgba(148,163,184,0.045)]";
+  if (tone === "cyan") return "border-blue-500/25 bg-[#031426]/95 shadow-[inset_0_1px_0_rgba(92,130,170,0.08)]";
+  if (tone === "amber") return "border-amber-300/30 bg-[#071421]/92 shadow-[inset_0_1px_0_rgba(252,211,77,0.08)]";
+  if (tone === "rose") return "border-rose-300/25 bg-[#07101a]/92 shadow-[inset_0_1px_0_rgba(253,164,175,0.06)]";
+  if (tone === "emerald") return "border-emerald-300/20 bg-[#03181e]/92 shadow-[inset_0_1px_0_rgba(110,231,183,0.06)]";
+  return "border-slate-700/70 bg-[#031426]/95 shadow-[inset_0_1px_0_rgba(148,163,184,0.045)]";
 }
 function eventShell(tone: IntelEvent["tone"]) {
-  if (tone === "cyan") return "border-sky-300/18 bg-[#08111f]/82";
-  if (tone === "amber") return "border-amber-300/24 bg-[#120f08]/74";
-  if (tone === "rose") return "border-rose-300/22 bg-[#120910]/72";
-  if (tone === "emerald") return "border-emerald-300/18 bg-[#07110f]/72";
-  return "border-slate-800/90 bg-[#080d17]/82";
+  if (tone === "cyan") return "border-blue-500/25 bg-[#031426]/82";
+  if (tone === "amber") return "border-amber-300/24 bg-[#06111d]/74";
+  if (tone === "rose") return "border-rose-300/22 bg-[#07101a]/72";
+  if (tone === "emerald") return "border-emerald-300/18 bg-[#03181e]/72";
+  return "border-[#12324a]/90 bg-[#031426]/82";
 }
 function eventIconTone(tone: IntelEvent["tone"]) {
-  if (tone === "cyan") return "text-sky-300";
+  if (tone === "cyan") return "text-blue-300/70";
   if (tone === "amber") return "text-amber-300";
   if (tone === "rose") return "text-rose-300";
   if (tone === "emerald") return "text-emerald-300";
@@ -1285,7 +1747,7 @@ function eventIconTone(tone: IntelEvent["tone"]) {
 
 
 function evidenceTone(tone: EvidenceItem["tone"]) {
-  if (tone === "cyan") return "text-sky-300";
+  if (tone === "cyan") return "text-blue-300/70";
   if (tone === "amber") return "text-amber-300";
   if (tone === "rose") return "text-rose-300";
   if (tone === "emerald") return "text-emerald-300";
@@ -1293,16 +1755,16 @@ function evidenceTone(tone: EvidenceItem["tone"]) {
 }
 
 function evidenceBar(tone: EvidenceItem["tone"]) {
-  if (tone === "cyan") return "bg-sky-300";
+  if (tone === "cyan") return "bg-blue-500/25";
   if (tone === "amber") return "bg-amber-300";
   if (tone === "rose") return "bg-rose-300";
   if (tone === "emerald") return "bg-emerald-300";
   return "bg-slate-500";
 }
 function eventTagTone(tone: IntelEvent["tone"]) {
-  if (tone === "cyan") return "border-sky-300/20 bg-sky-300/8 text-sky-200";
+  if (tone === "cyan") return "border-blue-500/25 bg-blue-500/25 text-blue-200/70";
   if (tone === "amber") return "border-amber-300/25 bg-amber-300/10 text-amber-200";
   if (tone === "rose") return "border-rose-300/25 bg-rose-300/10 text-rose-200";
   if (tone === "emerald") return "border-emerald-300/20 bg-emerald-300/10 text-emerald-200";
-  return "border-slate-700 bg-[#050914] text-slate-400";
+  return "border-[#12324a] bg-[#000814] text-slate-400";
 }

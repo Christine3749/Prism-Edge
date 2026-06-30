@@ -20,7 +20,7 @@ export default function Logo({ className = "h-8", showText = true }: LogoProps) 
           {/* Cyan to Electric Blue gradient for Left wing of 'M' */}
           <linearGradient id="leftM" x1="10" y1="100" x2="50" y2="20">
             <stop offset="0%" stopColor="#0ea5e9" />
-            <stop offset="100%" stopColor="#06b6d4" />
+            <stop offset="100%" stopColor="#2f5f85" />
           </linearGradient>
 
           {/* Purple to Indigo gradient for Right wing of 'M' */}
@@ -37,8 +37,8 @@ export default function Logo({ className = "h-8", showText = true }: LogoProps) 
 
           {/* Refracted beam gradients */}
           <linearGradient id="refractCyan" x1="60" y1="65" x2="90" y2="75">
-            <stop offset="0%" stopColor="#22d3ee" stopOpacity="0.8" />
-            <stop offset="100%" stopColor="#06b6d4" stopOpacity="0" />
+            <stop offset="0%" stopColor="#3b6f91" stopOpacity="0.8" />
+            <stop offset="100%" stopColor="#2f5f85" stopOpacity="0" />
           </linearGradient>
           <linearGradient id="refractPurple" x1="60" y1="65" x2="95" y2="90">
             <stop offset="0%" stopColor="#c084fc" stopOpacity="0.8" />
@@ -53,7 +53,7 @@ export default function Logo({ className = "h-8", showText = true }: LogoProps) 
         </defs>
 
         {/* 1. Underlying Glow Nodes */}
-        <circle cx="60" cy="65" r="10" fill="#22d3ee" opacity="0.15" filter="url(#neonGlow)" />
+        <circle cx="60" cy="65" r="10" fill="#3b6f91" opacity="0.15" filter="url(#neonGlow)" />
         
         {/* 2. Micro Candlestick/K-Line behind the logo (structural theme harmony) */}
         {/* Bearish candle line left */}
@@ -112,9 +112,9 @@ export default function Logo({ className = "h-8", showText = true }: LogoProps) 
         <div className="flex min-w-0 flex-col">
           <div className="flex items-center gap-1.5 leading-none">
             <span className="font-sans font-bold text-sm tracking-tight text-white whitespace-nowrap">
-              Prism<span className="text-cyan-400">-Edge</span>
+              Prism<span className="text-blue-300/75">-Edge</span>
             </span>
-            <span className="text-[10px] font-mono font-medium px-1 py-0.5 rounded bg-cyan-950 text-cyan-400 border border-cyan-800">
+            <span className="text-[10px] font-mono font-medium px-1 py-0.5 rounded bg-blue-950/70 text-blue-300/75 border border-blue-900/65">
               M1+
             </span>
           </div>

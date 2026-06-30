@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import { 
   TrendingUp, BarChart2, Eye, Layout,
   Camera, Bookmark, RefreshCw, Menu, Globe,
-  ChevronDown, Crown, ExternalLink, LogIn, LogOut, Settings, ShieldCheck, UserCircle
+  ChevronDown, Crown, ExternalLink, LogIn, LogOut, Moon, Settings, ShieldCheck, Sun, UserCircle
 } from "lucide-react";
 import { MarketSymbol, AppSettings, MarketDataStatus } from "../../shared/src/types";
 import { Language, useTranslation } from "../../shared/src/translations";
@@ -35,6 +35,7 @@ interface HeaderProps {
   marketStatus?: MarketDataStatus;
   lang: Language;
   onLangChange: (lang: Language) => void;
+  onToggleTheme: () => void;
   // Mobile responsive helper states
   onToggleWatchlist?: () => void;
 }
@@ -57,6 +58,7 @@ export default function Header({
   marketStatus,
   lang,
   onLangChange,
+  onToggleTheme,
   onToggleWatchlist
 }: HeaderProps) {
   const t = useTranslation(lang);
@@ -81,16 +83,16 @@ export default function Header({
   const feedMeta = describeMarketStatus(displayMarketStatus, lang);
   const feedLabel = feedMeta.shortLabel;
   const feedClass = {
-    loading: "bg-sky-950/40 border-sky-800/60 text-sky-400",
-    live: "bg-teal-950/40 border-teal-800/60 text-teal-400",
-    delayed: "bg-blue-950/40 border-blue-800/60 text-blue-300",
+    loading: "bg-blue-950/65 border-blue-900/60 text-blue-300/75",
+    live: "bg-emerald-950 border-emerald-500/25 text-emerald-300",
+    delayed: "bg-blue-950/40 border-blue-800/60 text-blue-300/75",
     simulated: "bg-amber-950/40 border-amber-800/60 text-amber-300",
     stale: "bg-orange-950/40 border-orange-800/60 text-orange-300",
     error: "bg-rose-950/40 border-rose-800/60 text-rose-400"
   }[feedState];
   const dotClass = {
-    loading: "bg-sky-400 animate-pulse",
-    live: "bg-teal-400 animate-pulse",
+    loading: "bg-blue-500/20 animate-pulse",
+    live: "bg-emerald-500/20 animate-pulse",
     delayed: "bg-blue-300",
     simulated: "bg-amber-300",
     stale: "bg-orange-300",
@@ -106,6 +108,10 @@ export default function Header({
     ? (membershipLoading ? checkingLabel : membershipPlanLabel(membership, true, lang))
     : signedOutLabel;
   const accountTone = getAccountTone(membership, isSignedIn);
+  const isLightTheme = settings.theme === "light";
+  const themeTitle = isLightTheme
+    ? (lang === "en" ? "Light theme - click for dark" : lang === "tc" ? "淺色界面，點擊切回深色" : "浅色界面，点击切回深色")
+    : (lang === "en" ? "Dark theme - click for light" : lang === "tc" ? "深色界面，點擊切換淺色" : "深色界面，点击切换浅色");
   const membershipUrl = "/membership";
   const loginUrl = "/login";
 
@@ -148,7 +154,7 @@ export default function Header({
   }, []);
 
   return (
-    <header className="h-12 shrink-0 border-b border-slate-800 bg-slate-950 px-2.5 md:px-3 flex items-center gap-2 text-slate-200 select-none z-50 relative overflow-visible">
+    <header className="h-12 shrink-0 border-b border-[#12324a] bg-[#000814] px-2.5 md:px-3 flex items-center gap-2 text-slate-200 select-none z-50 relative overflow-visible">
       {/* 1. Brand Logo & Name */}
       <div className="hidden sm:flex w-[190px] min-w-[170px] shrink-0 items-center">
         <Logo showText={true} className="h-8 shrink-0" />
@@ -162,29 +168,31 @@ export default function Header({
         {/* Live Status indicator */}
         <div className="shrink-0 flex">
           <div
-            className={`h-7 flex items-center gap-1 px-2 border rounded-full ${feedClass}`}
+            data-market-feed
+            data-feed-state={feedState}
+            className={`h-7 flex items-center gap-1.5 px-2 border rounded ${feedClass}`}
             title={feedMeta.tooltip}
           >
             <span className={`h-1.5 w-1.5 rounded-full ${dotClass}`}></span>
             <span className="text-[9px] font-mono font-bold uppercase tracking-widest hidden lg:inline">{feedLabel}</span>
-            <span className="hidden xl:inline rounded-sm border border-current/20 bg-slate-950/40 px-1 text-[8px] font-mono font-black uppercase tracking-widest">{feedMeta.confidenceLabel}</span>
+            <span data-feed-confidence className="hidden xl:inline rounded-sm border border-current/20 bg-[#000814]/60 px-1 text-[8px] font-mono font-black uppercase tracking-widest">{feedMeta.confidenceLabel}</span>
             <span className="hidden 2xl:inline text-[8px] font-mono font-bold uppercase tracking-widest opacity-60">{displayMarketStatus.source}</span>
           </div>
         </div>
 
         {/* Divider */}
-        <div className="w-px h-5 bg-slate-800 shrink-0 mx-1 hidden sm:block"></div>
+        <div className="w-px h-5 bg-[#06213a] shrink-0 mx-1 hidden sm:block"></div>
 
         {/* Timeframe Slider tab (Horizontal scroll adapts for narrow views) */}
-        <div className="h-7 flex items-center bg-slate-900 p-0.5 rounded border border-slate-800 shrink-0" id="timeframe_selector_group">
+        <div className="h-7 flex items-center bg-[#031426] p-0.5 rounded border border-[#12324a] shrink-0" id="timeframe_selector_group">
           {timeframes.map((tf) => (
             <button
               key={tf}
               onClick={() => onTimeframeSelect(tf)}
               className={`h-5 min-w-6 px-1.5 text-[10px] rounded transition-all font-mono font-bold cursor-pointer ${
                 currentTimeframe === tf
-                  ? "bg-cyan-500 text-slate-950 font-extrabold"
-                  : "text-slate-400 hover:text-white hover:bg-slate-800"
+                  ? "bg-[#123a63] text-blue-50 font-extrabold"
+                  : "text-slate-400 hover:text-white hover:bg-[#06213a]"
               }`}
             >
               {tf}
@@ -192,17 +200,17 @@ export default function Header({
           ))}
         </div>
 
-        <div className="w-px h-5 bg-slate-800 shrink-0 mx-1 hidden md:block"></div>
+        <div className="w-px h-5 bg-[#06213a] shrink-0 mx-1 hidden md:block"></div>
 
         {/* Chart Style Switcher */}
-        <div className="hidden md:flex h-7 items-center gap-0.5 bg-slate-900 p-0.5 rounded border border-slate-800 shrink-0">
+        <div data-chart-style-group className="hidden md:flex h-7 items-center gap-0.5 bg-[#031426] p-0.5 rounded border border-[#12324a] shrink-0">
           {chartTypes.map((type) => (
             <button
               key={type.value}
               onClick={() => onChartTypeSelect(type.value)}
               className={`h-5 min-w-6 px-1.5 flex items-center justify-center gap-1.5 text-[11px] rounded transition-all font-medium cursor-pointer ${
                 chartType === type.value
-                  ? "bg-slate-800 text-cyan-400 font-semibold"
+                  ? "bg-[#06213a] text-blue-300/75 font-semibold"
                   : "text-slate-400 hover:text-slate-200"
               }`}
               title={type.label}
@@ -213,15 +221,15 @@ export default function Header({
           ))}
         </div>
 
-        <div className="w-px h-5 bg-slate-800 shrink-0 mx-1 hidden lg:block"></div>
+        <div className="w-px h-5 bg-[#06213a] shrink-0 mx-1 hidden lg:block"></div>
 
         {/* Technical Indicators Toggle */}
         <button
           onClick={onOpenIndicators}
-          className="hidden lg:flex h-7 items-center gap-1.5 px-2 bg-slate-900 hover:bg-slate-800 border border-slate-800 rounded text-[11px] font-semibold hover:text-white cursor-pointer transition-all shrink-0"
+          className="hidden lg:flex h-7 items-center gap-1.5 px-2 bg-[#031426] hover:bg-[#06213a] border border-[#12324a] rounded text-[11px] font-semibold hover:text-white cursor-pointer transition-all shrink-0"
           id="indicators_btn"
         >
-          <Eye className="h-3.5 w-3.5 text-cyan-400" />
+          <Eye className="h-3.5 w-3.5 text-blue-300/75" />
           <span>{t("techIndicators")}</span>
         </button>
       </div>
@@ -233,7 +241,7 @@ export default function Header({
         {onToggleWatchlist && (
           <button
             onClick={onToggleWatchlist}
-            className="h-7 w-7 flex items-center justify-center bg-slate-900 hover:bg-slate-800 border border-slate-800 hover:border-cyan-500/30 rounded text-cyan-400 md:hidden cursor-pointer transition-all"
+            className="h-7 w-7 flex items-center justify-center bg-[#031426] hover:bg-[#06213a] border border-[#12324a] hover:border-blue-500/30 rounded text-blue-300/75 md:hidden cursor-pointer transition-all"
             title="Toggle Watchlist Drawer"
           >
             <Menu className="h-4 w-4" />
@@ -243,10 +251,10 @@ export default function Header({
         {/* Indicator modal trigger for tablet (under lg) */}
         <button
           onClick={onOpenIndicators}
-          className="lg:hidden h-7 w-7 flex items-center justify-center bg-slate-900 hover:bg-slate-800 border border-slate-800 rounded text-slate-400 hover:text-white cursor-pointer transition-all"
+          className="lg:hidden h-7 w-7 flex items-center justify-center bg-[#031426] hover:bg-[#06213a] border border-[#12324a] rounded text-slate-400 hover:text-white cursor-pointer transition-all"
           title={t("techIndicators")}
         >
-          <Eye className="h-4 w-4 text-cyan-400" />
+          <Eye className="h-4 w-4 text-blue-300/75" />
         </button>
 
         {/* Workspace Save */}
@@ -254,19 +262,19 @@ export default function Header({
           onClick={onSaveWorkspace}
           className={`h-7 flex items-center gap-1 px-2 border rounded text-[11px] font-bold cursor-pointer transition-all shrink-0 ${
             workspaceSaved 
-              ? "bg-cyan-950 text-cyan-400 border-cyan-800" 
-              : "bg-slate-900 hover:bg-slate-800 stroke-slate-300 border-slate-800 hover:text-white"
+              ? "bg-[#071f36] text-blue-300/75 border-blue-900/65"
+              : "bg-[#031426] hover:bg-[#06213a] stroke-slate-300 border-[#12324a] hover:text-white"
           }`}
           title={t("saveLayout")}
         >
-          <Bookmark className={`h-3 w-3 md:h-3.5 md:w-3.5 ${workspaceSaved ? "fill-cyan-400 text-cyan-400" : ""}`} />
+          <Bookmark className={`h-3 w-3 md:h-3.5 md:w-3.5 ${workspaceSaved ? "fill-blue-300/75 text-blue-300/75" : ""}`} />
           <span className="hidden xl:inline">{workspaceSaved ? t("saved") : t("saveLayout")}</span>
         </button>
 
         {/* Reset workspace layout */}
         <button
           onClick={onResetLayout}
-          className="hidden sm:flex h-7 w-7 items-center justify-center bg-slate-900 hover:bg-rose-950/20 hover:text-rose-400 border border-slate-800 rounded text-slate-400 cursor-pointer transition-all shrink-0"
+          className="hidden sm:flex h-7 w-7 items-center justify-center bg-[#031426] hover:bg-rose-950/20 hover:text-rose-400 border border-[#12324a] rounded text-slate-400 cursor-pointer transition-all shrink-0"
           title={t("resetDashboard")}
         >
           <RefreshCw className="h-3.5 w-3.5" />
@@ -275,10 +283,10 @@ export default function Header({
         {/* Take rapid screenshot */}
         <button
           onClick={onTakeScreenshot}
-          className="hidden sm:flex h-7 w-7 items-center justify-center bg-slate-900 hover:bg-slate-800 border border-slate-800 rounded text-slate-400 hover:text-white cursor-pointer transition-all shrink-0"
+          className="hidden sm:flex h-7 w-7 items-center justify-center bg-[#031426] hover:bg-[#06213a] border border-[#12324a] rounded text-slate-400 hover:text-white cursor-pointer transition-all shrink-0"
           title={t("exportSnapshot")}
         >
-          <Camera className="h-3.5 w-3.5 text-sky-400" />
+          <Camera className="h-3.5 w-3.5 text-blue-300/75" />
         </button>
 
         {/* Account / membership entry */}
@@ -294,32 +302,32 @@ export default function Header({
             className={`h-7 flex items-center gap-1.5 px-2 border rounded text-[11px] font-bold cursor-pointer transition-all ${
               isSignedIn
                 ? accountTone.button
-                : "bg-slate-900 border-slate-800 text-slate-300 hover:bg-slate-800 hover:text-white hover:border-cyan-500/40"
+                : "bg-[#031426] border-[#12324a] text-slate-300 hover:bg-[#06213a] hover:text-white hover:border-blue-600/35"
             }`}
             title={isSignedIn ? "MSIR Prism membership" : "Sign in to MSIR Prism"}
             aria-haspopup={isSignedIn ? "menu" : undefined}
             aria-expanded={isSignedIn ? accountMenuOpen : undefined}
           >
-            {isSignedIn ? <Crown className={`h-3.5 w-3.5 ${accountTone.icon}`} /> : <LogIn className="h-3.5 w-3.5 text-cyan-400" />}
+            {isSignedIn ? <Crown className={`h-3.5 w-3.5 ${accountTone.icon}`} /> : <LogIn className="h-3.5 w-3.5 text-blue-300/75" />}
             <span className="hidden sm:inline">{accountLabel}</span>
-            {isSignedIn ? <ChevronDown className="h-3 w-3 text-cyan-300/80" /> : <ExternalLink className="h-3 w-3 text-slate-500" />}
+            {isSignedIn ? <ChevronDown className="h-3 w-3 text-blue-300/70" /> : <ExternalLink className="h-3 w-3 text-slate-500" />}
           </button>
 
           {isSignedIn && accountMenuOpen && (
             <div
               role="menu"
-              className="absolute right-0 top-9 z-[80] w-64 overflow-hidden rounded border border-slate-700/80 bg-slate-950/98 shadow-2xl shadow-black/40 backdrop-blur"
+              className="absolute right-0 top-9 z-[80] w-64 overflow-hidden rounded border border-[#1d4d6d]/80 bg-[#000814]/98 shadow-2xl shadow-black/40 backdrop-blur"
             >
-              <div className="border-b border-slate-800 bg-slate-900/70 px-3 py-3">
+              <div className="border-b border-[#12324a] bg-[#031426]/82 px-3 py-3">
                 <div className="flex items-center gap-2">
-                  <div className="flex h-8 w-8 items-center justify-center rounded-full border border-cyan-500/40 bg-cyan-950/30 text-cyan-300">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-full border border-blue-600/35 bg-[#071f36]/40 text-blue-300/70">
                     <UserCircle className="h-4 w-4" />
                   </div>
                   <div className="min-w-0">
                     <div className="truncate text-[12px] font-semibold text-slate-100">
                       {account.email || (lang === "en" ? "MSIR Prism Account" : lang === "tc" ? "MSIR Prism 帳號" : "MSIR Prism 账号")}
                     </div>
-                    <div className="mt-0.5 flex items-center gap-1 text-[10px] font-mono uppercase tracking-wider text-cyan-300">
+                    <div className="mt-0.5 flex items-center gap-1 text-[10px] font-mono uppercase tracking-wider text-blue-300/70">
                       <ShieldCheck className="h-3 w-3" />
                       MSIR Prism · {isSignedIn ? accountLabel : "Guest"}
                     </div>
@@ -351,6 +359,17 @@ export default function Header({
             </div>
           )}
         </div>
+
+        {/* Visual Theme Toggle */}
+        <button
+          onClick={onToggleTheme}
+          className="grid h-7 w-7 place-items-center bg-[#031426] hover:bg-[#06213a] border border-[#12324a] hover:border-blue-600/35 rounded text-blue-300/75 cursor-pointer transition-all shrink-0"
+          title={themeTitle}
+          aria-label={themeTitle}
+          aria-pressed={isLightTheme}
+        >
+          {isLightTheme ? <Sun className="h-3.5 w-3.5" /> : <Moon className="h-3.5 w-3.5" />}
+        </button>
         {/* Dynamic Globe Language Toggle Button */}
         <button
           onClick={() => {
@@ -358,7 +377,7 @@ export default function Header({
             else if (lang === "en") onLangChange("tc");
             else onLangChange("zh");
           }}
-          className="h-7 flex items-center gap-1 px-2 bg-slate-900 hover:bg-slate-800 border border-slate-800 hover:border-cyan-500/40 rounded text-[11px] font-bold text-cyan-400 cursor-pointer transition-all shrink-0"
+          className="h-7 flex items-center gap-1 px-2 bg-[#031426] hover:bg-[#06213a] border border-[#12324a] hover:border-blue-600/35 rounded text-[11px] font-bold text-blue-300/75 cursor-pointer transition-all shrink-0"
           title="Switch Language / 切换语言"
         >
           <Globe className="h-3.5 w-3.5" />
@@ -379,9 +398,9 @@ function AccountMenuLink({ href, icon, label }: { href: string; icon: React.Reac
       href={href}
       target={href.startsWith("http") ? "_blank" : undefined}
       rel={href.startsWith("http") ? "noreferrer" : undefined}
-      className="flex items-center gap-2 px-3 py-2 text-[12px] font-medium text-slate-300 no-underline transition-colors hover:bg-slate-900 hover:text-white"
+      className="flex items-center gap-2 px-3 py-2 text-[12px] font-medium text-slate-300 no-underline transition-colors hover:bg-[#031426] hover:text-white"
     >
-      <span className="text-cyan-400">{icon}</span>
+      <span className="text-blue-300/75">{icon}</span>
       <span>{label}</span>
     </a>
   );
@@ -406,10 +425,10 @@ function AccountMenuButton({
       className={`flex w-full items-center gap-2 px-3 py-2 text-left text-[12px] font-medium transition-colors ${
         danger
           ? "text-rose-300 hover:bg-rose-950/30 hover:text-rose-200"
-          : "text-slate-300 hover:bg-slate-900 hover:text-white"
+          : "text-slate-300 hover:bg-[#031426] hover:text-white"
       }`}
     >
-      <span className={danger ? "text-rose-300" : "text-cyan-400"}>{icon}</span>
+      <span className={danger ? "text-rose-300" : "text-blue-300/75"}>{icon}</span>
       <span>{label}</span>
     </button>
   );
@@ -417,12 +436,12 @@ function AccountMenuButton({
 
 function getAccountTone(snapshot: HsMembershipSnapshot | null, signedIn: boolean) {
   if (!signedIn) {
-    return { button: "", icon: "text-cyan-400" };
+    return { button: "", icon: "text-blue-300/75" };
   }
 
   if (!membershipIsActive(snapshot)) {
     return {
-      button: "bg-slate-900 border-amber-500/35 text-amber-200 hover:bg-amber-950/20 hover:border-amber-400/50",
+      button: "bg-[#031426] border-amber-500/35 text-amber-200 hover:bg-amber-950/20 hover:border-amber-400/50",
       icon: "text-amber-300"
     };
   }
@@ -430,14 +449,14 @@ function getAccountTone(snapshot: HsMembershipSnapshot | null, signedIn: boolean
   const planCode = snapshot?.subscription?.planCode?.toLowerCase().replace(/-/g, "_");
   if (planCode === "quant_pro" || planCode === "professional" || planCode === "pro") {
     return {
-      button: "bg-slate-900 border-amber-500/35 text-amber-200 hover:bg-amber-950/20 hover:border-amber-400/50",
+      button: "bg-[#031426] border-amber-500/35 text-amber-200 hover:bg-amber-950/20 hover:border-amber-400/50",
       icon: "text-amber-300"
     };
   }
 
   return {
-    button: "bg-slate-900 border-slate-800 text-cyan-300 hover:bg-slate-800 hover:border-cyan-500/40",
-    icon: "text-cyan-300"
+    button: "bg-[#031426] border-[#12324a] text-blue-300/70 hover:bg-[#06213a] hover:border-blue-600/35",
+    icon: "text-blue-300/70"
   };
 }
 function readAccountSnapshot() {

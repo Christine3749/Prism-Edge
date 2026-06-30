@@ -24,12 +24,12 @@ export function TradesTab({ trades, currentSymbol }: TradesTabProps) {
               <td className="py-1 text-slate-500">{trade.time}</td>
               <td className="py-1">
                 <span className={`px-1.5 py-0.5 rounded font-extrabold text-[8px] uppercase tracking-wider ${
-                  trade.side === "buy" ? "bg-teal-500/10 text-teal-400" : "bg-rose-500/10 text-rose-400"
+                  trade.side === "buy" ? "bg-emerald-500/20 text-emerald-300" : "bg-rose-500/10 text-rose-400"
                 }`}>
                   {trade.side}
                 </span>
               </td>
-              <td className={`py-1 text-right font-bold ${trade.side === "buy" ? "text-teal-400" : "text-rose-400"}`}>
+              <td className={`py-1 text-right font-bold ${trade.side === "buy" ? "text-emerald-300" : "text-rose-400"}`}>
                 {trade.price.toLocaleString(undefined, { minimumFractionDigits: currentSymbol.precision })}
               </td>
               <td className="py-1 text-right text-slate-300">{trade.amount}</td>

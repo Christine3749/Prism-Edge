@@ -122,3 +122,556 @@ body {
 .light-aesthetics-overrides button:hover {
   background-color: #e2e8f0 !important;
 }
+/* Prism terminal light theme preview */
+.prism-terminal--light {
+  color-scheme: light;
+  background: #f5f7fa !important;
+  color: #17202c !important;
+}
+
+.prism-terminal--light header {
+  background: #f8fafc !important;
+  border-color: #d9e2ec !important;
+  color: #17202c !important;
+  box-shadow: none !important;
+}
+
+.prism-terminal--light [class*="bg-[#000814]"],
+.prism-terminal--light [class*="bg-[#010915]"],
+.prism-terminal--light [class*="bg-[#010b17]"],
+.prism-terminal--light [class*="bg-[#010d1c]"],
+.prism-terminal--light [class*="bg-[#020b18]"],
+.prism-terminal--light [class*="bg-[#031827]"],
+.prism-terminal--light [class*="bg-[#05080d]"],
+.prism-terminal--light [class*="bg-[#050a11]"],
+.prism-terminal--light [class*="bg-[#050914]"],
+.prism-terminal--light [class*="bg-[#06101b]"],
+.prism-terminal--light [class*="bg-[#06111d]"],
+.prism-terminal--light [class*="bg-[#070b14]"],
+.prism-terminal--light [class*="bg-[#07101a]"],
+.prism-terminal--light [class*="bg-[#07111f]"],
+.prism-terminal--light [class*="bg-slate-950"],
+.prism-terminal--light [class*="bg-slate-900"] {
+  background-color: #f7fafc !important;
+  background-image: none !important;
+}
+
+.prism-terminal--light [class*="bg-[#031426]"],
+.prism-terminal--light [class*="bg-[#06213a]"],
+.prism-terminal--light [class*="bg-[#061a2b]"],
+.prism-terminal--light [class*="bg-[#071f36]"],
+.prism-terminal--light [class*="bg-[#123a63]"],
+.prism-terminal--light [class*="bg-[#174976]"],
+.prism-terminal--light [class*="bg-blue-300"],
+.prism-terminal--light [class*="bg-cyan-300"],
+.prism-terminal--light [class*="bg-blue-500/20"],
+.prism-terminal--light [class*="bg-blue-500/25"],
+.prism-terminal--light [class*="bg-blue-950"] {
+  background-color: #eef3f8 !important;
+  background-image: none !important;
+}
+
+.prism-terminal--light [class*="bg-[linear-gradient(180deg"],
+.prism-terminal--light [class*="bg-[linear-gradient(135deg"],
+.prism-terminal--light [class*="bg-[linear-gradient(90deg,rgba(37"] {
+  background-image: none !important;
+}
+
+.prism-terminal--light [class*="border-[#12324a]"],
+.prism-terminal--light [class*="border-[#172434]"],
+.prism-terminal--light [class*="border-[#152638]"],
+.prism-terminal--light [class*="border-[#0c253a]"],
+.prism-terminal--light [class*="border-[#06213a]"],
+.prism-terminal--light [class*="border-[#1d4d6d]"],
+.prism-terminal--light [class*="border-slate-700"],
+.prism-terminal--light [class*="border-slate-800"],
+.prism-terminal--light [class*="border-slate-900"],
+.prism-terminal--light [class*="border-blue-500/30"],
+.prism-terminal--light [class*="border-blue-600/35"] {
+  border-color: #d8e1ea !important;
+}
+
+.prism-terminal--light [class*="text-white"],
+.prism-terminal--light [class*="text-slate-100"],
+.prism-terminal--light [class*="text-slate-200"],
+.prism-terminal--light [class*="text-slate-300"] {
+  color: #17202c !important;
+}
+
+.prism-terminal--light [class*="text-slate-400"],
+.prism-terminal--light [class*="text-slate-500"],
+.prism-terminal--light [class*="text-slate-600"],
+.prism-terminal--light [class*="text-slate-700"] {
+  color: #6b7888 !important;
+}
+
+.prism-terminal--light [class*="text-blue-50"],
+.prism-terminal--light [class*="text-blue-100"],
+.prism-terminal--light [class*="text-blue-200"],
+.prism-terminal--light [class*="text-blue-300"],
+.prism-terminal--light [class*="text-cyan-300"],
+.prism-terminal--light [class*="text-cyan-400"] {
+  color: #2f6f99 !important;
+}
+
+.prism-terminal--light [class*="text-emerald-200"],
+.prism-terminal--light [class*="text-emerald-300"],
+.prism-terminal--light [class*="text-emerald-400"] {
+  color: #04745f !important;
+}
+
+.prism-terminal--light [class*="text-amber-100"],
+.prism-terminal--light [class*="text-amber-200"],
+.prism-terminal--light [class*="text-amber-300"],
+.prism-terminal--light [class*="text-yellow-200"],
+.prism-terminal--light [class*="text-yellow-300"] {
+  color: #8a6504 !important;
+}
+
+.prism-terminal--light [class*="text-rose-200"],
+.prism-terminal--light [class*="text-rose-300"],
+.prism-terminal--light [class*="text-rose-400"] {
+  color: #a83246 !important;
+}
+
+.prism-terminal--light [class*="bg-emerald-500"],
+.prism-terminal--light [class*="bg-teal-500"] {
+  background-color: rgba(33, 139, 112, 0.26) !important;
+}
+
+.prism-terminal--light [class*="bg-amber-500"],
+.prism-terminal--light [class*="bg-yellow-500"] {
+  background-color: rgba(178, 135, 24, 0.24) !important;
+}
+
+.prism-terminal--light [class*="bg-rose-500"],
+.prism-terminal--light [class*="bg-red-500"] {
+  background-color: rgba(173, 55, 73, 0.22) !important;
+}
+
+.prism-terminal--light button,
+.prism-terminal--light select,
+.prism-terminal--light input {
+  color: #17202c;
+  box-shadow: none !important;
+}
+
+.prism-terminal--light button[class*="bg-[#031426]"],
+.prism-terminal--light button[class*="bg-[#06213a]"],
+.prism-terminal--light button[class*="bg-[#123a63]"],
+.prism-terminal--light [role="menu"] {
+  background: #f7fafc !important;
+  border-color: #d6e0e8 !important;
+  box-shadow: none !important;
+}
+
+.prism-terminal--light button:hover,
+.prism-terminal--light a:hover {
+  background-color: #eef3f8 !important;
+}
+
+.prism-terminal--light #chart_canvas_zone,
+.prism-terminal--light #chart_canvas_zone > div {
+  background-color: #f7fafc !important;
+}
+
+.prism-terminal--light svg text,
+.prism-terminal--light svg tspan {
+  fill: #17202c;
+}
+
+.prism-terminal--light [class*="shadow-"] {
+  box-shadow: none !important;
+}
+
+
+.prism-terminal--light .war-room-depth-chart {
+  --depth-surface-0: #f7fafc;
+  --depth-surface-mid: #f7fafc;
+  --depth-surface-1: #f7fafc;
+  --depth-mist-0: #f7fafc;
+  --depth-mist-1: #f7fafc;
+  --depth-mist-2: #f7fafc;
+  --depth-mist-opacity-0: 0;
+  --depth-mist-opacity-1: 0;
+  --depth-mist-opacity-2: 0;
+  --depth-grid-y: #d8e1ea;
+  --depth-grid-x: #d8e1ea;
+  --depth-grid-opacity: 0.82;
+  --depth-axis-text: #7a8795;
+  --depth-axis-opacity: 0.7;
+  --depth-axis-opacity-strong: 0.75;
+  --depth-baseline-bid: #4cc9c4;
+  --depth-baseline-mid-bid: #b7c8d8;
+  --depth-baseline-mid-ask: #d7bec1;
+  --depth-baseline-ask: #e06662;
+  --depth-baseline-opacity: 0.55;
+  --depth-baseline-opacity-soft: 0.42;
+  --depth-bid-haze: #2f9bb7;
+  --depth-bid-haze-opacity: 0.05;
+  --depth-ask-haze: #d95757;
+  --depth-ask-haze-opacity: 0.05;
+  --depth-bid-fill-0: #29c6be;
+  --depth-bid-fill-1: #35b8bc;
+  --depth-bid-fill-2: #65cfd2;
+  --depth-bid-fill-3: #e8f5f7;
+  --depth-bid-fill-opacity-0: 0.42;
+  --depth-bid-fill-opacity-1: 0.26;
+  --depth-bid-fill-opacity-2: 0.12;
+  --depth-bid-fill-opacity-3: 0.03;
+  --depth-ask-fill-0: #e06662;
+  --depth-ask-fill-1: #dd7770;
+  --depth-ask-fill-2: #e3aaa6;
+  --depth-ask-fill-3: #f8eeee;
+  --depth-ask-fill-opacity-0: 0.36;
+  --depth-ask-fill-opacity-1: 0.24;
+  --depth-ask-fill-opacity-2: 0.12;
+  --depth-ask-fill-opacity-3: 0.03;
+  --depth-bid-soft-edge: #29c6be;
+  --depth-ask-soft-edge: #e06662;
+  --depth-soft-edge-opacity: 0;
+  --depth-bid-line: #25aaa8;
+  --depth-ask-line: #d95757;
+  --depth-center-line: #9ab0c2;
+  --depth-center-opacity: 0.46;
+  --depth-frame: #d8e1ea;
+  --depth-frame-opacity: 1;
+}
+
+.prism-terminal--light .war-room-depth-chart .depth-glow,
+.prism-terminal--light .war-room-depth-chart .depth-soft-edge {
+  filter: none;
+}
+
+.prism-terminal--light .war-room-depth-chart text {
+  fill: var(--depth-axis-text, #7a8795) !important;
+}
+
+.prism-terminal--light ::-webkit-scrollbar-track {
+  background: #f5f7fa;
+}
+
+.prism-terminal--light ::-webkit-scrollbar-thumb {
+  background: #b5c2cf;
+}
+
+/* Light theme interaction and factor-ribbon polish */
+.prism-terminal--light [data-market-feed] {
+  background: #f8fafc !important;
+  border-color: #c8d5e2 !important;
+  border-radius: 0.25rem !important;
+  color: #0f6f61 !important;
+  box-shadow: inset 0 0 0 1px rgba(15, 111, 97, 0.06) !important;
+}
+
+.prism-terminal--light [data-market-feed][data-feed-state="live"] {
+  background: #f5faf8 !important;
+  border-color: #b9d6cf !important;
+}
+
+.prism-terminal--light [data-market-feed] > span:first-child {
+  background-color: #0f8a76 !important;
+  opacity: 0.7 !important;
+}
+
+.prism-terminal--light [data-market-feed] [data-feed-confidence] {
+  background: #e7f4f0 !important;
+  border-color: rgba(15, 111, 97, 0.22) !important;
+  color: #0f6f61 !important;
+}
+
+.prism-terminal--light #timeframe_selector_group,
+.prism-terminal--light [data-chart-style-group] {
+  background: #eef4f9 !important;
+  border-color: #cbd8e5 !important;
+}
+
+.prism-terminal--light #timeframe_selector_group button[class*="bg-[#123a63]"],
+.prism-terminal--light [data-chart-style-group] button[class*="bg-[#06213a]"] {
+  background: #d9e8f6 !important;
+  color: #134f74 !important;
+  box-shadow: inset 0 0 0 1px rgba(47, 111, 153, 0.26), inset 0 -2px 0 rgba(47, 111, 153, 0.62) !important;
+}
+
+.prism-terminal--light [data-desk-tabs] span {
+  background: transparent !important;
+  border-color: #d7e1eb !important;
+  color: #6d7c8c !important;
+  box-shadow: none !important;
+}
+
+.prism-terminal--light [data-desk-tabs] span:first-child {
+  background: #e4eef8 !important;
+  color: #174f78 !important;
+  box-shadow: inset 0 -2px 0 rgba(47, 111, 153, 0.72) !important;
+}
+
+.prism-terminal--light .war-bottom-ribbon {
+  background: #f6f8fa !important;
+  border-color: #d8e1ea !important;
+}
+
+.prism-terminal--light .war-bottom-strip-header,
+.prism-terminal--light .war-bottom-rail {
+  background: #f8fafc !important;
+  border-color: #d8e1ea !important;
+}
+
+.prism-terminal--light .war-bottom-tile {
+  min-height: 154px;
+  background: #f8fafc !important;
+  border-color: #d8e1ea !important;
+}
+
+.prism-terminal--light .war-bottom-tile:nth-child(odd) {
+  background: #fbfcfd !important;
+}
+
+.prism-terminal--light .war-bottom-card-header {
+  opacity: 0.54 !important;
+}
+
+.prism-terminal--light .war-bottom-label-row {
+  top: 0.45rem !important;
+}
+
+.prism-terminal--light .war-bottom-visual {
+  top: 0.9rem !important;
+  bottom: 0.7rem !important;
+  transform: translateY(-4px);
+}
+
+.prism-terminal--light .war-bottom-sparkline {
+  width: 96% !important;
+}
+
+.prism-terminal--light .war-bottom-sparkline-svg {
+  height: 74px !important;
+}
+
+.prism-terminal--light .war-bottom-bars {
+  height: 74px !important;
+  gap: 0.55rem !important;
+}
+
+.prism-terminal--light .war-bottom-bars > div {
+  width: 0.9rem !important;
+  opacity: 0.92 !important;
+}
+
+.prism-terminal--light .war-bottom-score-gauge {
+  width: 158px !important;
+  height: 114px !important;
+}
+
+.prism-terminal--light .war-bottom-sparkline path[stroke="#1c2b3d"] {
+  stroke: #b9c8d6 !important;
+}
+
+.prism-terminal--light .war-bottom-sparkline path[stroke="#111c2a"] {
+  stroke: #d4dde7 !important;
+}
+
+.prism-terminal--light .war-bottom-sparkline path[stroke="#e5e7eb"] {
+  stroke: #637386 !important;
+  opacity: 0.72 !important;
+}
+
+.prism-terminal--light .war-bottom-sparkline path[stroke="#46779a"] {
+  stroke: #4f7f9d !important;
+}
+
+.prism-terminal--light .war-bottom-sparkline path[stroke="#6ee7b7"] {
+  stroke: #3fb890 !important;
+}
+
+.prism-terminal--light .war-bottom-sparkline path[stroke="#facc15"] {
+  stroke: #caa11b !important;
+}
+
+.prism-terminal--light .war-bottom-sparkline path[stroke="#fb7185"] {
+  stroke: #d45e73 !important;
+}
+
+.prism-terminal--light .war-bottom-tile [class*="bg-[#070d16]"] {
+  background: #e5ecf2 !important;
+}
+
+.prism-terminal--light .war-bottom-action-tile {
+  background: #fbfaf4 !important;
+  border-color: #e3cf8b !important;
+  box-shadow: inset 3px 0 0 rgba(178, 135, 24, 0.36) !important;
+}
+
+.prism-terminal--light .war-bottom-action-tile button {
+  background: #e5eef7 !important;
+  border-color: #b8ccde !important;
+  color: #134f74 !important;
+}
+/* Light theme factor-ribbon contrast pass */
+.prism-terminal--light .war-bottom-tile {
+  background: #f4f7fa !important;
+  border-color: #cfd9e3 !important;
+}
+
+.prism-terminal--light .war-bottom-tile:nth-child(odd) {
+  background: #f8fafc !important;
+}
+
+.prism-terminal--light .war-bottom-card-header {
+  opacity: 0.5 !important;
+}
+
+.prism-terminal--light .war-bottom-tile [class*="bg-blue-500/25"] {
+  background: #7ea7c5 !important;
+}
+
+.prism-terminal--light .war-bottom-tile [class*="bg-emerald-300"] {
+  background: #55c6a0 !important;
+}
+
+.prism-terminal--light .war-bottom-tile [class*="bg-amber-300"] {
+  background: #d0aa2f !important;
+}
+
+.prism-terminal--light .war-bottom-tile [class*="bg-rose-300"] {
+  background: #d76a7a !important;
+}
+
+.prism-terminal--light .war-bottom-bars > div[class*="bg-blue-500/25"] {
+  background: #9bb8ce !important;
+}
+
+.prism-terminal--light button[class*="bg-blue-500/25"] {
+  background: #dbeaf7 !important;
+  border-color: #a7bfd5 !important;
+  color: #174f78 !important;
+  box-shadow: inset 0 0 0 1px rgba(47, 111, 153, 0.16), inset 0 -2px 0 rgba(47, 111, 153, 0.42) !important;
+}
+
+.prism-terminal--light button[class*="bg-blue-500/25"] svg {
+  fill: #174f78 !important;
+  color: #174f78 !important;
+}
+
+/* Light theme refined range bars and quiet volume columns */
+.prism-terminal--light .war-range-pair {
+  color: #6f7f90 !important;
+}
+
+.prism-terminal--light .war-range-meta {
+  color: #7d8b9b !important;
+  letter-spacing: 0.12em !important;
+}
+
+.prism-terminal--light .war-range-meta span:nth-child(2) {
+  color: #1f2937 !important;
+  font-weight: 800 !important;
+}
+
+.prism-terminal--light .war-range-track {
+  height: 0.46rem !important;
+  overflow: hidden !important;
+  background: #edf2f6 !important;
+  border: 1px solid #d2dde7 !important;
+  border-radius: 999px !important;
+  box-shadow: none !important;
+}
+
+.prism-terminal--light .war-range-fill {
+  background: linear-gradient(90deg, rgba(203, 119, 133, 0.58) 0%, rgba(188, 147, 153, 0.42) 27%, rgba(155, 169, 178, 0.34) 50%, rgba(117, 165, 178, 0.48) 74%, rgba(91, 185, 190, 0.62) 100%) !important;
+}
+
+.prism-terminal--light .war-range-topline,
+.prism-terminal--light .war-range-bottomline {
+  opacity: 0 !important;
+}
+
+.prism-terminal--light .war-range-marker {
+  top: -0.28rem !important;
+  width: 2px !important;
+  height: 1.08rem !important;
+  background: #8ba1b4 !important;
+  border-radius: 999px !important;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.88) !important;
+}
+
+.prism-terminal--light .war-bottom-bars[data-war-bars-tone="cyan"] .war-bottom-bar {
+  background: rgba(110, 137, 158, 0.44) !important;
+}
+
+.prism-terminal--light .war-bottom-bars[data-war-bars-tone="cyan"] .war-bottom-bar:nth-child(3),
+.prism-terminal--light .war-bottom-bars[data-war-bars-tone="cyan"] .war-bottom-bar:nth-child(4) {
+  background: rgba(95, 126, 151, 0.54) !important;
+}
+
+.prism-terminal--light .war-bottom-bars[data-war-bars-tone="amber"] .war-bottom-bar {
+  background: rgba(198, 154, 39, 0.78) !important;
+}
+
+.prism-terminal--light .war-bottom-bars[data-war-bars-tone="emerald"] .war-bottom-bar {
+  background: rgba(63, 173, 135, 0.72) !important;
+}
+
+.prism-terminal--light .war-bottom-bars[data-war-bars-tone="rose"] .war-bottom-bar {
+  background: rgba(198, 92, 112, 0.72) !important;
+}
+
+/* Light theme flat toolbar buttons */
+.prism-terminal--light #timeframe_selector_group,
+.prism-terminal--light [data-chart-style-group] {
+  background: #eef4f9 !important;
+  border-color: #cbd8e5 !important;
+  box-shadow: none !important;
+}
+
+.prism-terminal--light #timeframe_selector_group button,
+.prism-terminal--light [data-chart-style-group] button,
+.prism-terminal--light #indicators_btn {
+  box-shadow: none !important;
+  text-shadow: none !important;
+  outline: none !important;
+  transform: none !important;
+}
+
+.prism-terminal--light #timeframe_selector_group button[class*="bg-[#123a63]"],
+.prism-terminal--light [data-chart-style-group] button[class*="bg-[#06213a]"] {
+  background: #d9e8f6 !important;
+  border: 1px solid #9bb8cf !important;
+  color: #134f74 !important;
+  box-shadow: none !important;
+}
+
+.prism-terminal--light #timeframe_selector_group button:hover,
+.prism-terminal--light [data-chart-style-group] button:hover,
+.prism-terminal--light #indicators_btn:hover {
+  background: #e4eef7 !important;
+  box-shadow: none !important;
+  transform: none !important;
+}
+
+.prism-terminal--light #timeframe_selector_group button:focus,
+.prism-terminal--light #timeframe_selector_group button:focus-visible,
+.prism-terminal--light [data-chart-style-group] button:focus,
+.prism-terminal--light [data-chart-style-group] button:focus-visible,
+.prism-terminal--light #indicators_btn:focus,
+.prism-terminal--light #indicators_btn:focus-visible {
+  outline: none !important;
+  box-shadow: none !important;
+}
+/* Light theme symbol venue tag */
+.prism-terminal--light #symbol_search_btn > span:last-child {
+  background: #e7edf3 !important;
+  border: 1px solid #b8c7d5 !important;
+  color: #42546a !important;
+  border-radius: 0.25rem !important;
+  box-shadow: none !important;
+  letter-spacing: 0.04em !important;
+  font-weight: 800 !important;
+}
+
+.prism-terminal--light #symbol_search_btn:hover > span:last-child {
+  background: #dde7f0 !important;
+  border-color: #9fb3c6 !important;
+  color: #26384d !important;
+}
