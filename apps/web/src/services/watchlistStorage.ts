@@ -2,6 +2,8 @@ import { DEFAULT_WATCHLIST_SYMBOLS, resolveMarketSymbol, sortMarketSymbols } fro
 import { StorageService } from "@shared/storage";
 import type { MarketSymbol } from "@shared/types";
 
+const WATCHLIST_SYMBOL_LIMIT = 120;
+
 export function enrichMarketSymbol(symbol: MarketSymbol): MarketSymbol {
   const catalogSymbol = resolveMarketSymbol(symbol.symbol) || resolveMarketSymbol(symbol.id);
   if (!catalogSymbol) return symbol;
@@ -37,5 +39,5 @@ export function loadHydratedWatchlist() {
     merged.set(symbol.symbol, symbol);
   });
 
-  return sortMarketSymbols(Array.from(merged.values())).slice(0, 60);
+  return sortMarketSymbols(Array.from(merged.values())).slice(0, WATCHLIST_SYMBOL_LIMIT);
 }

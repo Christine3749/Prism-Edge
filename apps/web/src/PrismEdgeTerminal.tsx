@@ -73,7 +73,7 @@ export default function PrismEdgeTerminal() {
     setCurrentSymbol(hydrated);
     setSymbolsList((prev) => {
       if (prev.some((item) => item.symbol === hydrated.symbol)) return prev;
-      return [hydrated, ...prev].slice(0, 60);
+      return [hydrated, ...prev].slice(0, 120);
     });
   };
 
