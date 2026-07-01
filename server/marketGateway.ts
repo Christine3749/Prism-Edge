@@ -77,6 +77,9 @@ function chartToKlineResult(payload: YahooChartPayload, isLive = false) {
 function minimumKlineRows(interval: string, limit: number) {
   if (limit <= 2) return 1;
   const normalized = interval.toLowerCase();
+  if (normalized === "1m") {
+    return Math.min(18, Math.max(8, Math.floor(limit * 0.08)));
+  }
   if (normalized === "1w" || interval === "1M") {
     return Math.min(40, Math.max(12, Math.floor(limit * 0.2)));
   }
@@ -94,6 +97,69 @@ function requireUsefulKlines<T extends Omit<KlineRouteResult, "route" | "errors"
     throw new Error(`${provider} returned only ${result.candles.length} candle rows; expected at least ${minimum}.`);
   }
   return result;
+}
+
+function intervalSeconds(interval: string) {
+  switch (interval.toLowerCase()) {
+    case "1m": return 60;
+    case "3m": return 180;
+    case "5m": return 300;
+    case "15m": return 900;
+    case "30m": return 1800;
+    case "1h": return 3600;
+    case "2h": return 7200;
+    case "4h": return 14400;
+    case "6h": return 21600;
+    case "8h": return 28800;
+    case "12h": return 43200;
+    case "1d": return 86400;
+    default: return null;
+  }
+}
+
+function medianCandleStepSeconds(candles: Candle[]) {
+  const diffs: number[] = [];
+  const ordered = [...candles].sort((a, b) => a.time - b.time);
+  for (let index = 1; index < ordered.length; index += 1) {
+    const diff = ordered[index].time - ordered[index - 1].time;
+    if (Number.isFinite(diff) && diff > 0) diffs.push(diff);
+  }
+  if (diffs.length === 0) return null;
+  diffs.sort((a, b) => a - b);
+  return diffs[Math.floor(diffs.length / 2)];
+}
+
+function normalizeCandlesForInterval(candles: Candle[], interval: string, limit: number) {
+  const targetSeconds = intervalSeconds(interval);
+  if (!targetSeconds || candles.length < 2) return candles.slice(-limit);
+
+  const sourceStep = medianCandleStepSeconds(candles);
+  if (!sourceStep || sourceStep > targetSeconds * 1.25) return candles.slice(-limit);
+
+  const ordered = [...candles].sort((a, b) => a.time - b.time);
+  const buckets = new Map<number, Candle[]>();
+  ordered.forEach((candle) => {
+    const bucketStart = Math.floor(candle.time / targetSeconds) * targetSeconds;
+    const bucket = buckets.get(bucketStart) || [];
+    bucket.push(candle);
+    buckets.set(bucketStart, bucket);
+  });
+
+  return Array.from(buckets.entries())
+    .sort(([left], [right]) => left - right)
+    .map(([time, bucket]) => {
+      const first = bucket[0];
+      const last = bucket[bucket.length - 1];
+      return {
+        time,
+        open: first.open,
+        high: Math.max(...bucket.map((candle) => candle.high)),
+        low: Math.min(...bucket.map((candle) => candle.low)),
+        close: last.close,
+        volume: bucket.reduce((sum, candle) => sum + (Number.isFinite(candle.volume) ? candle.volume : 0), 0)
+      };
+    })
+    .slice(-limit);
 }
 
 function buildKlineAttempts(symbol: string, interval: string, limit: number): RouteAttempt<Omit<KlineRouteResult, "route" | "errors">>[] {
@@ -187,12 +253,20 @@ function buildSimulatedKlineResult(symbol: string, interval: string, limit: numb
   };
 }
 
+function canUseSimulatedKlineFallback(symbol: string) {
+  const profile = inferMarketSymbolFromInput(symbol);
+  return profile?.dataProvider === "simulated" || profile?.market === "internal";
+}
+
 async function fetchMarketKlines(symbol: string, interval: string, limit: number): Promise<KlineRouteResult> {
   try {
     const result = await runProviderRoute(buildKlineAttempts(symbol, interval, limit));
     if (result.candles.length === 0) throw new Error("No candle data returned by market provider route.");
-    return result;
+    return { ...result, candles: normalizeCandlesForInterval(result.candles, interval, limit) };
   } catch (error: any) {
+    if (!canUseSimulatedKlineFallback(symbol)) {
+      throw new Error(`No verified candles for ${symbol} ${interval}. ${error?.message || String(error)}`);
+    }
     return buildSimulatedKlineResult(symbol, interval, limit, [error?.message || String(error)]);
   }
 }
@@ -340,3 +414,5 @@ export async function getQuotePayload(symbols: string[]): Promise<QuotePayload> 
   marketCache.set(cacheKey, { expiresAt: Date.now() + QUOTE_CACHE_TTL_MS, payload });
   return payload;
 }
+
+

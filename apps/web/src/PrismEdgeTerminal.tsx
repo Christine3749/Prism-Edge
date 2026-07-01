@@ -1,4 +1,4 @@
-import { useEffect, useState, type Dispatch, type SetStateAction } from "react";
+import { useCallback, useEffect, useState, type Dispatch, type SetStateAction } from "react";
 import { DEFAULT_WATCHLIST_SYMBOLS, inferMarketSymbolFromInput, resolveMarketSymbol, sortMarketSymbols } from "@shared/marketCatalog";
 import { StorageService } from "@shared/storage";
 import { useTranslation } from "@shared/translations";
@@ -53,6 +53,7 @@ export default function PrismEdgeTerminal() {
   const [watchlistOpen, setWatchlistOpen] = useState(false);
   const [scannerHandleActive, setScannerHandleActive] = useState(false);
   const [scannerExpanded, setScannerExpanded] = useState(false);
+  const [workspaceDeck, setWorkspaceDeck] = useState<1 | 2>(1);
   const [chartStatusHoverActive, setChartStatusHoverActive] = useState(false);
   const [indicatorsModalOpen, setIndicatorsModalOpen] = useState(false);
   const [settingsModalOpen, setSettingsModalOpen] = useState(false);
@@ -78,6 +79,14 @@ export default function PrismEdgeTerminal() {
   });
 
   const scannerRevealActive = scannerHandleActive || chartStatusHoverActive;
+  const handleWorkspaceDeckSelect = useCallback((deck: 1 | 2) => {
+    setWorkspaceDeck(deck);
+    setScannerExpanded(deck === 2);
+  }, []);
+  const handleScannerExpandedChange = useCallback((expanded: boolean) => {
+    setScannerExpanded(expanded);
+    setWorkspaceDeck(expanded ? 2 : 1);
+  }, []);
   const syncFavoriteSymbolsToCloud = (symbols: string[]) => {
     if (!hasCloudFavoriteSession()) {
       setFavoriteSyncState("local");
@@ -118,16 +127,27 @@ export default function PrismEdgeTerminal() {
           setFavoriteSyncState("local");
           return;
         }
-        setFavoriteSymbols((localSymbols) => {
-          const merged = mergeFavoriteSymbols(cloud.symbols, localSymbols);
-          StorageService.saveFavoriteSymbols(merged);
-          addKnownFavoriteSymbolsToWatchlist(merged, setSymbolsList);
-          if (merged.join("|") !== cloud.symbols.join("|")) {
-            syncFavoriteSymbolsToCloud(merged);
-          }
-          return merged;
-        });
+        const localSymbols = StorageService.loadFavoriteSymbols([]);
+        const merged = mergeFavoriteSymbols(cloud.symbols, localSymbols);
+        StorageService.saveFavoriteSymbols(merged);
+        addKnownFavoriteSymbolsToWatchlist(merged, setSymbolsList);
+        setFavoriteSymbols(merged);
+        if (merged.join("|") !== cloud.symbols.join("|")) {
+          syncFavoriteSymbolsToCloud(merged);
+          return;
+        }
         setFavoriteSyncState("synced");
+        void verifyCloudFavoriteSymbols(merged, controller.signal)
+          .then((replay) => {
+            if (cancelled) return;
+            setFavoriteSyncState(replay.signedIn && replay.verified ? "verified" : "synced");
+          })
+          .catch((error) => {
+            if (!controller.signal.aborted) {
+              setFavoriteSyncState("error");
+              console.warn("Favorite cloud replay verification failed.", error);
+            }
+          });
       })
       .catch((error) => {
         if (!controller.signal.aborted) {
@@ -238,6 +258,8 @@ export default function PrismEdgeTerminal() {
           onClearDrawings={() => setDrawings([])}
           drawingsCount={drawings.length}
           lang={lang}
+          activeWorkspaceDeck={workspaceDeck}
+          onWorkspaceDeckSelect={handleWorkspaceDeckSelect}
         />
 
 
@@ -251,7 +273,8 @@ export default function PrismEdgeTerminal() {
               lang={lang}
               onSymbolSelect={handleSymbolSelect}
               onHandleHoverChange={setScannerHandleActive}
-              onExpandedChange={setScannerExpanded}
+              activeWorkspaceDeck={workspaceDeck}
+              onExpandedChange={handleScannerExpandedChange}
               revealHandle={scannerRevealActive}
               integratedBottom={scannerExpanded}
             />

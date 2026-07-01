@@ -56,7 +56,10 @@ const MARKET_GROUP_RANK: Record<NonNullable<MarketSymbol["market"]>, number> = {
   cn: 2,
   hk: 3,
   forex: 4,
-  internal: 5
+  jp: 5,
+  au: 6,
+  eu: 7,
+  internal: 8
 };
 
 function getSymbolRank(symbol: MarketSymbol): number {
@@ -138,6 +141,21 @@ export function inferMarketSymbolForMarket(input: string, market: string = "all"
   if (marketScope === "forex" || isForex) {
     const forexSymbol = inferForexSymbol(normalized);
     if (forexSymbol) return forexSymbol;
+  }
+
+  if (marketScope === "jp" || normalized.endsWith(".T")) {
+    const jpSymbol = inferInternationalEquitySymbol(normalized, "jp");
+    if (jpSymbol) return jpSymbol;
+  }
+
+  if (marketScope === "au" || normalized.endsWith(".AX")) {
+    const auSymbol = inferInternationalEquitySymbol(normalized, "au");
+    if (auSymbol) return auSymbol;
+  }
+
+  if (marketScope === "eu" || /\.(L|PA|DE|MI|AS|SW)$/.test(normalized)) {
+    const euSymbol = inferInternationalEquitySymbol(normalized, "eu");
+    if (euSymbol) return euSymbol;
   }
 
   if (marketScope === "us" || marketScope === "all") {
@@ -245,6 +263,38 @@ function inferForexSymbol(normalized: string): MarketSymbol | null {
     change24h: 0,
     volume24h: 0,
     precision: 5
+  };
+}
+
+function inferInternationalEquitySymbol(normalized: string, market: "eu" | "jp" | "au"): MarketSymbol | null {
+  const suffixMap = {
+    jp: { suffixes: ["T"], exchange: "TSE", currency: "JPY", label: "Japan Equity" },
+    au: { suffixes: ["AX"], exchange: "ASX", currency: "AUD", label: "Australia Equity" },
+    eu: { suffixes: ["L", "PA", "DE", "MI", "AS", "SW"], exchange: "EU", currency: "EUR", label: "European Equity" }
+  } as const;
+  const config = suffixMap[market];
+  const suffixes = config.suffixes.join("|");
+  const suffixMatch = normalized.match(new RegExp(`\\.(${suffixes})$`));
+  const rawCode = normalized.replace(new RegExp(`\\.(${suffixes})$`), "");
+
+  if (!suffixMatch || !/^[A-Z0-9.-]{1,12}$/.test(rawCode)) return null;
+
+  const suffix = suffixMatch[1];
+  const symbol = `${rawCode}.${suffix}`;
+  return {
+    id: symbol,
+    symbol,
+    name: `${symbol} ${config.label}`,
+    type: "stock",
+    market,
+    exchange: config.exchange,
+    currency: config.currency,
+    dataProvider: "yahoo",
+    yahooSymbol: symbol,
+    price: 100,
+    change24h: 0,
+    volume24h: 0,
+    precision: 2
   };
 }
 

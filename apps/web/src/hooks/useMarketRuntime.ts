@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { fetchMarketQuotes, loadMarketData, subscribeRealtime, updateCandlesFromTick } from "@shared/marketDataService";
 import type {
   AnalysisRunResponse,
@@ -43,6 +43,8 @@ export function useMarketRuntime(params: UseMarketRuntimeParams) {
   const marketStatusRef = useRef(marketStatus);
   const lastMarketUpdateRef = useRef(Date.now());
   const quoteRefreshInFlightRef = useRef(false);
+  const historyRequestRef = useRef<{ symbolId: string; timeframe: string } | null>(null);
+  const [historyReadyKey, setHistoryReadyKey] = useState("");
 
   useEffect(() => {
     symbolsListRef.current = symbolsList;
@@ -161,39 +163,63 @@ export function useMarketRuntime(params: UseMarketRuntimeParams) {
 
   useEffect(() => {
     let cancelled = false;
+    const requestKey = `${currentSymbol.id}:${timeframe}`;
+    const previousRequest = historyRequestRef.current;
+    const isNewSymbol = previousRequest?.symbolId !== currentSymbol.id;
+    const shouldClearBeforeFetch = isNewSymbol || !canUseSimulatedRuntime(currentSymbol);
+    historyRequestRef.current = { symbolId: currentSymbol.id, timeframe };
 
     const fetchHistory = async () => {
-      setCandles([]);
+      setHistoryReadyKey("");
+      if (shouldClearBeforeFetch) setCandles([]);
       setIsLiveBinanceActive(false);
       setAnalysisResult(null);
       setMarketStatus(buildMarketStatus({
         state: "loading",
         source: "gateway",
         provider: currentSymbol.exchange || currentSymbol.market,
-        reason: `Loading ${currentSymbol.id} ${timeframe} candles.`
+        reason: shouldClearBeforeFetch
+          ? `Loading ${currentSymbol.id} ${timeframe} candles.`
+          : `Loading ${currentSymbol.id} ${timeframe} candles; preserving the current view until the new history arrives.`
       }));
 
-      const result = await loadMarketData(currentSymbol, timeframe);
-      if (cancelled) return;
+      try {
+        const result = await loadMarketData(currentSymbol, timeframe);
+        if (cancelled) return;
 
-      setCandles(result.candles);
-      setIsLiveBinanceActive(result.isLiveBinance);
-      lastMarketUpdateRef.current = result.updatedAt;
-      const state = getFeedState(result.source, result.isLiveBinance);
-      setMarketStatus(buildMarketStatus({
-        state,
-        source: result.source,
-        provider: currentSymbol.exchange || currentSymbol.market,
-        updatedAt: result.updatedAt,
-        latencyMs: result.latencyMs,
-        freshnessMs: Date.now() - result.updatedAt,
-        route: result.route,
-        reason: result.isLiveBinance
-          ? "Real candle gateway connected."
-          : state === "delayed"
-            ? "Delayed candle gateway connected."
-            : result.fallbackReason || "Fallback simulator active because the market gateway did not return usable candles."
-      }));
+        setCandles(result.candles);
+        setHistoryReadyKey(requestKey);
+        setIsLiveBinanceActive(result.isLiveBinance);
+        lastMarketUpdateRef.current = result.updatedAt;
+        const state = getFeedState(result.source, result.isLiveBinance);
+        setMarketStatus(buildMarketStatus({
+          state,
+          source: result.source,
+          provider: currentSymbol.exchange || currentSymbol.market,
+          updatedAt: result.updatedAt,
+          latencyMs: result.latencyMs,
+          freshnessMs: Date.now() - result.updatedAt,
+          route: result.route,
+          reason: result.isLiveBinance
+            ? "Real candle gateway connected."
+            : state === "delayed"
+              ? "Delayed candle gateway connected."
+              : result.fallbackReason || "Fallback simulator active because the market gateway did not return usable candles."
+        }));
+      } catch (err) {
+        if (cancelled) return;
+        setCandles([]);
+        setHistoryReadyKey("");
+        setIsLiveBinanceActive(false);
+        const reason = err instanceof Error ? err.message : "Verified market candles are unavailable.";
+        setMarketStatus(buildMarketStatus({
+          state: "error",
+          source: "unavailable",
+          provider: currentSymbol.exchange || currentSymbol.market,
+          updatedAt: Date.now(),
+          reason
+        }));
+      }
     };
 
     fetchHistory();
@@ -231,7 +257,7 @@ export function useMarketRuntime(params: UseMarketRuntimeParams) {
   useEffect(() => {
     const timer = window.setInterval(() => {
       const status = marketStatusRef.current;
-      if (!shouldRunLocalMarketPulse(status)) return;
+      if (!shouldRunLocalMarketPulse(status, currentSymbolRef.current)) return;
 
       const now = Date.now();
       const activeId = currentSymbolRef.current.id;
@@ -254,6 +280,7 @@ export function useMarketRuntime(params: UseMarketRuntimeParams) {
 
   useEffect(() => {
     if (candles.length === 0) return;
+    if (historyReadyKey !== `${currentSymbol.id}:${timeframe}`) return;
     const subscription = subscribeRealtime(currentSymbol, timeframe, (tick) => {
       lastMarketUpdateRef.current = Date.now();
       const source = tick.source || (tick.isLive ? marketStatusRef.current.source : "simulated");
@@ -277,14 +304,18 @@ export function useMarketRuntime(params: UseMarketRuntimeParams) {
     return () => {
       subscription.close();
     };
-  }, [currentSymbol.id, currentSymbol.symbol, currentSymbol.type, currentSymbol.precision, timeframe, candles.length, updateSymbolsListPrice]);
+  }, [currentSymbol.id, currentSymbol.symbol, currentSymbol.type, currentSymbol.precision, timeframe, candles.length, historyReadyKey, updateSymbolsListPrice]);
 }
 
 
-function shouldRunLocalMarketPulse(status: MarketDataStatus | undefined) {
-  if (!status) return false;
+function canUseSimulatedRuntime(symbol?: MarketSymbol) {
+  return symbol?.dataProvider === "simulated" || symbol?.market === "internal";
+}
+
+function shouldRunLocalMarketPulse(status: MarketDataStatus | undefined, symbol?: MarketSymbol) {
+  if (!status || !canUseSimulatedRuntime(symbol)) return false;
   const source = (status.source || "").toLowerCase();
-  return status.state === "simulated" || status.state === "stale" || status.state === "error" || source.includes("simulated") || source.includes("local-sim");
+  return status.state === "simulated" || source.includes("simulated") || source.includes("local-sim");
 }
 
 function pulseMarketSymbol(symbol: MarketSymbol, index: number, now: number, activeId: string): MarketSymbol {
@@ -324,3 +355,4 @@ function stableSymbolSeed(value: string) {
 function clampNumber(value: number, min: number, max: number) {
   return Math.min(max, Math.max(min, value));
 }
+

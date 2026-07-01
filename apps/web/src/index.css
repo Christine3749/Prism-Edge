@@ -675,3 +675,145 @@ body {
   border-color: #9fb3c6 !important;
   color: #26384d !important;
 }
+/* Watchlist market filter rail: lightweight drag surface. */
+[data-watchlist-rail] {
+  -webkit-mask-image: none !important;
+  mask-image: none !important;
+  box-shadow: none !important;
+  scroll-behavior: auto !important;
+}
+
+[data-watchlist-rail] [data-watchlist-tab] {
+  border: 1px solid transparent !important;
+  box-shadow: none !important;
+  text-shadow: none !important;
+  transform: none !important;
+}
+
+.prism-terminal--dark [data-watchlist-rail] {
+  background: rgba(9, 22, 40, 0.46) !important;
+  border-color: rgba(49, 78, 111, 0.42) !important;
+}
+
+.prism-terminal--dark [data-watchlist-rail] [data-watchlist-tab] {
+  color: rgba(148, 163, 184, 0.9) !important;
+}
+
+.prism-terminal--dark [data-watchlist-rail] [data-watchlist-tab][data-active="true"] {
+  background: rgba(15, 45, 74, 0.58) !important;
+  border-color: rgba(58, 110, 162, 0.46) !important;
+  color: rgba(226, 239, 255, 0.96) !important;
+}
+
+.prism-terminal--dark [data-watchlist-rail] [data-watchlist-tab]:hover {
+  background: rgba(18, 43, 70, 0.42) !important;
+  color: rgba(226, 239, 255, 0.94) !important;
+}
+
+.prism-terminal--light [data-watchlist-rail] {
+  background: rgba(247, 250, 253, 0.72) !important;
+  border-color: rgba(190, 205, 219, 0.62) !important;
+}
+
+.prism-terminal--light [data-watchlist-rail] [data-watchlist-tab] {
+  background: transparent !important;
+  color: #26384a !important;
+}
+
+.prism-terminal--light [data-watchlist-rail] [data-watchlist-tab][data-active="true"] {
+  background: rgba(229, 238, 246, 0.78) !important;
+  border-color: rgba(147, 174, 197, 0.5) !important;
+  color: #236b93 !important;
+}
+
+.prism-terminal--light [data-watchlist-rail] [data-watchlist-tab]:hover {
+  background: rgba(235, 242, 248, 0.76) !important;
+  color: #1e5f87 !important;
+}
+
+/* Watchlist intelligence cues: explanatory, but visually quiet. */
+[data-watchlist-search-insight],
+[data-watchlist-sync-note],
+[data-watchlist-suggestions] > span {
+  box-shadow: none !important;
+  text-shadow: none !important;
+}
+
+.prism-terminal--dark [data-watchlist-search-insight],
+.prism-terminal--dark [data-watchlist-sync-note] {
+  background: rgba(5, 13, 27, 0.52) !important;
+  border-color: rgba(45, 70, 101, 0.48) !important;
+}
+
+.prism-terminal--dark [data-watchlist-suggestions] > span {
+  background: rgba(8, 21, 38, 0.72) !important;
+  border-color: rgba(45, 70, 101, 0.58) !important;
+}
+
+.prism-terminal--light [data-watchlist-search-insight],
+.prism-terminal--light [data-watchlist-sync-note] {
+  background: rgba(248, 251, 253, 0.76) !important;
+  border-color: rgba(196, 210, 222, 0.7) !important;
+  color: #64748b !important;
+}
+
+.prism-terminal--light [data-watchlist-search-insight] span,
+.prism-terminal--light [data-watchlist-sync-note] span {
+  text-shadow: none !important;
+}
+
+.prism-terminal--light [data-watchlist-search-insight] span[class*="text-blue"] {
+  color: #2d7198 !important;
+}
+
+.prism-terminal--light [data-watchlist-suggestions] > span {
+  background: rgba(250, 252, 254, 0.82) !important;
+  border-color: rgba(193, 207, 220, 0.72) !important;
+}
+
+.prism-terminal--light [data-watchlist-suggestions] button {
+  background: transparent !important;
+  box-shadow: none !important;
+  color: #365773 !important;
+}
+
+.prism-terminal--light [data-watchlist-suggestions] button:hover {
+  background: rgba(231, 240, 247, 0.82) !important;
+  color: #1f5f86 !important;
+}
+
+/* Left dock workspace deck switch: quiet, expandable 1/2/3/4 rail */
+[data-workspace-deck-rail] {
+  box-shadow: none !important;
+  text-shadow: none !important;
+}
+
+[data-workspace-deck-button] {
+  border: 1px solid transparent;
+  box-shadow: none !important;
+  text-shadow: none !important;
+}
+
+[data-workspace-deck-button][data-active="true"] {
+  border-color: rgba(96, 165, 250, 0.28);
+}
+
+.prism-terminal--light [data-workspace-deck-rail] {
+  background: #eef4f9 !important;
+  border-color: #cbd8e5 !important;
+}
+
+.prism-terminal--light [data-workspace-deck-button] {
+  color: #657386 !important;
+}
+
+.prism-terminal--light [data-workspace-deck-button]:hover {
+  background: #e5eef6 !important;
+  color: #235f84 !important;
+}
+
+.prism-terminal--light [data-workspace-deck-button][data-active="true"] {
+  background: #dbeaf7 !important;
+  border-color: #a9c0d5 !important;
+  color: #145073 !important;
+}

@@ -76,9 +76,7 @@ export default function Watchlist({
     }
 
     const controller = new AbortController();
-    const market = CORE_WATCHLIST_FILTERS.includes(filter as CoreWatchlistFilter) && filter !== "all" && filter !== "favorites"
-      ? filter
-      : "all";
+    const market = filter !== "all" && filter !== "favorites" ? filter : "all";
     setRemoteSearchLoading(true);
 
     const timeout = window.setTimeout(() => {
@@ -111,7 +109,7 @@ export default function Watchlist({
 
     if (!normalizedQueryLower || filter === "favorites") return localMatches;
 
-    const catalogFilter = CORE_WATCHLIST_FILTERS.includes(filter as CoreWatchlistFilter) ? filter : "all";
+    const catalogFilter = filter !== "favorites" ? filter : "all";
     const catalogMatches = searchMarketSymbols(query, catalogFilter === "favorites" ? "all" : catalogFilter, 60).filter(matches);
     const remoteMatches = remoteSymbols.filter(matches);
     const merged = new Map<string, MarketSymbol>();
@@ -145,6 +143,7 @@ export default function Watchlist({
   const quickAddSymbol = normalizedQuery
     ? filteredSymbols.find((symbol) => !favoriteSet.has(symbol.symbol))
     : undefined;
+  const showFavoriteSyncNotice = filter === "favorites" || favoriteSymbols.length > 0 || favoriteSyncState !== "local";
 
   const desktopShell = compressed
     ? "pointer-events-none hidden h-full w-0 min-w-0 shrink-0 overflow-hidden border-l border-transparent bg-slate-950/0 p-0 opacity-0 transition-[width,min-width,opacity,padding,border-color] duration-500 md:flex xl:w-0 xl:min-w-0"
@@ -181,14 +180,15 @@ export default function Watchlist({
           )}
         </div>
 
-        <DraggableTabRail activeKey={filter}>
+        <DraggableTabRail>
           {availableFilters.map((cat) => (
             <button
               key={cat}
               data-watchlist-tab={cat}
+              data-active={filter === cat ? "true" : "false"}
               onClick={() => setFilter(cat)}
-              className={`h-full min-w-[76px] shrink-0 snap-center cursor-pointer whitespace-nowrap rounded-sm px-3 text-center transition-[background-color,color,box-shadow] duration-100 active:brightness-125 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-blue-300/60 ${
-                filter === cat ? "bg-[#071f36] text-blue-50 shadow-[inset_0_-1px_0_rgba(125,211,252,0.35)] ring-1 ring-blue-500/35" : "hover:bg-slate-800/75 hover:text-white"
+              className={`h-full min-w-[76px] shrink-0 cursor-pointer whitespace-nowrap rounded px-3 text-center transition-colors duration-100 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-blue-300/35 ${
+                filter === cat ? "bg-slate-800/35 text-slate-100" : "text-slate-400 hover:bg-slate-900/25 hover:text-slate-100"
               }`}
             >
               {categoryTranslationMap[cat] || cat.toUpperCase()}
@@ -208,54 +208,71 @@ export default function Watchlist({
           </span>
         </div>
         {searchInsight && (
-          <div className="mt-1.5 flex min-h-6 items-center justify-between gap-2 rounded border border-slate-800/80 bg-slate-950/70 px-2 py-1 text-[8px] font-bold text-slate-500">
-            <div className="min-w-0 truncate" title={searchInsight.reason}>
-              <span className="text-blue-300/75">{searchInsight.marketLabel}</span>
-              <span className="mx-1 text-slate-700">/</span>
-              <span>{searchInsight.detail}</span>
+          <div data-watchlist-search-insight className="mt-1.5 rounded border border-slate-800/70 bg-slate-950/55 px-2 py-1.5 text-[8px] font-bold text-slate-500">
+            <div className="flex min-w-0 items-start justify-between gap-2">
+              <div className="min-w-0">
+                <div className="flex min-w-0 items-center gap-1.5">
+                  <span className="shrink-0 rounded border border-blue-400/20 bg-blue-400/10 px-1.5 py-0.5 text-blue-200/85">
+                    {searchInsight.marketLabel}
+                  </span>
+                  <span className="truncate text-slate-400">{searchInsight.detail}</span>
+                </div>
+                <div className="mt-0.5 truncate font-mono text-[7px] font-bold uppercase tracking-wider text-slate-600" title={searchInsight.reason}>
+                  {searchInsight.reason}
+                </div>
+              </div>
+              {quickAddSymbol && onToggleFavorite && (
+                <button
+                  type="button"
+                  onClick={() => onToggleFavorite(quickAddSymbol)}
+                  className="shrink-0 cursor-pointer rounded border border-amber-400/25 px-1.5 py-0.5 text-[8px] font-black text-amber-200 transition hover:border-amber-300/60 hover:bg-amber-400/10"
+                  title={favoriteSyncMeta.detail}
+                >
+                  {zh ? "加自选" : "Add"}
+                </button>
+              )}
             </div>
-            {quickAddSymbol && onToggleFavorite && (
-              <span
-                role="button"
-                tabIndex={0}
-                onClick={() => onToggleFavorite(quickAddSymbol)}
-                onKeyDown={(event) => {
-                  if (event.key !== "Enter" && event.key !== " ") return;
-                  event.preventDefault();
-                  onToggleFavorite(quickAddSymbol);
-                }}
-                className="shrink-0 cursor-pointer rounded border border-amber-400/30 px-1.5 py-0.5 text-amber-200 transition hover:border-amber-300/70 hover:bg-amber-400/10"
-                title={favoriteSyncMeta.detail}
-              >
-                {zh ? "加首项" : "Add first"}
-              </span>
-            )}
           </div>
         )}
         {searchSuggestions.length > 0 && (
-          <div className="mt-1 flex flex-wrap gap-1 text-[8px] font-bold text-slate-500">
+          <div data-watchlist-suggestions className="mt-1 flex flex-wrap gap-1 text-[8px] font-bold text-slate-500">
             <span className="px-0.5 py-1 text-slate-600">{zh ? "建议后缀" : "Try suffix"}</span>
-            {searchSuggestions.map((suggestion) => (
-              <span
-                key={suggestion.symbol}
-                role="button"
-                tabIndex={0}
-                onClick={() => {
-                  setFilter((suggestion.market || suggestion.type || "all") as WatchlistFilter);
-                  setQuery(suggestion.id);
-                }}
-                onKeyDown={(event) => {
-                  if (event.key !== "Enter" && event.key !== " ") return;
-                  event.preventDefault();
-                  setFilter((suggestion.market || suggestion.type || "all") as WatchlistFilter);
-                  setQuery(suggestion.id);
-                }}
-                className="cursor-pointer rounded border border-slate-800 bg-slate-900/80 px-1.5 py-1 font-mono text-blue-200/75 transition hover:border-blue-400/50 hover:bg-blue-500/10 hover:text-blue-100"
-                title={getSymbolMatchReason(suggestion, normalizedQuery, zh)}
-              >
-                {suggestion.id}
-              </span>
-            ))}
+            {searchSuggestions.map((suggestion) => {
+              const suggestionMarket = getMarketDisplayName(suggestion.market || suggestion.type, zh);
+              const suggestionReason = getSymbolMatchReason(suggestion, normalizedQuery, zh);
+              return (
+                <span key={suggestion.symbol} className="inline-flex overflow-hidden rounded border border-slate-800 bg-slate-900/70">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setFilter((suggestion.market || suggestion.type || "all") as WatchlistFilter);
+                      setQuery(suggestion.id);
+                    }}
+                    className="cursor-pointer px-1.5 py-1 font-mono text-blue-200/75 transition hover:bg-blue-500/10 hover:text-blue-100"
+                    title={suggestionReason}
+                  >
+                    <span>{suggestion.id}</span>
+                    <span className="ml-1 text-slate-500">{suggestionMarket}</span>
+                  </button>
+                  {onToggleFavorite && (
+                    <button
+                      type="button"
+                      onClick={() => onToggleFavorite(suggestion)}
+                      className="cursor-pointer border-l border-slate-800 px-1 text-amber-300/80 transition hover:bg-amber-400/10 hover:text-amber-200"
+                      title={favoriteSyncMeta.detail}
+                    >
+                      <Star className="h-3 w-3" />
+                    </button>
+                  )}
+                </span>
+              );
+            })}
+          </div>
+        )}
+        {showFavoriteSyncNotice && (
+          <div data-watchlist-sync-note className="mt-1 flex items-center justify-between gap-2 rounded border border-slate-800/60 bg-slate-950/35 px-2 py-1 text-[7px] font-bold uppercase tracking-wider text-slate-600" title={favoriteSyncMeta.detail}>
+            <span>{zh ? "自选" : "Favorites"} · <span className={favoriteSyncMeta.className}>{favoriteSyncMeta.label}</span></span>
+            <span className="max-w-[120px] truncate text-blue-300/45" title={providerMeta.tooltip}>{providerMeta.routeShort}</span>
           </div>
         )}
         <div className="mt-2 grid grid-cols-[minmax(0,1fr)_58px_48px] gap-2 px-0.5 text-[8px] font-bold uppercase tracking-widest text-slate-600">
@@ -270,11 +287,10 @@ export default function Watchlist({
           const isSelected = sym.id === currentSymbol.id;
           const isUp = sym.change24h >= 0;
           const feedTone = feedToneMap[feedState];
-          const sourceLabel = isSelected && marketStatus?.source
-            ? marketStatus.source
-            : sym.lastSource || sym.dataProvider || sym.exchange || sym.type;
+          const rowProviderMeta = getRowProviderMeta(sym, isSelected, marketStatus, zh);
           const favoriteLabel = isFavorite ? (zh ? "取消自选" : "Remove favorite") : (zh ? "加入自选" : "Add favorite");
           const marketLabel = getMarketDisplayName(sym.market || sym.type, zh);
+          const matchReason = normalizedQuery ? getSymbolMatchReason(sym, normalizedQuery, zh) : "";
           return (
             <button
               key={sym.id}
@@ -312,7 +328,7 @@ export default function Watchlist({
                     </span>
                     <span className="truncate text-[12px] font-black tracking-tight text-white">{sym.id}</span>
                     <span
-                      title={`${sourceLabel} · ${feedState}`}
+                      title={rowProviderMeta.tooltip}
                       className={`shrink-0 rounded border px-1 py-[1px] font-mono text-[7px] font-black leading-none ${feedTone}`}
                     >
                       {feedLabelMap[feedState]}
@@ -324,6 +340,16 @@ export default function Watchlist({
                   <div className="mt-0.5 truncate text-[8px] text-slate-500">
                     {sym.name} · {sym.exchange || sym.market || sym.type}
                   </div>
+                  {(normalizedQuery || isSelected) && (
+                    <div
+                      className="mt-0.5 truncate text-[7px] font-bold text-slate-600"
+                      title={normalizedQuery ? `${matchReason}\n${rowProviderMeta.tooltip}` : rowProviderMeta.tooltip}
+                    >
+                      {normalizedQuery
+                        ? `${matchReason} · ${rowProviderMeta.label}`
+                        : rowProviderMeta.label}
+                    </div>
+                  )}
                   {normalizedQuery && !isFavorite && onToggleFavorite && (
                     <span
                       role="button"
@@ -424,53 +450,14 @@ const idleRailDragState: RailDragState = {
   velocity: 0
 };
 
-function DraggableTabRail({ children, activeKey }: { children: ReactNode; activeKey: string }) {
+function DraggableTabRail({ children }: { children: ReactNode }) {
   const railRef = useRef<HTMLDivElement | null>(null);
   const dragStateRef = useRef<RailDragState>({ ...idleRailDragState });
   const suppressClickRef = useRef(false);
-  const momentumFrameRef = useRef<number | null>(null);
-
-  const stopMomentum = () => {
-    if (momentumFrameRef.current === null) return;
-    window.cancelAnimationFrame(momentumFrameRef.current);
-    momentumFrameRef.current = null;
-  };
 
   const resetDragState = () => {
     dragStateRef.current = { ...idleRailDragState };
   };
-
-  const startMomentum = (velocity: number) => {
-    const rail = railRef.current;
-    if (!rail || Math.abs(velocity) < 0.04) return;
-
-    let currentVelocity = velocity;
-    let previousTime = window.performance.now();
-
-    const glide = (now: number) => {
-      const elapsed = Math.min(32, now - previousTime);
-      previousTime = now;
-      rail.scrollLeft -= currentVelocity * elapsed;
-      currentVelocity *= Math.pow(0.9, elapsed / 16.67);
-
-      if (Math.abs(currentVelocity) > 0.015) {
-        momentumFrameRef.current = window.requestAnimationFrame(glide);
-        return;
-      }
-      momentumFrameRef.current = null;
-    };
-
-    momentumFrameRef.current = window.requestAnimationFrame(glide);
-  };
-
-  useEffect(() => stopMomentum, []);
-
-  useEffect(() => {
-    const rail = railRef.current;
-    if (!rail) return;
-    const activeTab = Array.from(rail.querySelectorAll<HTMLButtonElement>("[data-watchlist-tab]")).find((button) => button.dataset.watchlistTab === activeKey);
-    activeTab?.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "center" });
-  }, [activeKey, children]);
 
   return (
     <div className="relative mt-3">
@@ -488,7 +475,6 @@ function DraggableTabRail({ children, activeKey }: { children: ReactNode; active
           if (event.pointerType === "mouse" && event.button !== 0) return;
           const rail = railRef.current;
           if (!rail) return;
-          stopMomentum();
           suppressClickRef.current = false;
           const now = window.performance.now();
           dragStateRef.current = {
@@ -509,10 +495,6 @@ function DraggableTabRail({ children, activeKey }: { children: ReactNode; active
           const totalDeltaX = event.clientX - state.startX;
           if (!state.dragging && Math.abs(totalDeltaX) <= 6) return;
 
-          const now = window.performance.now();
-          const frameDeltaX = event.clientX - state.lastX;
-          const elapsed = Math.max(8, now - state.lastTime);
-
           if (!state.dragging) {
             state.dragging = true;
             suppressClickRef.current = true;
@@ -520,15 +502,13 @@ function DraggableTabRail({ children, activeKey }: { children: ReactNode; active
           }
 
           event.preventDefault();
-          rail.scrollLeft -= frameDeltaX;
-          state.velocity = frameDeltaX / elapsed;
+          rail.scrollLeft -= event.clientX - state.lastX;
           state.lastX = event.clientX;
-          state.lastTime = now;
+          state.lastTime = window.performance.now();
         }}
         onPointerUp={(event) => {
           const state = dragStateRef.current;
           const wasDragging = state.dragging;
-          const velocity = state.velocity;
           const rail = railRef.current;
 
           if (rail && wasDragging && state.pointerId === event.pointerId) {
@@ -541,10 +521,9 @@ function DraggableTabRail({ children, activeKey }: { children: ReactNode; active
             return;
           }
 
-          startMomentum(velocity);
           window.setTimeout(() => {
             suppressClickRef.current = false;
-          }, 140);
+          }, 80);
         }}
         onPointerCancel={(event) => {
           const state = dragStateRef.current;
@@ -564,16 +543,14 @@ function DraggableTabRail({ children, activeKey }: { children: ReactNode; active
           if (!rail || rail.scrollWidth <= rail.clientWidth) return;
           const delta = Math.abs(event.deltaX) > Math.abs(event.deltaY) ? event.deltaX : event.deltaY;
           if (Math.abs(delta) < 1) return;
-          stopMomentum();
           rail.scrollLeft += delta;
           event.preventDefault();
         }}
-        className="flex h-8 snap-x snap-mandatory scroll-px-4 cursor-grab touch-pan-x select-none gap-1 overflow-x-auto scroll-smooth rounded border border-slate-800 bg-slate-900/95 p-0.5 text-[9px] font-semibold text-slate-400 no-scrollbar [mask-image:linear-gradient(90deg,transparent,black_12px,black_calc(100%-12px),transparent)] active:cursor-grabbing"
+        data-watchlist-rail
+        className="flex h-8 cursor-grab touch-pan-x select-none gap-0.5 overflow-x-auto rounded border border-slate-800/55 bg-slate-950/20 p-0.5 text-[9px] font-semibold text-slate-400 no-scrollbar active:cursor-grabbing"
       >
         {children}
       </div>
-      <div className="pointer-events-none absolute inset-y-0 left-0 w-4 rounded-l bg-gradient-to-r from-slate-900/95 to-transparent" />
-      <div className="pointer-events-none absolute inset-y-0 right-0 w-4 rounded-r bg-gradient-to-l from-slate-900/95 to-transparent" />
     </div>
   );
 }
@@ -585,13 +562,17 @@ function buildSearchSuggestions(query: string, symbols: MarketSymbol[]) {
 
   if (/^\d{1,5}$/.test(normalized)) {
     candidates.push([`${normalized}.HK`, "hk"]);
+    if (/^\d{4}$/.test(normalized)) candidates.push([`${normalized}.T`, "jp"]);
   }
   if (/^\d{6}$/.test(normalized)) {
     candidates.push([`${normalized}.SS`, "cn"], [`${normalized}.SZ`, "cn"], [`${normalized}.BJ`, "cn"]);
   }
   if (/^[A-Z]{1,6}$/.test(normalized)) {
     candidates.push([normalized, "us"]);
-    if (normalized.length >= 2) candidates.push([`${normalized}USDT`, "crypto"]);
+    if (normalized.length >= 2) {
+      candidates.push([`${normalized}.L`, "eu"], [`${normalized}.PA`, "eu"], [`${normalized}.AX`, "au"]);
+      candidates.push([`${normalized}USDT`, "crypto"]);
+    }
   }
   if (/^[A-Z]{6}$/.test(normalized) || /^[A-Z]{3}\/[A-Z]{3}$/.test(normalized)) {
     candidates.push([normalized, "forex"]);
@@ -605,33 +586,62 @@ function buildSearchSuggestions(query: string, symbols: MarketSymbol[]) {
     }
   });
 
-  return Array.from(suggestions.values()).slice(0, 4);
+  return Array.from(suggestions.values()).slice(0, 6);
 }
+
+function describeSearchIntent(query: string, zh: boolean) {
+  const normalized = query.trim().toUpperCase().replace(/\s+/g, "");
+  if (/^[A-Z]{3}\/?[A-Z]{3}$/.test(normalized)) {
+    return zh ? "输入结构像货币对，会优先按外汇识别。" : "Looks like a currency pair, so FX is prioritized.";
+  }
+  if (/^\d{6}(\.(SS|SZ|SH|BJ))?$/.test(normalized)) {
+    return zh ? "6 位数字会优先按 A 股规则补全交易所后缀。" : "Six digits are completed with China exchange suffix rules.";
+  }
+  if (/^\d{4,5}(\.HK)?$/.test(normalized)) {
+    return zh ? "4-5 位数字会优先检查港股；4 位也会建议日本 .T。" : "4-5 digits check HK first; 4 digits also suggest Japan .T.";
+  }
+  if (/\.(T|AX|L|PA|DE|MI|AS|SW)$/.test(normalized)) {
+    return zh ? "交易所后缀会直接决定日本、澳洲或欧洲市场。" : "Exchange suffix decides Japan, Australia, or Europe directly.";
+  }
+  if (/^[A-Z]{1,6}$/.test(normalized)) {
+    return zh ? "字母代码默认先查美股，同时给 Crypto/欧洲/澳洲候选。" : "Plain tickers check US first, with Crypto/Europe/Australia fallbacks.";
+  }
+  return zh ? "先查本地目录，再请求远程 Provider 补全。" : "Local catalog first, then provider search expands candidates.";
+}
+
 function getSearchInsight(symbols: MarketSymbol[], query: string, loading: boolean, zh: boolean) {
   if (!query) return null;
+  const intent = describeSearchIntent(query, zh);
   if (loading) {
     return {
-      marketLabel: zh ? "市场识别中" : "Detecting market",
-      detail: zh ? "正在从本地目录和远程源补全" : "Local catalog and remote provider are searching",
-      reason: zh ? "输入变化后先查本地目录，再请求远程市场搜索。" : "Input changes search local catalog first, then remote market search."
+      marketLabel: zh ? "识别中" : "Detecting",
+      detail: zh ? "本地目录 + 远程 Provider" : "Catalog + provider search",
+      reason: intent
     };
   }
 
   const first = symbols[0];
   if (!first) {
     return {
-      marketLabel: zh ? "未识别" : "No match",
-      detail: zh ? "试试完整代码、后缀或英文名" : "Try full ticker, suffix, or name",
-      reason: zh ? "没有命中本地/远程结果，下面会按代码形态建议可用后缀。" : "No local or remote match; suffix suggestions are based on ticker shape."
+      marketLabel: zh ? "待确认" : "No match",
+      detail: zh ? "没有命中，下面给后缀建议" : "No hit; suffix suggestions below",
+      reason: intent
     };
   }
 
   const marketLabel = getMarketDisplayName(first.market || first.type, zh);
   const uniqueMarkets = new Set(symbols.map((symbol) => getMarketDisplayName(symbol.market || symbol.type, zh)));
+  const exactMatch = symbols.find((symbol) => {
+    const normalized = query.trim().toUpperCase().replace(/\s+/g, "");
+    return symbol.id.toUpperCase() === normalized || symbol.symbol.toUpperCase() === normalized || symbol.yahooSymbol?.toUpperCase() === normalized;
+  });
+  const reason = getSymbolMatchReason(exactMatch || first, query, zh);
   return {
     marketLabel: uniqueMarkets.size === 1 ? marketLabel : (zh ? "多市场" : "Multi-market"),
-    detail: zh ? `${symbols.length} 个候选 · ${getSymbolMatchReason(first, query, zh)}` : `${symbols.length} candidates · ${getSymbolMatchReason(first, query, zh)}`,
-    reason: getSymbolMatchReason(first, query, zh)
+    detail: zh
+      ? `${exactMatch ? "精确" : "首选"} ${first.id} · ${symbols.length} 个候选`
+      : `${exactMatch ? "Exact" : "Top"} ${first.id} · ${symbols.length} candidates`,
+    reason: zh ? `${reason}；${intent}` : `${reason}; ${intent}`
   };
 }
 
@@ -660,12 +670,67 @@ function getSymbolMatchReason(symbol: MarketSymbol, query: string, zh: boolean) 
       ? "因 USDT/Binance 交易对规则识别为 Crypto"
       : "matched USDT/Binance crypto pair rule";
   }
+  if (market === "jp" || exchange === "TSE") {
+    return zh
+      ? "因 .T 后缀识别为日本市场"
+      : "matched .T suffix for Japan";
+  }
+  if (market === "au" || exchange === "ASX") {
+    return zh
+      ? "因 .AX 后缀识别为澳洲市场"
+      : "matched .AX suffix for Australia";
+  }
+  if (market === "eu") {
+    return zh
+      ? "因欧洲交易所后缀识别"
+      : "matched European exchange suffix";
+  }
   if (market === "us" || exchange === "NASDAQ" || exchange === "NYSE") {
     return zh
       ? "因美股代码形态或 NASDAQ/NYSE 结果识别"
       : "matched US ticker shape or NASDAQ/NYSE result";
   }
   return zh ? "由市场目录/远程搜索结果识别" : "identified by catalog or remote search";
+}
+function getRowProviderMeta(symbol: MarketSymbol, selected: boolean, status: MarketDataStatus | undefined, zh: boolean) {
+  const state = getSymbolFeedState(symbol, selected, status);
+  const stateLabels: Record<MarketDataStatus["state"], string> = {
+    loading: zh ? "连接中" : "loading",
+    live: zh ? "实时" : "live",
+    delayed: zh ? "延迟" : "delayed",
+    simulated: zh ? "模拟" : "sim",
+    stale: zh ? "过期" : "stale",
+    error: zh ? "异常" : "error"
+  };
+  const source = selected && status?.source
+    ? status.source
+    : symbol.lastSource || symbol.dataProvider || symbol.exchange || symbol.type || "catalog";
+  const provider = formatProviderName(source);
+  const route = selected && Array.isArray(status?.route) && status.route.length > 0
+    ? status.route.map(formatProviderName).join(" -> ")
+    : provider;
+  const age = formatFeedAge(symbol.lastUpdatedAt, zh);
+  const label = [provider, stateLabels[state], age].filter(Boolean).join(" · ");
+  const tooltip = [
+    zh ? `市场: ${getMarketDisplayName(symbol.market || symbol.type, zh)}` : `Market: ${getMarketDisplayName(symbol.market || symbol.type, zh)}`,
+    zh ? `Provider: ${route}` : `Provider: ${route}`,
+    zh ? `状态: ${stateLabels[state]}` : `State: ${stateLabels[state]}`,
+    age ? (zh ? `更新: ${age}` : `Updated: ${age}`) : ""
+  ].filter(Boolean).join("\n");
+  return { label, tooltip };
+}
+
+function formatFeedAge(updatedAt: number | undefined, zh: boolean) {
+  if (!updatedAt) return "";
+  const timestamp = updatedAt < 1_000_000_000_000 ? updatedAt * 1000 : updatedAt;
+  const deltaMs = Math.max(0, Date.now() - timestamp);
+  const minute = 60_000;
+  if (deltaMs < minute) return zh ? "刚刚" : "now";
+  const minutes = Math.round(deltaMs / minute);
+  if (minutes < 60) return `${minutes}m`;
+  const hours = Math.round(minutes / 60);
+  if (hours < 24) return `${hours}h`;
+  return `${Math.round(hours / 24)}d`;
 }
 function getProviderMeta(status: MarketDataStatus | undefined, zh: boolean) {
   const state = status?.state || "loading";
@@ -808,8 +873,5 @@ function biasTone(bias: PrismIntelligence["bias"]) {
   if (bias === "defense") return "text-amber-300";
   return "text-slate-400";
 }
-
-
-
 
 

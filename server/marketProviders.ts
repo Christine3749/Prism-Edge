@@ -243,7 +243,7 @@ export async function fetchFinnhubChart(symbol: string, interval: string, limit:
     low: Number(data.l?.[index]),
     close: Number(data.c?.[index]),
     volume: Number(data.v?.[index] || 0)
-  })).filter(isUsableCandle).slice(-limit);
+  })).filter(isUsableCandle).slice(-providerRawLimitForInterval(interval, limit));
 
   if (candles.length === 0) throw new Error(`Finnhub ${providerSymbol}: no candle rows.`);
   return buildChartPayload(symbol, candles, "finnhub-delayed");
@@ -274,7 +274,7 @@ export async function fetchAlphaVantageChart(symbol: string, interval: string, l
     : isForexLike(symbol)
       ? await fetchAlphaVantageForexSeries(symbol, interval)
       : await fetchAlphaVantageStockSeries(symbol, interval);
-  const candles = parseAlphaTimeSeries(data).slice(-limit);
+  const candles = parseAlphaTimeSeries(data).slice(-providerRawLimitForInterval(interval, limit));
   if (candles.length === 0) throw new Error(`Alpha Vantage ${symbol}: no candle rows.`);
   return buildChartPayload(symbol, candles, "alpha-vantage-delayed");
 }
@@ -320,7 +320,7 @@ export async function fetchYahooChart(symbol: string, interval: string, limit: n
   const result = data?.chart?.result?.[0];
   if (!result) throw new Error(`Yahoo ${yahooSymbol}: empty chart response.`);
 
-  const candles = parseYahooCandles(result, limit);
+  const candles = parseYahooCandles(result, providerRawLimitForInterval(interval, limit));
   if (candles.length === 0) throw new Error(`Yahoo ${yahooSymbol}: no candle rows.`);
 
   const meta = result.meta || {};
@@ -560,6 +560,12 @@ function toFinnhubSymbol(symbol: string) {
   if (cryptoPair) return `BINANCE:${cryptoPair.base}${cryptoPair.quote === "USD" ? "USDT" : cryptoPair.quote}`;
   if (profile?.market === "us" || (!profile && /^[A-Z][A-Z0-9.-]{0,9}$/.test(symbol))) return normalizeMarketSymbol(symbol);
   return "";
+}
+
+function providerRawLimitForInterval(interval: string, limit: number) {
+  const normalized = interval.toLowerCase();
+  const multiplier = normalized === "4h" ? 4 : normalized === "2h" ? 2 : 1;
+  return Math.max(limit, Math.min(5000, Math.ceil(limit * multiplier + multiplier)));
 }
 
 function toTwelveDataInterval(interval: string) {

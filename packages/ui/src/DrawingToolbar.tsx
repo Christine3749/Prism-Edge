@@ -6,12 +6,16 @@ import {
 import { DrawingTool } from "../../shared/src/types";
 import { Language } from "../../shared/src/translations";
 
+type WorkspaceDeck = 1 | 2;
+
 interface DrawingToolbarProps {
   activeTool: DrawingTool;
   onSelectTool: (tool: DrawingTool) => void;
   onClearDrawings: () => void;
   drawingsCount: number;
   lang: Language;
+  activeWorkspaceDeck?: WorkspaceDeck;
+  onWorkspaceDeckSelect?: (deck: WorkspaceDeck) => void;
 }
 
 export default function DrawingToolbar({
@@ -19,7 +23,9 @@ export default function DrawingToolbar({
   onSelectTool,
   onClearDrawings,
   drawingsCount,
-  lang
+  lang,
+  activeWorkspaceDeck = 1,
+  onWorkspaceDeckSelect
 }: DrawingToolbarProps) {
   const [collapsed, setCollapsed] = useState(false);
 
@@ -147,36 +153,52 @@ export default function DrawingToolbar({
               })}
             </div>
 
-            {/* Clear Drawings Utility */}
-            {drawingsCount > 0 && (
-              <button
-                onClick={onClearDrawings}
-                className="w-10 h-10 flex flex-col items-center justify-center rounded-md text-rose-400 bg-rose-500/10 border border-rose-500/10 hover:bg-rose-500 hover:text-slate-950 transition-all cursor-pointer group relative hover:scale-105"
-                title={lang === "zh" ? `清除全部 ${drawingsCount} 个绘图` : lang === "tc" ? `清除全部 ${drawingsCount} 個繪圖` : `Clear all ${drawingsCount} drawings`}
-                aria-label={lang === "zh" ? `清除全部 ${drawingsCount} 个绘图` : lang === "tc" ? `清除全部 ${drawingsCount} 個繪圖` : `Clear all ${drawingsCount} drawings`}
-              >
-                <Trash2 className="h-4 w-4" />
-                <span className="text-[8px] font-mono font-bold leading-none mt-0.5">{drawingsCount}</span>
-              </button>
-            )}
+            <div className="flex w-full flex-col items-center gap-2">
+              <WorkspaceDeckSwitch
+                activeDeck={activeWorkspaceDeck}
+                lang={lang}
+                onSelect={(deck) => onWorkspaceDeckSelect?.(deck)}
+              />
 
-            {/* Collapse Trigger arrow */}
-            <button
-              onClick={() => setCollapsed(true)}
-              className="w-8 h-6 flex items-center justify-center rounded hover:bg-[#031426] text-slate-500 hover:text-slate-200 cursor-pointer transition-all mt-4"
-              title={lang === "zh" ? "收起侧栏" : lang === "tc" ? "收起側欄" : "Minimize panel"}
-            >
-              <ChevronLeft className="h-4 w-4" />
-            </button>
+              {/* Clear Drawings Utility */}
+              {drawingsCount > 0 && (
+                <button
+                  onClick={onClearDrawings}
+                  className="w-10 h-10 flex flex-col items-center justify-center rounded-md text-rose-400 bg-rose-500/10 border border-rose-500/10 hover:bg-rose-500 hover:text-slate-950 transition-all cursor-pointer group relative hover:scale-105"
+                  title={lang === "zh" ? `清除全部 ${drawingsCount} 个绘图` : lang === "tc" ? `清除全部 ${drawingsCount} 個繪圖` : `Clear all ${drawingsCount} drawings`}
+                  aria-label={lang === "zh" ? `清除全部 ${drawingsCount} 个绘图` : lang === "tc" ? `清除全部 ${drawingsCount} 個繪圖` : `Clear all ${drawingsCount} drawings`}
+                >
+                  <Trash2 className="h-4 w-4" />
+                  <span className="text-[8px] font-mono font-bold leading-none mt-0.5">{drawingsCount}</span>
+                </button>
+              )}
+
+              {/* Collapse Trigger arrow */}
+              <button
+                onClick={() => setCollapsed(true)}
+                className="w-8 h-6 flex items-center justify-center rounded hover:bg-[#031426] text-slate-500 hover:text-slate-200 cursor-pointer transition-all"
+                title={lang === "zh" ? "收起侧栏" : lang === "tc" ? "收起側欄" : "Minimize panel"}
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </button>
+            </div>
           </>
         ) : (
-          <button
-            onClick={() => setCollapsed(false)}
-            className="w-8 h-full flex items-center justify-center text-slate-500 hover:text-blue-300/75 hover:bg-[#031426]/72 cursor-pointer transition-all"
-            title={lang === "zh" ? "展开绘图工具" : lang === "tc" ? "展開繪圖工具" : "Expand Drawing Tools"}
-          >
-            <ChevronRight className="h-4 w-4" />
-          </button>
+          <div className="flex h-full w-8 flex-col items-center justify-between py-1">
+            <button
+              onClick={() => setCollapsed(false)}
+              className="flex w-8 flex-1 items-center justify-center text-slate-500 transition-all hover:bg-[#031426]/72 hover:text-blue-300/75"
+              title={lang === "zh" ? "展开绘图工具" : lang === "tc" ? "展開繪圖工具" : "Expand Drawing Tools"}
+            >
+              <ChevronRight className="h-4 w-4" />
+            </button>
+            <WorkspaceDeckSwitch
+              activeDeck={activeWorkspaceDeck}
+              compact
+              lang={lang}
+              onSelect={(deck) => onWorkspaceDeckSelect?.(deck)}
+            />
+          </div>
         )}
       </div>
 
@@ -216,3 +238,56 @@ export default function DrawingToolbar({
     </>
   );
 }
+function WorkspaceDeckSwitch({
+  activeDeck,
+  compact = false,
+  lang,
+  onSelect
+}: {
+  activeDeck: WorkspaceDeck;
+  compact?: boolean;
+  lang: Language;
+  onSelect: (deck: WorkspaceDeck) => void;
+}) {
+  const zh = lang === "zh" || lang === "tc";
+  const decks: WorkspaceDeck[] = [2, 1];
+  const romanLabels: Record<WorkspaceDeck, string> = {
+    1: "I",
+    2: "II"
+  };
+  const labels: Record<WorkspaceDeck, string> = {
+    1: zh ? "I 作战室：价格、假设、执行" : "I Workbench: price, thesis, execution",
+    2: zh ? "II Trading Signals：空头、压力、事件" : "II Trading Signals: shorts, pressure, events"
+  };
+
+  return (
+    <div
+      data-workspace-deck-rail
+      className={`grid grid-cols-1 gap-1 rounded-md border border-[#12324a]/55 bg-[#010813]/72 p-0.5 ${compact ? "w-7" : "w-10"}`}
+    >
+      {decks.map((deck) => {
+        const active = activeDeck === deck;
+        return (
+          <button
+            key={deck}
+            type="button"
+            data-workspace-deck-button
+            data-active={active ? "true" : "false"}
+            onClick={() => onSelect(deck)}
+            aria-pressed={active}
+            className={`${compact ? "h-5 text-[9px]" : "h-7 text-[11px]"} w-full rounded border font-black transition-[background-color,color,border-color] ${
+              active
+                ? "border-blue-400/35 bg-[#06233a] text-blue-100"
+                : "border-transparent text-slate-500 hover:bg-[#031426]/90 hover:text-slate-200"
+            }`}
+            title={labels[deck]}
+            aria-label={labels[deck]}
+          >
+            {romanLabels[deck]}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+

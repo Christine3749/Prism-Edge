@@ -25,6 +25,10 @@ function isLiveSource(source: string) {
   return s.includes("binance") || s.includes("coinbase");
 }
 
+function canUseSimulatedRealtime(symbol: MarketSymbol) {
+  return symbol.dataProvider === "simulated" || symbol.market === "internal";
+}
+
 // ─── Polling fallback ────────────────────────────────────────────────────────
 
 function subscribePolling(symbol: MarketSymbol, interval: string, onTick: TickCallback): () => void {
@@ -34,6 +38,7 @@ function subscribePolling(symbol: MarketSymbol, interval: string, onTick: TickCa
   let simTimer: ReturnType<typeof setInterval> | null = null;
 
   function startSim() {
+    if (!canUseSimulatedRealtime(symbol)) return;
     if (simTimer) return;
     let lastClose = symbol.price;
     const simMs = symbol.type === "forex" ? 3000 : 1500;
@@ -64,7 +69,7 @@ function subscribePolling(symbol: MarketSymbol, interval: string, onTick: TickCa
     } catch (err) {
       failCount++;
       warnOnce(`poll_fail_${symbol.symbol}`, "[realtime polling] gateway failed, fallback may start:", err);
-      if (failCount >= 2 && !simTimer) startSim();
+      if (failCount >= 2 && !simTimer && canUseSimulatedRealtime(symbol)) startSim();
     } finally {
       inFlight = false;
     }
@@ -194,10 +199,20 @@ export function updateCandlesFromTick(
   const last = prevCandles[prevCandles.length - 1];
   const secStep = timeframeToSeconds(interval);
   const candleTime = Math.floor(tick.time / secStep) * secStep;
-  const close = Number(tick.close.toFixed(precision));
+  const source = (tick.source || "").toLowerCase();
+  const isSyntheticTick = !tick.isLive && (source.includes("simulated") || source.includes("local-sim"));
+  const tickCandle: Candle = {
+    time: candleTime,
+    open: Number(tick.open.toFixed(precision)),
+    high: Number(tick.high.toFixed(precision)),
+    low: Number(tick.low.toFixed(precision)),
+    close: Number(tick.close.toFixed(precision)),
+    volume: tick.volume,
+  };
+  const close = tickCandle.close;
 
   if (candleTime > last.time) {
-    const open = tick.isLive ? tick.open : last.close;
+    const open = isSyntheticTick ? last.close : tickCandle.open;
     return [...prevCandles.slice(1), {
       time: candleTime,
       open,
@@ -210,6 +225,10 @@ export function updateCandlesFromTick(
 
   if (candleTime < last.time) return prevCandles;
 
+  if (!tick.isLive && !isSyntheticTick) {
+    return [...prevCandles.slice(0, -1), tickCandle];
+  }
+
   return [...prevCandles.slice(0, -1), {
     ...last,
     high: Number(Math.max(last.high, tick.high, close).toFixed(precision)),
@@ -218,3 +237,5 @@ export function updateCandlesFromTick(
     volume: tick.isLive ? tick.volume : last.volume + tick.volume,
   }];
 }
+
+

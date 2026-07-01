@@ -45,6 +45,9 @@ function warnOnce(key: string, message: string, ...args: any[]) {
 function minimumHistoricalCandles(timeframe: string, limit: number) {
   if (limit <= 2) return 1;
   const normalized = timeframe.toLowerCase();
+  if (normalized === "1m") {
+    return Math.min(18, Math.max(8, Math.floor(limit * 0.08)));
+  }
   if (normalized === "1w" || timeframe === "1M") {
     return Math.min(40, Math.max(12, Math.floor(limit * 0.2)));
   }
@@ -112,49 +115,54 @@ function isLiveGatewaySource(source: string) {
   return normalized.includes("binance") || normalized.includes("coinbase");
 }
 
+function canUseSimulatedMarketData(symbol: MarketSymbol) {
+  return symbol.dataProvider === "simulated" || symbol.market === "internal";
+}
+
+function buildSimulatedMarketData(symbol: MarketSymbol, timeframe: string, reason: string) {
+  const fallback = generateSimulatedHistoricalKlines(symbol, timeframe, 200);
+  return {
+    candles: fallback,
+    isLiveBinance: false,
+    source: "simulated",
+    updatedAt: Date.now(),
+    fallbackReason: reason
+  };
+}
+
 export async function loadMarketData(
   symbol: MarketSymbol,
   timeframe: string
 ): Promise<{ candles: Candle[]; isLiveBinance: boolean; source: string; updatedAt: number; latencyMs?: number; fallbackReason?: string; route?: string[]; providerErrors?: string[] }> {
   try {
-    try {
-      const hist = await fetchHistoricalGatewayKlines(symbol.symbol, timeframe, 200);
-      return {
-        candles: hist.candles,
-        isLiveBinance: hist.isLive || isLiveGatewaySource(hist.source),
-        source: hist.source,
-        updatedAt: hist.updatedAt,
-        latencyMs: hist.latencyMs,
-        route: hist.route,
-        providerErrors: hist.providerErrors
-      };
-    } catch (err) {
+    const hist = await fetchHistoricalGatewayKlines(symbol.symbol, timeframe, 200);
+    return {
+      candles: hist.candles,
+      isLiveBinance: hist.isLive || isLiveGatewaySource(hist.source),
+      source: hist.source,
+      updatedAt: hist.updatedAt,
+      latencyMs: hist.latencyMs,
+      route: hist.route,
+      providerErrors: hist.providerErrors
+    };
+  } catch (err) {
+    const fallbackReason = err instanceof Error ? err.message : String(err);
+
+    if (canUseSimulatedMarketData(symbol)) {
       warnOnce(
         `rest_${symbol.symbol}`,
-        `[Market REST gateway fallback] Failed fetching external data, spawning custom simulation curve. Error details:`,
+        `[Market REST gateway fallback] Failed fetching external data for simulated instrument.`,
         err
       );
-      const fallback = generateSimulatedHistoricalKlines(symbol, timeframe, 200);
-      const fallbackReason = err instanceof Error ? err.message : String(err);
-      return {
-        candles: fallback,
-        isLiveBinance: false,
-        source: "simulated",
-        updatedAt: Date.now(),
-        fallbackReason: `REST gateway failed: ${fallbackReason.slice(0, 140)}`
-      };
+      return buildSimulatedMarketData(symbol, timeframe, `REST gateway failed: ${fallbackReason.slice(0, 140)}`);
     }
-  } catch (err) {
-    warnOnce("load_error_ultimate", "Ultimate market data service load exception:", err);
-    const fallback = generateSimulatedHistoricalKlines(symbol, timeframe, 200);
-    const fallbackReason = err instanceof Error ? err.message : String(err);
-    return {
-      candles: fallback,
-      isLiveBinance: false,
-      source: "simulated",
-      updatedAt: Date.now(),
-      fallbackReason: `Market service exception: ${fallbackReason.slice(0, 140)}`
-    };
+
+    warnOnce(
+      `rest_${symbol.symbol}`,
+      `[Market REST gateway] Verified candles unavailable; refusing simulated history for real asset.`,
+      err
+    );
+    throw new Error(`Verified candles unavailable for ${symbol.id} ${timeframe}: ${fallbackReason.slice(0, 180)}`);
   }
 }
 

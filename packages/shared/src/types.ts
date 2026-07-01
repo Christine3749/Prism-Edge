@@ -29,7 +29,7 @@ export interface MarketSymbol {
   symbol: string;
   name: string;
   type: "crypto" | "stock" | "forex";
-  market?: "crypto" | "us" | "cn" | "hk" | "forex" | "internal";
+  market?: "crypto" | "us" | "cn" | "hk" | "forex" | "eu" | "jp" | "au" | "internal";
   exchange?: string;
   currency?: string;
   dataProvider?: "binance" | "coinbase" | "polygon" | "twelve-data" | "finnhub" | "alpha-vantage" | "yahoo" | "simulated" | "manual";

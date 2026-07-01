@@ -1,20 +1,26 @@
-import { DEFAULT_WATCHLIST_SYMBOLS, resolveMarketSymbol, sortMarketSymbols } from "@shared/marketCatalog";
+import { DEFAULT_WATCHLIST_SYMBOLS, inferMarketSymbolFromInput, resolveMarketSymbol, sortMarketSymbols } from "@shared/marketCatalog";
 import { StorageService } from "@shared/storage";
 import type { MarketSymbol } from "@shared/types";
 
 const WATCHLIST_SYMBOL_LIMIT = 120;
 
 export function enrichMarketSymbol(symbol: MarketSymbol): MarketSymbol {
-  const catalogSymbol = resolveMarketSymbol(symbol.symbol) || resolveMarketSymbol(symbol.id);
+  const catalogSymbol = resolveMarketSymbol(symbol.symbol) ||
+    resolveMarketSymbol(symbol.id) ||
+    inferMarketSymbolFromInput(symbol.symbol) ||
+    inferMarketSymbolFromInput(symbol.id);
   if (!catalogSymbol) return symbol;
   return {
-    ...catalogSymbol,
     ...symbol,
-    market: symbol.market || catalogSymbol.market,
-    exchange: symbol.exchange || catalogSymbol.exchange,
-    currency: symbol.currency || catalogSymbol.currency,
-    dataProvider: symbol.dataProvider || catalogSymbol.dataProvider,
-    yahooSymbol: symbol.yahooSymbol || catalogSymbol.yahooSymbol
+    id: catalogSymbol.id,
+    symbol: catalogSymbol.symbol,
+    type: catalogSymbol.type,
+    market: catalogSymbol.market,
+    exchange: catalogSymbol.exchange,
+    currency: catalogSymbol.currency,
+    dataProvider: catalogSymbol.dataProvider,
+    yahooSymbol: catalogSymbol.yahooSymbol,
+    precision: catalogSymbol.precision
   };
 }
 
