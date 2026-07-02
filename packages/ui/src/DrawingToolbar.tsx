@@ -14,7 +14,7 @@ interface DrawingToolbarProps {
   onClearDrawings: () => void;
   drawingsCount: number;
   lang: Language;
-  activeWorkspaceDeck?: WorkspaceDeck;
+  activeWorkspaceDeck?: WorkspaceDeck | null;
   onWorkspaceDeckSelect?: (deck: WorkspaceDeck) => void;
 }
 
@@ -24,7 +24,7 @@ export default function DrawingToolbar({
   onClearDrawings,
   drawingsCount,
   lang,
-  activeWorkspaceDeck = 1,
+  activeWorkspaceDeck = null,
   onWorkspaceDeckSelect
 }: DrawingToolbarProps) {
   const [collapsed, setCollapsed] = useState(false);
@@ -244,13 +244,13 @@ function WorkspaceDeckSwitch({
   lang,
   onSelect
 }: {
-  activeDeck: WorkspaceDeck;
+  activeDeck: WorkspaceDeck | null;
   compact?: boolean;
   lang: Language;
   onSelect: (deck: WorkspaceDeck) => void;
 }) {
   const zh = lang === "zh" || lang === "tc";
-  const decks: WorkspaceDeck[] = [2, 1];
+  const decks: WorkspaceDeck[] = [1, 2];
   const romanLabels: Record<WorkspaceDeck, string> = {
     1: "I",
     2: "II"

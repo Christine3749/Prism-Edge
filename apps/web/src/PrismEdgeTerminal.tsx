@@ -52,8 +52,8 @@ export default function PrismEdgeTerminal() {
   const [chartType, setChartType] = useState("candlestick");
   const [watchlistOpen, setWatchlistOpen] = useState(false);
   const [scannerHandleActive, setScannerHandleActive] = useState(false);
-  const [scannerExpanded, setScannerExpanded] = useState(false);
-  const [workspaceDeck, setWorkspaceDeck] = useState<1 | 2>(1);
+  const [workspaceDeck, setWorkspaceDeck] = useState<1 | 2 | null>(null);
+  const scannerExpanded = workspaceDeck !== null;
   const [chartStatusHoverActive, setChartStatusHoverActive] = useState(false);
   const [indicatorsModalOpen, setIndicatorsModalOpen] = useState(false);
   const [settingsModalOpen, setSettingsModalOpen] = useState(false);
@@ -80,12 +80,10 @@ export default function PrismEdgeTerminal() {
 
   const scannerRevealActive = scannerHandleActive || chartStatusHoverActive;
   const handleWorkspaceDeckSelect = useCallback((deck: 1 | 2) => {
-    setWorkspaceDeck(deck);
-    setScannerExpanded(deck === 2);
+    setWorkspaceDeck((currentDeck) => currentDeck === deck ? null : deck);
   }, []);
   const handleScannerExpandedChange = useCallback((expanded: boolean) => {
-    setScannerExpanded(expanded);
-    setWorkspaceDeck(expanded ? 2 : 1);
+    setWorkspaceDeck((currentDeck) => expanded ? (currentDeck ?? 1) : null);
   }, []);
   const syncFavoriteSymbolsToCloud = (symbols: string[]) => {
     if (!hasCloudFavoriteSession()) {
@@ -276,7 +274,7 @@ export default function PrismEdgeTerminal() {
               activeWorkspaceDeck={workspaceDeck}
               onExpandedChange={handleScannerExpandedChange}
               revealHandle={scannerRevealActive}
-              integratedBottom={scannerExpanded}
+              integratedBottom={workspaceDeck === 2}
             />
             <div className="flex h-full min-h-0 min-w-0 flex-1 flex-col">
               <ChartContainer
