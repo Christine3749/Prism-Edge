@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
-import type { ReactNode } from "react";
-import { ArrowLeft, Brain, Check, Crown, Database, Gauge, LockKeyhole, Moon, Settings, ShieldCheck, Sparkles, Sun, UserCircle } from "lucide-react";
+import { ArrowLeft, Brain, Crown, Database, Gauge, LockKeyhole, Moon, Settings, ShieldCheck, Sparkles, Sun, UserCircle } from "lucide-react";
 import { hsFetch, readHsAccessToken } from "@shared/hsAuth";
 import { StorageService } from "@shared/storage";
 import type { AppSettings } from "@shared/types";
 import Logo from "@ui/Logo";
 import { DEFAULT_APP_SETTINGS } from "./config/appDefaults";
+import { ErrorPanel, GuestPanel, InfoRow, PermissionCard, SideItem, StatusPanel } from "./MembershipPagePanels";
+import { buildMembershipTone, cn, featureEnabled, normalizeMembershipError } from "./MembershipPageTone";
 
 type MembershipSnapshot = {
   configured?: boolean;
@@ -24,8 +25,6 @@ type MembershipSnapshot = {
   code?: string;
   message?: string;
 };
-
-type MembershipTone = ReturnType<typeof buildMembershipTone>;
 
 export default function MembershipPage() {
   const [snapshot, setSnapshot] = useState<MembershipSnapshot | null>(null);
@@ -218,160 +217,4 @@ export default function MembershipPage() {
       </div>
     </main>
   );
-}
-
-function GuestPanel({ tone }: { tone: MembershipTone }) {
-  return (
-    <div className={cn("grid gap-4 rounded border p-6 lg:grid-cols-[1fr_auto] lg:items-center", tone.panel)}>
-      <div>
-        <div className={cn("text-lg font-black", tone.title)}>请先登录 MSIR Prism</div>
-        <p className={cn("mt-2 max-w-2xl text-sm leading-6", tone.muted)}>
-          登录后可以查看你的方案等级、量化权限和模型额度。普通会员不会进入内部运营后台。
-        </p>
-      </div>
-      <a href="/login" className={cn("flex h-10 items-center justify-center rounded border px-4 text-sm font-black no-underline transition", tone.primaryButton)}>登录会员账号</a>
-    </div>
-  );
-}
-
-function ErrorPanel({ tone, message }: { tone: MembershipTone; message: string }) {
-  return (
-    <div className={cn("flex flex-col gap-3 rounded border px-4 py-3 text-sm sm:flex-row sm:items-center sm:justify-between", tone.error)}>
-      <span>{message}</span>
-      <a href="/login" className={cn("shrink-0 rounded border px-3 py-1.5 text-xs font-black no-underline", tone.errorAction)}>重新登录</a>
-    </div>
-  );
-}
-
-function SideItem({ tone, icon, label, active = false }: { tone: MembershipTone; icon: ReactNode; label: string; active?: boolean }) {
-  return (
-    <div className={cn("flex items-center gap-2 rounded px-3 py-2", active ? tone.sideActive : tone.sideIdle)}>
-      {icon}
-      <span>{label}</span>
-    </div>
-  );
-}
-
-function StatusPanel({ tone, title, value, meta, icon, accent }: { tone: MembershipTone; title: string; value: string; meta: string; icon: ReactNode; accent: "cyan" | "amber" | "slate" }) {
-  return (
-    <div className={cn("rounded border p-5", tone.panel)}>
-      <div className={cn("mb-5 inline-flex h-9 w-9 items-center justify-center rounded border", tone.statusAccent[accent])}>{icon}</div>
-      <div className={cn("text-[11px] font-bold uppercase tracking-[0.2em]", tone.subtle)}>{title}</div>
-      <div className={cn("mt-2 text-xl font-black", tone.title)}>{value}</div>
-      <div className={cn("mt-1 text-xs", tone.muted)}>{meta}</div>
-    </div>
-  );
-}
-
-function PermissionCard({ tone, icon, title, detail, enabled }: { tone: MembershipTone; icon: ReactNode; title: string; detail: string; enabled: boolean }) {
-  return (
-    <div className={cn("flex items-start gap-3 rounded border p-4", tone.panel)}>
-      <div className={enabled ? tone.enabledIcon : tone.disabledIcon}>{icon}</div>
-      <div className="min-w-0 flex-1">
-        <div className="flex items-center justify-between gap-3">
-          <div className={cn("font-bold", tone.title)}>{title}</div>
-          <span className={cn("inline-flex items-center gap-1 rounded border px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider", enabled ? tone.enabledBadge : tone.lockedBadge)}>
-            {enabled && <Check className="h-3 w-3" />}
-            {enabled ? "Enabled" : "Locked"}
-          </span>
-        </div>
-        <div className={cn("mt-1 text-xs", tone.muted)}>{detail}</div>
-      </div>
-    </div>
-  );
-}
-
-function InfoRow({ tone, label, value }: { tone: MembershipTone; label: string; value: string }) {
-  return (
-    <div className="grid gap-2 px-5 py-4 text-sm sm:grid-cols-[160px_1fr]">
-      <div className={tone.muted}>{label}</div>
-      <div className={cn("font-mono", tone.title)}>{value}</div>
-    </div>
-  );
-}
-
-function buildMembershipTone(light: boolean) {
-  if (light) {
-    return {
-      page: "bg-[#f5f7fa] text-[#17202c]",
-      grid: "rgba(95, 122, 146, 0.13)",
-      border: "border-[#d8e1ea]",
-      divide: "divide-[#d8e1ea]",
-      panel: "border-[#d8e1ea] bg-[#f8fafc]",
-      notice: "border-[#c5d6e5] bg-[#eef5fa]",
-      logoBox: "border-[#bfd0df] bg-[#eef4f9] text-[#2f6f99]",
-      iconBox: "border-[#bfd0df] bg-[#eef4f9] text-[#2f6f99]",
-      title: "text-[#17202c]",
-      muted: "text-[#667587]",
-      subtle: "text-[#7b8a9c]",
-      accent: "text-[#2f6f99]",
-      primaryButton: "border-[#9fb8cc] bg-[#dceaf5] text-[#174f78] hover:bg-[#d2e2ef]",
-      secondaryButton: "border-[#ccd9e5] bg-[#f8fafc] text-[#4d6074] hover:border-[#aebfd0] hover:bg-[#eef4f9]",
-      sideActive: "bg-[#e8f0f7] text-[#174f78]",
-      sideIdle: "text-[#738294] hover:bg-[#eef4f9] hover:text-[#26384d]",
-      enabledIcon: "text-[#2f8c78]",
-      disabledIcon: "text-[#9aa8b7]",
-      enabledBadge: "border-[#a9d4c7] bg-[#eef8f5] text-[#14745f]",
-      lockedBadge: "border-[#cbd8e5] bg-[#f2f5f8] text-[#7a8795]",
-      error: "border-[#dec483] bg-[#fff8e4] text-[#76570a]",
-      errorAction: "border-[#d3b46c] bg-[#fffdf4] text-[#6d5108] hover:bg-[#fff3c4]",
-      statusAccent: {
-        cyan: "border-[#afd1df] bg-[#edf7fa] text-[#2f6f99]",
-        amber: "border-[#dfc875] bg-[#fff7d6] text-[#8a6504]",
-        slate: "border-[#cbd8e5] bg-[#eef3f8] text-[#4d6074]"
-      }
-    };
-  }
-
-  return {
-    page: "bg-[#000814] text-slate-100",
-    grid: "rgba(47, 111, 153, 0.13)",
-    border: "border-[#12324a]",
-    divide: "divide-[#12324a]",
-    panel: "border-[#12324a] bg-[#020b18]/92",
-    notice: "border-[#1c5a73] bg-[#041725]/86",
-    logoBox: "border-[#12324a] bg-[#031426] text-[#5fb2d4]",
-    iconBox: "border-[#1d4d6d] bg-[#031426] text-[#5fb2d4]",
-    title: "text-slate-100",
-    muted: "text-slate-500",
-    subtle: "text-slate-600",
-    accent: "text-[#5fb2d4]",
-    primaryButton: "border-[#2f6f99]/70 bg-[#06213a] text-[#b8d8ea] hover:bg-[#0b2a44] hover:text-white",
-    secondaryButton: "border-[#12324a] bg-[#020b18] text-slate-400 hover:border-[#2f6f99]/70 hover:text-slate-100",
-    sideActive: "bg-[#061a2b] text-[#5fb2d4]",
-    sideIdle: "text-slate-500 hover:bg-[#031426] hover:text-slate-300",
-    enabledIcon: "text-emerald-300",
-    disabledIcon: "text-slate-700",
-    enabledBadge: "border-emerald-300/30 bg-emerald-300/10 text-emerald-300",
-    lockedBadge: "border-slate-700 bg-[#020b18] text-slate-500",
-    error: "border-amber-500/30 bg-amber-950/15 text-amber-200",
-    errorAction: "border-amber-500/30 bg-[#020b18] text-amber-200 hover:text-amber-100",
-    statusAccent: {
-      cyan: "border-[#2f6f99]/35 bg-[#06213a]/55 text-[#5fb2d4]",
-      amber: "border-amber-400/30 bg-amber-950/15 text-amber-300",
-      slate: "border-slate-700 bg-[#031426] text-slate-300"
-    }
-  };
-}
-
-function normalizeMembershipError(message: string) {
-  const lower = message.toLowerCase();
-  if (lower.includes("expired") || lower.includes("bad_jwt") || lower.includes("invalid jwt")) {
-    return "登录状态已过期，请重新登录后再查看会员权限。";
-  }
-  if (lower.includes("missing") && lower.includes("token")) {
-    return "请先登录 MSIR Prism，再查看会员权限。";
-  }
-  return message;
-}
-
-function featureEnabled(value: unknown) {
-  if (typeof value === "boolean") return value;
-  if (typeof value === "number") return value > 0;
-  if (typeof value === "string") return ["true", "yes", "enabled"].includes(value.toLowerCase());
-  return false;
-}
-
-function cn(...classes: Array<string | false | null | undefined>) {
-  return classes.filter(Boolean).join(" ");
 }

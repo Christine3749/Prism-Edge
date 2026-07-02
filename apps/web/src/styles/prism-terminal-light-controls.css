@@ -1,0 +1,121 @@
+/* Light theme refined range bars and quiet volume columns */
+.prism-terminal--light .war-range-pair {
+  color: #6f7f90 !important;
+}
+
+.prism-terminal--light .war-range-meta {
+  color: #7d8b9b !important;
+  letter-spacing: 0.12em !important;
+}
+
+.prism-terminal--light .war-range-meta span:nth-child(2) {
+  color: #1f2937 !important;
+  font-weight: 800 !important;
+}
+
+.prism-terminal--light .war-range-track {
+  height: 0.46rem !important;
+  overflow: hidden !important;
+  background: #edf2f6 !important;
+  border: 1px solid #d2dde7 !important;
+  border-radius: 999px !important;
+  box-shadow: none !important;
+}
+
+.prism-terminal--light .war-range-fill {
+  background: linear-gradient(90deg, rgba(203, 119, 133, 0.58) 0%, rgba(188, 147, 153, 0.42) 27%, rgba(155, 169, 178, 0.34) 50%, rgba(117, 165, 178, 0.48) 74%, rgba(91, 185, 190, 0.62) 100%) !important;
+}
+
+.prism-terminal--light .war-range-topline,
+.prism-terminal--light .war-range-bottomline {
+  opacity: 0 !important;
+}
+
+.prism-terminal--light .war-range-marker {
+  top: -0.28rem !important;
+  width: 2px !important;
+  height: 1.08rem !important;
+  background: #8ba1b4 !important;
+  border-radius: 999px !important;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.88) !important;
+}
+
+.prism-terminal--light .war-bottom-bars[data-war-bars-tone="cyan"] .war-bottom-bar {
+  background: rgba(110, 137, 158, 0.44) !important;
+}
+
+.prism-terminal--light .war-bottom-bars[data-war-bars-tone="cyan"] .war-bottom-bar:nth-child(3),
+.prism-terminal--light .war-bottom-bars[data-war-bars-tone="cyan"] .war-bottom-bar:nth-child(4) {
+  background: rgba(95, 126, 151, 0.54) !important;
+}
+
+.prism-terminal--light .war-bottom-bars[data-war-bars-tone="amber"] .war-bottom-bar {
+  background: rgba(198, 154, 39, 0.78) !important;
+}
+
+.prism-terminal--light .war-bottom-bars[data-war-bars-tone="emerald"] .war-bottom-bar {
+  background: rgba(63, 173, 135, 0.72) !important;
+}
+
+.prism-terminal--light .war-bottom-bars[data-war-bars-tone="rose"] .war-bottom-bar {
+  background: rgba(198, 92, 112, 0.72) !important;
+}
+
+/* Light theme flat toolbar buttons */
+.prism-terminal--light #timeframe_selector_group,
+.prism-terminal--light [data-chart-style-group] {
+  background: #eef4f9 !important;
+  border-color: #cbd8e5 !important;
+  box-shadow: none !important;
+}
+
+.prism-terminal--light #timeframe_selector_group button,
+.prism-terminal--light [data-chart-style-group] button,
+.prism-terminal--light #indicators_btn {
+  box-shadow: none !important;
+  text-shadow: none !important;
+  outline: none !important;
+  transform: none !important;
+}
+
+.prism-terminal--light #timeframe_selector_group button[class*="bg-[#123a63]"],
+.prism-terminal--light [data-chart-style-group] button[class*="bg-[#06213a]"] {
+  background: #d9e8f6 !important;
+  border: 1px solid #9bb8cf !important;
+  color: #134f74 !important;
+  box-shadow: none !important;
+}
+
+.prism-terminal--light #timeframe_selector_group button:hover,
+.prism-terminal--light [data-chart-style-group] button:hover,
+.prism-terminal--light #indicators_btn:hover {
+  background: #e4eef7 !important;
+  box-shadow: none !important;
+  transform: none !important;
+}
+
+.prism-terminal--light #timeframe_selector_group button:focus,
+.prism-terminal--light #timeframe_selector_group button:focus-visible,
+.prism-terminal--light [data-chart-style-group] button:focus,
+.prism-terminal--light [data-chart-style-group] button:focus-visible,
+.prism-terminal--light #indicators_btn:focus,
+.prism-terminal--light #indicators_btn:focus-visible {
+  outline: none !important;
+  box-shadow: none !important;
+}
+/* Light theme symbol venue tag */
+.prism-terminal--light #symbol_search_btn > span:last-child {
+  background: #e7edf3 !important;
+  border: 1px solid #b8c7d5 !important;
+  color: #42546a !important;
+  border-radius: 0.25rem !important;
+  box-shadow: none !important;
+  letter-spacing: 0.04em !important;
+  font-weight: 800 !important;
+}
+
+.prism-terminal--light #symbol_search_btn:hover > span:last-child {
+  background: #dde7f0 !important;
+  border-color: #9fb3c6 !important;
+  color: #26384d !important;
+}

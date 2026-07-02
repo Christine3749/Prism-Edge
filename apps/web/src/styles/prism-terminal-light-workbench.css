@@ -1,0 +1,198 @@
+/* Light theme interaction and factor-ribbon polish */
+.prism-terminal--light [data-market-feed] {
+  background: #f8fafc !important;
+  border-color: #c8d5e2 !important;
+  border-radius: 0.25rem !important;
+  color: #0f6f61 !important;
+  box-shadow: inset 0 0 0 1px rgba(15, 111, 97, 0.06) !important;
+}
+
+.prism-terminal--light [data-market-feed][data-feed-state="live"] {
+  background: #f5faf8 !important;
+  border-color: #b9d6cf !important;
+}
+
+.prism-terminal--light [data-market-feed] > span:first-child {
+  background-color: #0f8a76 !important;
+  opacity: 0.7 !important;
+}
+
+.prism-terminal--light [data-market-feed] [data-feed-confidence] {
+  background: #e7f4f0 !important;
+  border-color: rgba(15, 111, 97, 0.22) !important;
+  color: #0f6f61 !important;
+}
+
+.prism-terminal--light #timeframe_selector_group,
+.prism-terminal--light [data-chart-style-group] {
+  background: #eef4f9 !important;
+  border-color: #cbd8e5 !important;
+}
+
+.prism-terminal--light #timeframe_selector_group button[class*="bg-[#123a63]"],
+.prism-terminal--light [data-chart-style-group] button[class*="bg-[#06213a]"] {
+  background: #d9e8f6 !important;
+  color: #134f74 !important;
+  box-shadow: inset 0 0 0 1px rgba(47, 111, 153, 0.26), inset 0 -2px 0 rgba(47, 111, 153, 0.62) !important;
+}
+
+.prism-terminal--light [data-desk-tabs] span {
+  background: transparent !important;
+  border-color: #d7e1eb !important;
+  color: #6d7c8c !important;
+  box-shadow: none !important;
+}
+
+.prism-terminal--light [data-desk-tabs] span:first-child {
+  background: #e4eef8 !important;
+  color: #174f78 !important;
+  box-shadow: inset 0 -2px 0 rgba(47, 111, 153, 0.72) !important;
+}
+
+.prism-terminal--light .war-bottom-ribbon {
+  background: #f6f8fa !important;
+  border-color: #d8e1ea !important;
+}
+
+.prism-terminal--light .war-bottom-strip-header,
+.prism-terminal--light .war-bottom-rail {
+  background: #f8fafc !important;
+  border-color: #d8e1ea !important;
+}
+
+.prism-terminal--light .war-bottom-tile {
+  min-height: 154px;
+  background: #f8fafc !important;
+  border-color: #d8e1ea !important;
+}
+
+.prism-terminal--light .war-bottom-tile:nth-child(odd) {
+  background: #fbfcfd !important;
+}
+
+.prism-terminal--light .war-bottom-card-header {
+  opacity: 0.54 !important;
+}
+
+.prism-terminal--light .war-bottom-label-row {
+  top: 0.45rem !important;
+}
+
+.prism-terminal--light .war-bottom-visual {
+  top: 0.9rem !important;
+  bottom: 0.7rem !important;
+  transform: translateY(-4px);
+}
+
+.prism-terminal--light .war-bottom-sparkline {
+  width: 96% !important;
+}
+
+.prism-terminal--light .war-bottom-sparkline-svg {
+  height: 74px !important;
+}
+
+.prism-terminal--light .war-bottom-bars {
+  height: 74px !important;
+  gap: 0.55rem !important;
+}
+
+.prism-terminal--light .war-bottom-bars > div {
+  width: 0.9rem !important;
+  opacity: 0.92 !important;
+}
+
+.prism-terminal--light .war-bottom-score-gauge {
+  width: 158px !important;
+  height: 114px !important;
+}
+
+.prism-terminal--light .war-bottom-sparkline path[stroke="#1c2b3d"] {
+  stroke: #b9c8d6 !important;
+}
+
+.prism-terminal--light .war-bottom-sparkline path[stroke="#111c2a"] {
+  stroke: #d4dde7 !important;
+}
+
+.prism-terminal--light .war-bottom-sparkline path[stroke="#e5e7eb"] {
+  stroke: #637386 !important;
+  opacity: 0.72 !important;
+}
+
+.prism-terminal--light .war-bottom-sparkline path[stroke="#46779a"] {
+  stroke: #4f7f9d !important;
+}
+
+.prism-terminal--light .war-bottom-sparkline path[stroke="#6ee7b7"] {
+  stroke: #3fb890 !important;
+}
+
+.prism-terminal--light .war-bottom-sparkline path[stroke="#facc15"] {
+  stroke: #caa11b !important;
+}
+
+.prism-terminal--light .war-bottom-sparkline path[stroke="#fb7185"] {
+  stroke: #d45e73 !important;
+}
+
+.prism-terminal--light .war-bottom-tile [class*="bg-[#070d16]"] {
+  background: #e5ecf2 !important;
+}
+
+.prism-terminal--light .war-bottom-action-tile {
+  background: #fbfaf4 !important;
+  border-color: #e3cf8b !important;
+  box-shadow: inset 3px 0 0 rgba(178, 135, 24, 0.36) !important;
+}
+
+.prism-terminal--light .war-bottom-action-tile button {
+  background: #e5eef7 !important;
+  border-color: #b8ccde !important;
+  color: #134f74 !important;
+}
+/* Light theme factor-ribbon contrast pass */
+.prism-terminal--light .war-bottom-tile {
+  background: #f4f7fa !important;
+  border-color: #cfd9e3 !important;
+}
+
+.prism-terminal--light .war-bottom-tile:nth-child(odd) {
+  background: #f8fafc !important;
+}
+
+.prism-terminal--light .war-bottom-card-header {
+  opacity: 0.5 !important;
+}
+
+.prism-terminal--light .war-bottom-tile [class*="bg-blue-500/25"] {
+  background: #7ea7c5 !important;
+}
+
+.prism-terminal--light .war-bottom-tile [class*="bg-emerald-300"] {
+  background: #55c6a0 !important;
+}
+
+.prism-terminal--light .war-bottom-tile [class*="bg-amber-300"] {
+  background: #d0aa2f !important;
+}
+
+.prism-terminal--light .war-bottom-tile [class*="bg-rose-300"] {
+  background: #d76a7a !important;
+}
+
+.prism-terminal--light .war-bottom-bars > div[class*="bg-blue-500/25"] {
+  background: #9bb8ce !important;
+}
+
+.prism-terminal--light button[class*="bg-blue-500/25"] {
+  background: #dbeaf7 !important;
+  border-color: #a7bfd5 !important;
+  color: #174f78 !important;
+  box-shadow: inset 0 0 0 1px rgba(47, 111, 153, 0.16), inset 0 -2px 0 rgba(47, 111, 153, 0.42) !important;
+}
+
+.prism-terminal--light button[class*="bg-blue-500/25"] svg {
+  fill: #174f78 !important;
+  color: #174f78 !important;
+}
