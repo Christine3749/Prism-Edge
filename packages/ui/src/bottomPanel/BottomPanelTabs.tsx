@@ -1,15 +1,20 @@
 import { BookOpen, ChevronDown, ChevronUp, Layers, Sparkles, TrendingUp } from "lucide-react";
 import type { MarketDataStatus } from "../../../shared/src/types";
+import type { Language } from "../../../shared/src/translations";
 import type { BottomPanelTab, TranslationFn } from "./types";
+import type { WorkspaceDeck } from "../SignalScanner";
 
 interface BottomPanelTabsProps {
   activeTab: BottomPanelTab;
   collapsed: boolean;
   marketStatus?: MarketDataStatus;
+  lang: Language;
   t: TranslationFn;
   onSelectTab: (tab: BottomPanelTab) => void;
   onToggleCollapsed: () => void;
   strategyMode?: boolean;
+  workspaceDeck?: WorkspaceDeck | null;
+  theme?: "dark" | "light";
 }
 
 const tabItems = [
@@ -25,23 +30,63 @@ export function BottomPanelTabs({
   activeTab,
   collapsed,
   marketStatus,
+  lang,
   t,
   onSelectTab,
   onToggleCollapsed,
-  strategyMode = false
+  strategyMode = false,
+  workspaceDeck = null,
+  theme = "dark"
 }: BottomPanelTabsProps) {
+  const tradingSignalsMode = workspaceDeck === 2;
+  const matrixMode = workspaceDeck === 3;
+  const executionMode = workspaceDeck === 4;
+  const reservedMode = workspaceDeck === 5 || workspaceDeck === 6;
+
   if (strategyMode) {
+    const zh = lang === "zh" || lang === "tc";
+    const title = reservedMode
+      ? workspaceDeck === 5
+        ? zh ? "复盘与归因工作台" : "Learning & Attribution"
+        : zh ? "元治理仲裁台" : "Meta-Governance"
+      : executionMode
+        ? zh ? "执行与组合控制台" : "Execution & Portfolio"
+        : matrixMode
+          ? zh ? "全市场信号矩阵" : "Signal Matrix"
+          : tradingSignalsMode
+            ? zh ? "交易信号工作台" : "Trading Signals Workbench"
+            : zh ? "单资产工作台" : "Single Asset Workbench";
+    const channels = reservedMode
+      ? workspaceDeck === 5
+        ? zh ? ["成交", "快照", "归因", "校准", "回灌", "记录"] : ["FILLS", "SNAPSHOT", "ATTR", "CALIBRATE", "FEEDBACK", "LOG"]
+        : zh ? ["左脑", "右脑", "冲突", "否决", "冻结", "审计"] : ["ETHAN", "CHRISTINE", "CONFLICT", "VETO", "FREEZE", "AUDIT"]
+      : executionMode
+        ? zh ? ["入口", "Edge", "成本", "仓位", "敞口", "PnL"] : ["INTENT", "EDGE", "COST", "POSITION", "EXPOSURE", "PNL"]
+        : matrixMode
+          ? zh ? ["资产池", "排序", "因子", "DGWM", "更新", "解释"] : ["POOL", "RANK", "FACTORS", "DGWM", "UPDATED", "EXPLAIN"]
+          : tradingSignalsMode
+            ? zh ? ["空头", "流向", "事件", "压力", "DGWM", "下一步"] : ["SHORTS", "FLOW", "EVENTS", "PRESSURE", "DGWM", "NEXT ACTION"]
+            : workbenchChannels;    const deckMode = tradingSignalsMode || matrixMode || executionMode || reservedMode;
+    const barClass = deckMode && theme === "light"
+      ? "border-[#d9e5f0] bg-[#f7fbff]"
+      : "border-[#12324a] bg-[#000814]";
+    const activeClass = deckMode
+      ? theme === "light"
+        ? "bg-blue-50 text-blue-700"
+        : "bg-blue-400/15 text-blue-100"
+      : "bg-blue-500/25 text-blue-200/75";
+
     return (
-      <div className="flex h-8 shrink-0 select-none items-center justify-between gap-2 border-b border-[#12324a] bg-[#000814] px-2.5">
+      <div className={`flex h-8 shrink-0 select-none items-center justify-between gap-2 border-b px-2.5 ${barClass}`}>
         <div className="flex min-w-0 items-center gap-1 overflow-x-auto no-scrollbar">
           <div className="flex h-8 shrink-0 items-center gap-1.5 border-r border-[#12324a] bg-blue-500/25 px-3 font-mono text-[8px] font-black uppercase tracking-[0.24em] text-blue-100/80 shadow-[inset_0_-2px_0_rgba(54,96,130,0.75)]">
             <Sparkles className="h-3 w-3" />
-            Single Asset Workbench
+            {title}
           </div>
-          {workbenchChannels.map((item, index) => (
+          {channels.map((item, index) => (
             <span
               key={item}
-              className={`shrink-0 border-r border-[#0c253a] px-3 py-2 font-mono text-[8px] font-black uppercase tracking-[0.2em] ${index === 0 ? "bg-blue-500/25 text-blue-200/75" : "text-slate-500"}`}
+              className={`shrink-0 border-r border-[#0c253a] px-3 py-2 font-mono text-[8px] font-black uppercase tracking-[0.2em] ${index === 0 ? activeClass : "text-slate-500"}`}
             >
               {item}
             </span>

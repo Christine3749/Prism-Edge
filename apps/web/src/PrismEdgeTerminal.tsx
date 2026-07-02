@@ -9,6 +9,7 @@ import DrawingToolbar from "@ui/DrawingToolbar";
 import Header from "@ui/Header";
 import IndicatorsModal from "@ui/IndicatorsModal";
 import SignalScanner from "@ui/SignalScanner";
+import type { WorkspaceDeck } from "@ui/SignalScanner";
 import SettingsModal from "@ui/SettingsModal";
 import Watchlist from "@ui/Watchlist";
 import { DEFAULT_APP_SETTINGS, DEFAULT_INDICATOR_CONFIG } from "./config/appDefaults";
@@ -51,8 +52,7 @@ export default function PrismEdgeTerminal() {
   const [timeframe, setTimeframe] = useState("1D");
   const [chartType, setChartType] = useState("candlestick");
   const [watchlistOpen, setWatchlistOpen] = useState(false);
-  const [scannerHandleActive, setScannerHandleActive] = useState(false);
-  const [workspaceDeck, setWorkspaceDeck] = useState<1 | 2 | null>(null);
+  const [workspaceDeck, setWorkspaceDeck] = useState<WorkspaceDeck | null>(null);
   const scannerExpanded = workspaceDeck !== null;
   const [chartStatusHoverActive, setChartStatusHoverActive] = useState(false);
   const [indicatorsModalOpen, setIndicatorsModalOpen] = useState(false);
@@ -78,12 +78,11 @@ export default function PrismEdgeTerminal() {
     setAnalysisResult
   });
 
-  const scannerRevealActive = scannerHandleActive || chartStatusHoverActive;
-  const handleWorkspaceDeckSelect = useCallback((deck: 1 | 2) => {
-    setWorkspaceDeck((currentDeck) => currentDeck === deck ? null : deck);
+  const handleWorkspaceDeckSelect = useCallback((deck: WorkspaceDeck) => {
+    setWorkspaceDeck(deck);
   }, []);
-  const handleScannerExpandedChange = useCallback((expanded: boolean) => {
-    setWorkspaceDeck((currentDeck) => expanded ? (currentDeck ?? 1) : null);
+  const handleGoHome = useCallback(() => {
+    setWorkspaceDeck(null);
   }, []);
   const syncFavoriteSymbolsToCloud = (symbols: string[]) => {
     if (!hasCloudFavoriteSession()) {
@@ -247,6 +246,7 @@ export default function PrismEdgeTerminal() {
         onLangChange={setLang}
         onToggleTheme={handleToggleTheme}
         onToggleWatchlist={() => setWatchlistOpen((open) => !open)}
+        onGoHome={handleGoHome}
       />
 
       <div className="flex-grow flex min-h-0 relative select-none">
@@ -270,11 +270,9 @@ export default function PrismEdgeTerminal() {
               analysisResult={analysisResult}
               lang={lang}
               onSymbolSelect={handleSymbolSelect}
-              onHandleHoverChange={setScannerHandleActive}
               activeWorkspaceDeck={workspaceDeck}
-              onExpandedChange={handleScannerExpandedChange}
-              revealHandle={scannerRevealActive}
               integratedBottom={workspaceDeck === 2}
+              theme={settings.theme}
             />
             <div className="flex h-full min-h-0 min-w-0 flex-1 flex-col">
               <ChartContainer
@@ -290,13 +288,15 @@ export default function PrismEdgeTerminal() {
                 chartType={chartType}
                 marketStatus={marketStatus}
                 analysisResult={analysisResult}
-                scannerHandleActive={scannerRevealActive}
+                scannerHandleActive={chartStatusHoverActive}
                 onPrimaryInfoHoverChange={setChartStatusHoverActive}
               />
             </div>
           </div>
           <BottomPanel
             currentSymbol={currentSymbol}
+            symbolsList={symbolsList}
+            onSymbolSelect={handleSymbolSelect}
             candles={candles}
             activeIndicators={indicatorConfig}
             timeframe={timeframe}
@@ -305,6 +305,8 @@ export default function PrismEdgeTerminal() {
             analysisResult={analysisResult}
             onAnalysisResult={setAnalysisResult}
             strategyMode={scannerExpanded}
+            workspaceDeck={workspaceDeck}
+            theme={settings.theme}
           />
         </div>
 

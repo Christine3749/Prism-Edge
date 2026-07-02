@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 import type { AnalysisRunResponse, MarketDataStatus, MarketSymbol } from "@shared/types";
 import type { Language } from "@shared/translations";
 
-export type WorkspaceDeck = 1 | 2;
+export type WorkspaceDeck = 1 | 2 | 3 | 4 | 5 | 6;
 
 export interface SignalScannerProps {
   currentSymbol: MarketSymbol;
@@ -11,11 +11,9 @@ export interface SignalScannerProps {
   analysisResult?: AnalysisRunResponse | null;
   lang: Language;
   onSymbolSelect: (symbol: MarketSymbol) => void;
-  onHandleHoverChange?: (active: boolean) => void;
-  onExpandedChange?: (expanded: boolean) => void;
   activeWorkspaceDeck?: WorkspaceDeck | null;
   integratedBottom?: boolean;
-  revealHandle?: boolean;
+  theme?: "dark" | "light";
 }
 
 export interface IntelEvent {

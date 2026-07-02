@@ -3,11 +3,13 @@ import React from "react";
 interface LogoProps {
   className?: string;
   showText?: boolean;
+  onClick?: () => void;
 }
 
-export default function Logo({ className = "h-8", showText = true }: LogoProps) {
-  return (
-    <div className={`flex items-center gap-2 select-none min-w-0 ${className}`}>
+export default function Logo({ className = "h-8", showText = true, onClick }: LogoProps) {
+  const containerClass = `flex items-center gap-2 select-none min-w-0 ${className}`;
+  const content = (
+    <>
       {/* Prism-Edge Geometric Refraction SVG Logo */}
       <svg
         viewBox="0 0 120 120"
@@ -123,6 +125,22 @@ export default function Logo({ className = "h-8", showText = true }: LogoProps) 
           </span>
         </div>
       )}
-    </div>
+    </>
   );
+
+  if (onClick) {
+    return (
+      <button
+        type="button"
+        onClick={onClick}
+        className={`${containerClass} cursor-pointer border-0 bg-transparent p-0 text-left`}
+        aria-label="Prism-Edge home"
+        title="Prism-Edge"
+      >
+        {content}
+      </button>
+    );
+  }
+
+  return <div className={containerClass}>{content}</div>;
 }

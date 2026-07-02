@@ -38,6 +38,7 @@ interface HeaderProps {
   onToggleTheme: () => void;
   // Mobile responsive helper states
   onToggleWatchlist?: () => void;
+  onGoHome?: () => void;
 }
 
 export default function Header({
@@ -59,7 +60,8 @@ export default function Header({
   lang,
   onLangChange,
   onToggleTheme,
-  onToggleWatchlist
+  onToggleWatchlist,
+  onGoHome
 }: HeaderProps) {
   const t = useTranslation(lang);
   const [accountMenuOpen, setAccountMenuOpen] = useState(false);
@@ -157,7 +159,7 @@ export default function Header({
     <header className="h-12 shrink-0 border-b border-[#12324a] bg-[#000814] px-2.5 md:px-3 flex items-center gap-2 text-slate-200 select-none z-50 relative overflow-visible">
       {/* 1. Brand Logo & Name */}
       <div className="hidden sm:flex w-[190px] min-w-[170px] shrink-0 items-center">
-        <Logo showText={true} className="h-8 shrink-0" />
+        <Logo showText={true} className="h-8 shrink-0" onClick={onGoHome} />
       </div>
 
       {/* 2. Controls Area (Scrollable/Wrap on Mobile, Spaced on Desktop) */}

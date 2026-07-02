@@ -63,7 +63,7 @@ export function TradingSignalsWarRoom({
       <div className="border-b border-white/10 bg-[#0f1717] px-3 py-2">
         <div className="flex items-center justify-between gap-3">
           <div className="min-w-0">
-            <div className="flex items-center gap-2 font-mono text-[8px] font-black uppercase tracking-[0.24em] text-teal-300/75">
+            <div className="flex items-center gap-2 font-mono text-[8px] font-black uppercase tracking-[0.24em] text-blue-300/75">
               <Activity className="h-3.5 w-3.5" />
               II / Trading Signals
             </div>
@@ -77,7 +77,7 @@ export function TradingSignalsWarRoom({
         </div>
         <div className="mt-2 flex items-center gap-2 overflow-x-auto no-scrollbar font-mono text-[7px] font-black uppercase tracking-[0.16em]">
           {["Overview", "Shorts", "Flow", "Signals", "Risk", "Events"].map((item, index) => (
-            <span key={item} className={`shrink-0 border px-2 py-1 ${index === 1 ? "border-teal-300/40 bg-teal-300/10 text-teal-200" : "border-white/10 text-slate-500"}`}>{item}</span>
+            <span key={item} className={`shrink-0 border px-2 py-1 ${index === 1 ? "border-blue-300/40 bg-blue-300/10 text-blue-200" : "border-white/10 text-slate-500"}`}>{item}</span>
           ))}
         </div>
       </div>
@@ -98,19 +98,19 @@ export function TradingSignalsWarRoom({
           <div className="mt-2 grid grid-cols-4 gap-2">
             <TradingLiveRow label={zh ? "价格表现" : "Price Perf"} value={`${formatSigned(currentSymbol.change24h)}%`} tone={currentSymbol.change24h >= 0 ? "text-emerald-300" : "text-rose-300"} />
             <TradingLiveRow label={zh ? "压力" : "Pressure"} value={pressure.toFixed(0)} tone={pressure > 68 ? "text-rose-300" : "text-amber-300"} />
-            <TradingLiveRow label={zh ? "可信" : "Trust"} value={`${intelligence.confidencePct}%`} tone="text-teal-200" />
+            <TradingLiveRow label={zh ? "可信" : "Trust"} value={`${intelligence.confidencePct}%`} tone="text-blue-200" />
             <TradingLiveRow label="DGWM" value={analysisResult ? "LINK" : "WAIT"} tone={analysisResult ? "text-emerald-300" : "text-amber-300"} />
           </div>
         </section>
 
         <aside className="min-w-0 bg-[#0a0808]">
-          <div className="border-b border-white/10 bg-[#10201f] px-3 py-2 font-mono text-[8px] font-black uppercase tracking-[0.2em] text-teal-200/80">
+          <div className="border-b border-white/10 bg-[#0d1b2e] px-3 py-2 font-mono text-[8px] font-black uppercase tracking-[0.2em] text-blue-200/80">
             {zh ? "实时空头数据" : "Live Short Interest Data"}
           </div>
           <div className="space-y-2 p-3">
             {liveRows.map((row) => <TradingLiveRow key={row.label} {...row} />)}
           </div>
-          <div className="border-y border-white/10 bg-[#10201f] px-3 py-2 font-mono text-[8px] font-black uppercase tracking-[0.2em] text-slate-300">
+          <div className="border-y border-white/10 bg-[#0d1b2e] px-3 py-2 font-mono text-[8px] font-black uppercase tracking-[0.2em] text-slate-300">
             {zh ? "官方持仓变化" : "Official Short Interest Positions"}
           </div>
           <div className="p-3">
@@ -149,7 +149,7 @@ export function TradingSignalsWarRoom({
 }
 
 function TradingMetricCard({ label, value, delta, tone, seed }: { label: string; value: string; delta: string; tone: "cyan" | "amber" | "rose" | "emerald"; seed: number }) {
-  const toneClass = tone === "rose" ? "text-rose-300" : tone === "amber" ? "text-amber-300" : tone === "emerald" ? "text-emerald-300" : "text-teal-200";
+  const toneClass = tone === "rose" ? "text-rose-300" : tone === "amber" ? "text-amber-300" : tone === "emerald" ? "text-emerald-300" : "text-blue-200";
   return (
     <div className="min-w-0 px-2 py-2">
       <div className="truncate text-center text-[8px] font-black text-slate-300">{label}</div>
@@ -161,7 +161,7 @@ function TradingMetricCard({ label, value, delta, tone, seed }: { label: string;
 }
 
 function TradingSignalSpark({ seed, tone }: { seed: number; tone: "cyan" | "amber" | "rose" | "emerald" }) {
-  const stroke = tone === "rose" ? "#fb7185" : tone === "amber" ? "#facc15" : tone === "emerald" ? "#6ee7b7" : "#5eead4";
+  const stroke = tone === "rose" ? "#fb7185" : tone === "amber" ? "#facc15" : tone === "emerald" ? "#6ee7b7" : "#60a5fa";
   const points = Array.from({ length: 12 }).map((_, index) => {
     const x = 4 + index * 8;
     const y = 27 - (Math.sin((index + seed) * 0.72) * 8 + Math.cos((index * seed) * 0.22) * 5 + 12);
@@ -177,7 +177,7 @@ function TradingSignalSpark({ seed, tone }: { seed: number; tone: "cyan" | "ambe
 
 function TradingCompositeChart({ shortPressure, utilization, score, momentum }: { shortPressure: number; utilization: number; score: number; momentum: number }) {
   const orangePoints = [22, 30, 28, 34, 31, 38, 42, 36, 46, 49, 44, 52].map((value, index) => `${index * 8.5},${76 - value * 0.56}`).join(" ");
-  const tealPoints = [score, utilization, shortPressure, 58 + momentum, score * 0.86, utilization * 0.78].map((value, index) => `${index * 19},${72 - Math.max(0, Math.min(100, value)) * 0.54}`).join(" ");
+  const bluePoints = [score, utilization, shortPressure, 58 + momentum, score * 0.86, utilization * 0.78].map((value, index) => `${index * 19},${72 - Math.max(0, Math.min(100, value)) * 0.54}`).join(" ");
   return (
     <svg className="h-[300px] w-full" viewBox="0 0 100 82" preserveAspectRatio="none" aria-hidden="true">
       <defs>
@@ -190,7 +190,7 @@ function TradingCompositeChart({ shortPressure, utilization, score, momentum }: 
       {[18, 36, 54, 72, 90].map((x) => <line key={x} x1={x} x2={x} y1="0" y2="78" stroke="rgba(94,234,212,0.08)" strokeWidth="0.7" />)}
       <polygon points={`0,78 ${orangePoints} 100,78`} fill="url(#tradingOrangeFill)" />
       <polyline points={orangePoints} fill="none" stroke="#fb923c" strokeWidth="2" vectorEffect="non-scaling-stroke" opacity="0.82" />
-      <polyline points={tealPoints} fill="none" stroke="#5eead4" strokeWidth="1.8" vectorEffect="non-scaling-stroke" opacity="0.92" />
+      <polyline points={bluePoints} fill="none" stroke="#60a5fa" strokeWidth="1.8" vectorEffect="non-scaling-stroke" opacity="0.92" />
       <rect x="78" y="65" width="18" height="7" fill="rgba(99,102,241,0.36)" />
       <line x1="78" x2="96" y1="65" y2="65" stroke="#a5b4fc" strokeWidth="1" />
     </svg>
