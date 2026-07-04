@@ -6,6 +6,7 @@ import {
 import { DrawingTool } from "../../shared/src/types";
 import { Language } from "../../shared/src/translations";
 import type { WorkspaceDeck } from "./SignalScanner";
+import type { LayoutTier } from "./layoutTier";
 import { WorkspaceDeckSwitch } from "./WorkspaceDeckSwitch";
 
 interface DrawingToolbarProps {
@@ -16,6 +17,7 @@ interface DrawingToolbarProps {
   lang: Language;
   activeWorkspaceDeck?: WorkspaceDeck | null;
   onWorkspaceDeckSelect?: (deck: WorkspaceDeck) => void;
+  layoutTier?: LayoutTier;
 }
 
 export default function DrawingToolbar({
@@ -25,9 +27,13 @@ export default function DrawingToolbar({
   drawingsCount,
   lang,
   activeWorkspaceDeck = null,
-  onWorkspaceDeckSelect
+  onWorkspaceDeckSelect,
+  layoutTier = "desktop"
 }: DrawingToolbarProps) {
   const [collapsed, setCollapsed] = useState(false);
+  const tightChrome = layoutTier === "ultraportable" || layoutTier === "compact";
+  const expandedWidthClass = tightChrome ? "w-12" : "w-14";
+  const toolButtonClass = tightChrome ? "w-9 h-9" : "w-10 h-10";
 
   const getToolText = (toolId: string) => {
     switch (toolId) {
@@ -126,7 +132,7 @@ export default function DrawingToolbar({
   return (
     <>
       {/* Desktop Vertical Layout (Hidden on Mobile) */}
-      <div className={`hidden sm:flex shrink-0 flex-col items-center py-3 justify-between bg-[#000814] border-r border-[#12324a] transition-all duration-300 z-30 ${collapsed ? "w-8" : "w-14"}`}>
+      <div className={`hidden sm:flex shrink-0 flex-col items-center ${tightChrome ? "py-2" : "py-3"} justify-between bg-[#000814] border-r border-[#12324a] transition-all duration-300 z-30 ${collapsed ? "w-8" : expandedWidthClass}`}>
         {!collapsed ? (
           <>
             {/* Drawing Tools List */}
@@ -138,7 +144,7 @@ export default function DrawingToolbar({
                   <button
                     key={t.id}
                     onClick={() => onSelectTool(t.id)}
-                    className={`w-10 h-10 flex items-center justify-center rounded-md transition-all duration-150 group relative cursor-pointer ${
+                    className={`${toolButtonClass} flex items-center justify-center rounded-md transition-all duration-150 group relative cursor-pointer ${
                       isActive 
                         ? "bg-[#123a63] text-blue-50 shadow-lg font-bold scale-105" 
                         : "text-slate-400 hover:text-white hover:bg-[#031426]"

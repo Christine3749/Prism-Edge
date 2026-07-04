@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import type { AnalysisRunResponse, MarketDataStatus, MarketSymbol } from "@shared/types";
 import type { Language } from "@shared/translations";
+import type { LayoutTier } from "../layoutTier";
 
 export type WorkspaceDeck = 1 | 2 | 3 | 4 | 5 | 6;
 
@@ -14,6 +15,7 @@ export interface SignalScannerProps {
   activeWorkspaceDeck?: WorkspaceDeck | null;
   integratedBottom?: boolean;
   theme?: "dark" | "light";
+  layoutTier?: LayoutTier;
 }
 
 export interface IntelEvent {

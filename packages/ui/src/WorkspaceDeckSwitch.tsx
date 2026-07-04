@@ -18,7 +18,7 @@ export function WorkspaceDeckSwitch({
   const dragStartTranslate = useRef(0);
   const didDrag = useRef(false);
   const pressedDeck = useRef<WorkspaceDeck | null>(null);
-  const decks: WorkspaceDeck[] = [6, 5, 4, 3, 2, 1];
+  const decks: WorkspaceDeck[] = [1, 2, 3, 4, 5, 6];
   const slotSize = compact ? 24 : 32;
   const minTranslate = -((decks.length - 4) * slotSize);
   const romanLabels: Record<WorkspaceDeck, string> = {
@@ -39,7 +39,12 @@ export function WorkspaceDeckSwitch({
   };
 
   const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
-  const baseTranslateForDeck = (deck: WorkspaceDeck) => deck >= 5 ? -((6 - deck) * slotSize) : minTranslate;
+  const baseTranslateForDeck = (deck: WorkspaceDeck) => {
+    const activeIndex = Math.max(0, decks.indexOf(deck));
+    const maxStartIndex = Math.max(0, decks.length - 4);
+    const startIndex = clamp(activeIndex - 3, 0, maxStartIndex);
+    return -(startIndex * slotSize);
+  };
   const [trackTranslate, setTrackTranslate] = useState(() => baseTranslateForDeck(activeDeck ?? 1));
 
   const readPressedDeck = (target: EventTarget | null) => {

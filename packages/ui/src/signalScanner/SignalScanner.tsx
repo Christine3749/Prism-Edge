@@ -23,7 +23,8 @@ export default function SignalScanner({
   onSymbolSelect,
   activeWorkspaceDeck = null,
   integratedBottom = false,
-  theme = "dark"
+  theme = "dark",
+  layoutTier = "desktop"
 }: SignalScannerProps) {
   const collapsed = activeWorkspaceDeck === null;
   const [newsItems, setNewsItems] = useState<NewsItem[]>([]);
@@ -65,12 +66,26 @@ export default function SignalScanner({
     () => buildStrategySuggestions(currentSymbol, marketStatus, analysisResult, newsItems, lang),
     [currentSymbol, marketStatus, analysisResult, newsItems, lang]
   );
-  const workspaceWidth = signalMode || matrixMode || executionMode || reservedMode ? "clamp(258px, 19vw, 336px)" : "clamp(900px, 46vw, 1180px)";
+  const deckWorkspaceWidth = layoutTier === "laptop"
+    ? "clamp(244px, 19vw, 286px)"
+    : layoutTier === "ultraportable"
+      ? "clamp(218px, 20vw, 240px)"
+      : layoutTier === "compact"
+        ? "min(82vw, 320px)"
+        : "clamp(258px, 19vw, 336px)";
+  const singleAssetWorkspaceWidth = layoutTier === "laptop"
+    ? "clamp(620px, 46vw, 700px)"
+    : layoutTier === "ultraportable"
+      ? "clamp(420px, 38vw, 500px)"
+      : layoutTier === "compact"
+        ? "min(84vw, 420px)"
+        : "clamp(900px, 46vw, 1180px)";
+  const workspaceWidth = signalMode || matrixMode || executionMode || reservedMode ? deckWorkspaceWidth : singleAssetWorkspaceWidth;
   const resolvedDeck = activeWorkspaceDeck;
 
   return (
     <aside
-      className="relative z-[70] hidden h-full shrink-0 overflow-visible xl:block"
+      className="relative z-[70] hidden h-full shrink-0 overflow-visible lg:block"
       data-workspace-deck={resolvedDeck === null ? "none" : workspaceDeckLabel(resolvedDeck)}
       style={{
         width: collapsed ? 0 : workspaceWidth,
@@ -123,6 +138,7 @@ export default function SignalScanner({
             marketStatus={marketStatus}
             analysisResult={analysisResult}
             lang={lang}
+            layoutTier={layoutTier}
             integratedBottom={false}
             onSymbolSelect={onSymbolSelect}
           />

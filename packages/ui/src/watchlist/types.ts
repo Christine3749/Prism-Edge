@@ -1,6 +1,7 @@
 import type { MarketDataStatus, MarketSymbol } from "@shared/types";
 import type { Language } from "@shared/translations";
 import type { PrismIntelligence } from "@shared/prismIntelligence";
+import type { LayoutTier } from "../layoutTier";
 
 export type FavoriteSyncState = "local" | "syncing" | "synced" | "verified" | "error";
 
@@ -16,6 +17,7 @@ export interface WatchlistProps {
   favoriteSymbols?: string[];
   onToggleFavorite?: (symbol: MarketSymbol) => void;
   favoriteSyncState?: FavoriteSyncState;
+  layoutTier?: LayoutTier;
 }
 
 export type CoreWatchlistFilter = "all" | "favorites" | "crypto" | "us" | "cn" | "hk" | "forex";

@@ -1,12 +1,14 @@
 import { buildPrismIntelligence, describePrismIntelligence } from "@shared/prismIntelligence";
 import type { AnalysisRunResponse, MarketDataStatus, MarketSymbol, NewsItem } from "@shared/types";
 import type { Language } from "@shared/translations";
+import type { LayoutTier } from "../layoutTier";
 import { formatDeskPrice } from "./formatters";
 import { WarRoomActionStack } from "./PrimitiveCells";
 import { EvidenceStrip } from "./EvidenceStrip";
 import { WarRoomFundamentalSnapshot } from "./FundamentalSnapshot";
 import { WarRoomNarrativeList, StrategyEventTape } from "./NarrativePanels";
 import { WarRoomOrderGraphPanel } from "./OrderGraphPanel";
+import { SingleAssetCompactWarRoom } from "./SingleAssetCompactWarRoom";
 import { warScoreTone } from "./toneClasses";
 import type { IntelEvent, IntelStats, StrategySuggestion } from "./types";
 
@@ -20,6 +22,7 @@ interface SingleAssetWarRoomProps {
   marketStatus?: MarketDataStatus;
   analysisResult?: AnalysisRunResponse | null;
   lang: Language;
+  layoutTier?: LayoutTier;
   integratedBottom: boolean;
   onSymbolSelect: (symbol: MarketSymbol) => void;
 }
@@ -34,6 +37,7 @@ export function SingleAssetWarRoom({
   marketStatus,
   analysisResult,
   lang,
+  layoutTier = "desktop",
   integratedBottom,
   onSymbolSelect
 }: SingleAssetWarRoomProps) {
@@ -55,6 +59,20 @@ export function SingleAssetWarRoom({
     : intelligence.score >= 52
       ? "text-amber-300"
       : "text-rose-300";
+
+  if (layoutTier === "ultraportable" || layoutTier === "compact") {
+    return (
+      <SingleAssetCompactWarRoom
+        currentSymbol={currentSymbol}
+        events={events}
+        newsItems={newsItems}
+        newsLoading={newsLoading}
+        marketStatus={marketStatus}
+        analysisResult={analysisResult}
+        lang={lang}
+      />
+    );
+  }
 
   return (
     <>

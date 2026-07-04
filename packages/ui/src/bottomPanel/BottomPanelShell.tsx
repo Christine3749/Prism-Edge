@@ -20,6 +20,7 @@ import { TradesTab } from "./TradesTab";
 import { TradingSignalsWorkbench } from "./TradingSignalsWorkbench";
 import type { BottomPanelTab, MembershipNotice, QuantFeatureAccess, TranslationFn } from "./types";
 import type { WorkspaceDeck } from "../SignalScanner";
+import type { LayoutTier } from "../layoutTier";
 import type { Language } from "../../../shared/src/translations";
 
 interface BottomPanelShellProps {
@@ -54,6 +55,7 @@ interface BottomPanelShellProps {
   matrixMode: boolean;
   executionMode: boolean;
   reservedMode: boolean;
+  layoutTier: LayoutTier;
   onSelectTab: (tab: BottomPanelTab) => void;
   onToggleCollapsed: () => void;
   onSymbolSelect: (symbol: MarketSymbol) => void;
@@ -95,6 +97,7 @@ export function BottomPanelShell(props: BottomPanelShellProps) {
     matrixMode,
     executionMode,
     reservedMode,
+    layoutTier,
     onSelectTab,
     onToggleCollapsed,
     onSymbolSelect,
@@ -104,11 +107,25 @@ export function BottomPanelShell(props: BottomPanelShellProps) {
   } = props;
 
   const visibleTab: BottomPanelTab = strategyMode ? "ai" : activeTab;
-  const expandedStyle = tradingSignalsMode || matrixMode || executionMode || reservedMode
-    ? { height: "54vh", minHeight: 420, maxHeight: 620 }
+  const deckMode = tradingSignalsMode || matrixMode || executionMode || reservedMode;
+  const ultraMode = layoutTier === "ultraportable" || layoutTier === "compact";
+  const expandedStyle = deckMode
+    ? layoutTier === "desktop"
+      ? { height: "54vh", minHeight: 420, maxHeight: 620 }
+      : ultraMode
+        ? { height: "42vh", minHeight: 280, maxHeight: 340 }
+        : { height: "44vh", minHeight: 320, maxHeight: 480 }
     : strategyMode
-      ? { height: "22vh", minHeight: 168, maxHeight: 236 }
-      : { height: "24vh", minHeight: 128, maxHeight: 248 };
+      ? layoutTier === "desktop"
+        ? { height: "22vh", minHeight: 168, maxHeight: 236 }
+        : ultraMode
+          ? { height: "18vh", minHeight: 128, maxHeight: 160 }
+          : { height: "20vh", minHeight: 144, maxHeight: 210 }
+      : layoutTier === "desktop"
+        ? { height: "24vh", minHeight: 128, maxHeight: 248 }
+        : ultraMode
+          ? { height: "20vh", minHeight: 108, maxHeight: 172 }
+          : { height: "22vh", minHeight: 118, maxHeight: 212 };
   const shellTone = tradingSignalsMode || matrixMode || executionMode || reservedMode
     ? theme === "dark"
       ? "border-[#1e3a5f] bg-[#06111f] shadow-[0_-18px_56px_rgba(0,12,14,0.62),inset_0_1px_0_rgba(96,165,250,0.08)]"

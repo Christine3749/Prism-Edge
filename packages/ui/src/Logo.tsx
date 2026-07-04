@@ -4,9 +4,10 @@ interface LogoProps {
   className?: string;
   showText?: boolean;
   onClick?: () => void;
+  compact?: boolean;
 }
 
-export default function Logo({ className = "h-8", showText = true, onClick }: LogoProps) {
+export default function Logo({ className = "h-8", showText = true, onClick, compact = false }: LogoProps) {
   const containerClass = `flex items-center gap-2 select-none min-w-0 ${className}`;
   const content = (
     <>
@@ -113,16 +114,18 @@ export default function Logo({ className = "h-8", showText = true, onClick }: Lo
       {showText && (
         <div className="flex min-w-0 flex-col">
           <div className="flex items-center gap-1.5 leading-none">
-            <span className="font-sans font-bold text-sm tracking-tight text-white whitespace-nowrap">
+            <span className={`${compact ? "text-xs" : "text-sm"} font-sans font-bold tracking-tight text-white whitespace-nowrap`}>
               Prism<span className="text-blue-300/75">-Edge</span>
             </span>
-            <span className="text-[10px] font-mono font-medium px-1 py-0.5 rounded bg-blue-950/70 text-blue-300/75 border border-blue-900/65">
+            <span className={`${compact ? "text-[8px]" : "text-[10px]"} font-mono font-medium px-1 py-0.5 rounded bg-blue-950/70 text-blue-300/75 border border-blue-900/65`}>
               M1+
             </span>
           </div>
-          <span className="text-[8px] font-sans text-slate-400 leading-none tracking-widest mt-1 uppercase whitespace-nowrap">
-            棱镜先生 • Edge Trading System
-          </span>
+          {!compact && (
+            <span className="text-[8px] font-sans text-slate-400 leading-none tracking-widest mt-1 uppercase whitespace-nowrap">
+              棱镜先生 • Edge Trading System
+            </span>
+          )}
         </div>
       )}
     </>

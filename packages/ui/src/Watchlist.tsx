@@ -20,7 +20,8 @@ export default function Watchlist({
   compressed = false,
   favoriteSymbols = [],
   onToggleFavorite,
-  favoriteSyncState = "local"
+  favoriteSyncState = "local",
+  layoutTier = "desktop"
 }: WatchlistProps) {
   const t = useTranslation(lang);
   const zh = lang === "zh" || lang === "tc";
@@ -127,9 +128,12 @@ export default function Watchlist({
   const quickAddSymbol = normalizedQuery ? filteredSymbols.find((symbol) => !favoriteSet.has(symbol.symbol)) : undefined;
   const showFavoriteSyncNotice = filter === "favorites" || favoriteSymbols.length > 0 || favoriteSyncState !== "local";
 
+  const openWatchlistWidth = layoutTier === "ultraportable"
+    ? "w-[260px] min-w-[260px] xl:w-[284px] xl:min-w-[284px]"
+    : "w-[292px] min-w-[292px] xl:w-[324px] xl:min-w-[324px]";
   const desktopShell = compressed
     ? "pointer-events-none hidden h-full w-0 min-w-0 shrink-0 overflow-hidden border-l border-transparent bg-slate-950/0 p-0 opacity-0 transition-[width,min-width,opacity,padding,border-color] duration-500 md:flex xl:w-0 xl:min-w-0"
-    : "hidden h-full w-[292px] min-w-[292px] shrink-0 border-l border-slate-800 bg-slate-950/80 p-2 opacity-100 transition-[width,min-width,opacity,padding,border-color] duration-500 md:flex xl:w-[324px] xl:min-w-[324px]";
+    : `hidden h-full ${openWatchlistWidth} shrink-0 border-l border-slate-800 bg-slate-950/80 p-2 opacity-100 transition-[width,min-width,opacity,padding,border-color] duration-500 md:flex`;
 
   const content = (
     <WatchlistContent

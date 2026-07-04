@@ -5,6 +5,7 @@ import {
 } from "lucide-react";
 import { MarketSymbol, AppSettings, MarketDataStatus } from "../../shared/src/types";
 import { Language, useTranslation } from "../../shared/src/translations";
+import type { LayoutTier } from "./layoutTier";
 import { describeMarketStatus } from "../../shared/src/marketStatus";
 import Logo from "./Logo";
 import { HeaderAccountMenu } from "./header/HeaderAccountMenu";
@@ -32,6 +33,7 @@ interface HeaderProps {
   // Mobile responsive helper states
   onToggleWatchlist?: () => void;
   onGoHome?: () => void;
+  layoutTier?: LayoutTier;
 }
 
 export default function Header({
@@ -54,9 +56,11 @@ export default function Header({
   onLangChange,
   onToggleTheme,
   onToggleWatchlist,
-  onGoHome
+  onGoHome,
+  layoutTier = "desktop"
 }: HeaderProps) {
   const t = useTranslation(lang);
+  const tightChrome = layoutTier === "ultraportable" || layoutTier === "compact";
   const timeframes = ["1m", "5m", "15m", "1h", "4h", "1D", "1W", "1M"];
   const chartTypes = [
     { label: "Candle", value: "candlestick", icon: <BarChart2 className="h-3.5 w-3.5" /> },
@@ -96,16 +100,16 @@ export default function Header({
     ? (lang === "en" ? "Light theme - click for dark" : lang === "tc" ? "淺色界面，點擊切回深色" : "浅色界面，点击切回深色")
     : (lang === "en" ? "Dark theme - click for light" : lang === "tc" ? "深色界面，點擊切換淺色" : "深色界面，点击切换浅色");
   return (
-    <header className="h-12 shrink-0 border-b border-[#12324a] bg-[#000814] px-2.5 md:px-3 flex items-center gap-2 text-slate-200 select-none z-50 relative overflow-visible">
+    <header className={`${tightChrome ? "h-11 px-2 gap-1.5" : "h-12 px-2.5 md:px-3 gap-2"} shrink-0 border-b border-[#12324a] bg-[#000814] flex items-center text-slate-200 select-none z-50 relative overflow-visible`}>
       {/* 1. Brand Logo & Name */}
-      <div className="hidden sm:flex w-[190px] min-w-[170px] shrink-0 items-center">
-        <Logo showText={true} className="h-8 shrink-0" onClick={onGoHome} />
+      <div className={`hidden sm:flex ${tightChrome ? "w-[132px] min-w-[128px]" : "w-[190px] min-w-[170px]"} shrink-0 items-center`}>
+        <Logo showText={true} compact={tightChrome} className={`${tightChrome ? "h-7" : "h-8"} shrink-0`} onClick={onGoHome} />
       </div>
 
       {/* 2. Controls Area (Scrollable/Wrap on Mobile, Spaced on Desktop) */}
       <div className="flex min-w-0 flex-1 items-center gap-2 overflow-x-auto no-scrollbar scroll-smooth justify-start">
         
-        <SymbolSearch currentSymbol={currentSymbol} onSymbolSelect={onSymbolSelect} t={t} />
+        <SymbolSearch currentSymbol={currentSymbol} onSymbolSelect={onSymbolSelect} t={t} compact={tightChrome} />
 
         {/* Live Status indicator */}
         <div className="shrink-0 flex">
@@ -168,11 +172,11 @@ export default function Header({
         {/* Technical Indicators Toggle */}
         <button
           onClick={onOpenIndicators}
-          className="hidden lg:flex h-7 items-center gap-1.5 px-2 bg-[#031426] hover:bg-[#06213a] border border-[#12324a] rounded text-[11px] font-semibold hover:text-white cursor-pointer transition-all shrink-0"
+          className={`${tightChrome ? "w-7 justify-center px-0" : "gap-1.5 px-2"} hidden lg:flex h-7 items-center bg-[#031426] hover:bg-[#06213a] border border-[#12324a] rounded text-[11px] font-semibold hover:text-white cursor-pointer transition-all shrink-0`}
           id="indicators_btn"
         >
           <Eye className="h-3.5 w-3.5 text-blue-300/75" />
-          <span>{t("techIndicators")}</span>
+          <span className={tightChrome ? "sr-only" : ""}>{t("techIndicators")}</span>
         </button>
       </div>
 

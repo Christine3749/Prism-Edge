@@ -17,6 +17,7 @@ import { ResetConfirmModal } from "./components/ResetConfirmModal";
 import { ToastBanner } from "./components/ToastBanner";
 import { useAnalysisRunner } from "./hooks/useAnalysisRunner";
 import { useLanguagePreference } from "./hooks/useLanguagePreference";
+import { useLayoutTier } from "./hooks/useLayoutTier";
 import { useLayoutPersistence } from "./hooks/useLayoutPersistence";
 import { useFavoriteCloudSync } from "./hooks/useFavoriteCloudSync";
 import { useMarketRuntime } from "./hooks/useMarketRuntime";
@@ -52,6 +53,7 @@ export default function PrismEdgeTerminal() {
   const [lang, setLang] = useLanguagePreference();
   const t = useTranslation(lang);
   const { toastMessage, showToast } = useToast();
+  const layoutTier = useLayoutTier();
 
   useLayoutPersistence({ drawings, indicatorConfig, settings, symbolsList });
   useAnalysisRunner({ candles, currentSymbol, timeframe, indicatorConfig, setAnalysisResult });
@@ -125,7 +127,10 @@ export default function PrismEdgeTerminal() {
     : "prism-terminal--dark bg-[#000814] text-slate-100 border-[#12324a]";
 
   return (
-    <div className={`prism-terminal h-screen w-screen flex flex-col overflow-hidden font-sans transition-colors duration-200 ${activeClass}`}>
+    <div
+      className={`prism-terminal h-screen w-screen flex flex-col overflow-hidden font-sans transition-colors duration-200 ${activeClass}`}
+      data-layout-tier={layoutTier}
+    >
       <Header
         currentSymbol={currentSymbol}
         onSymbolSelect={handleSymbolSelect}
@@ -147,6 +152,7 @@ export default function PrismEdgeTerminal() {
         onToggleTheme={handleToggleTheme}
         onToggleWatchlist={() => setWatchlistOpen((open) => !open)}
         onGoHome={handleGoHome}
+        layoutTier={layoutTier}
       />
 
       <div className="flex-grow flex min-h-0 relative select-none">
@@ -158,6 +164,7 @@ export default function PrismEdgeTerminal() {
           lang={lang}
           activeWorkspaceDeck={workspaceDeck}
           onWorkspaceDeckSelect={handleWorkspaceDeckSelect}
+          layoutTier={layoutTier}
         />
 
 
@@ -173,6 +180,7 @@ export default function PrismEdgeTerminal() {
               activeWorkspaceDeck={workspaceDeck}
               integratedBottom={workspaceDeck === 2}
               theme={settings.theme}
+              layoutTier={layoutTier}
             />
             <div className="flex h-full min-h-0 min-w-0 flex-1 flex-col">
               <ChartContainer
@@ -207,6 +215,7 @@ export default function PrismEdgeTerminal() {
             strategyMode={scannerExpanded}
             workspaceDeck={workspaceDeck}
             theme={settings.theme}
+            layoutTier={layoutTier}
           />
         </div>
 
@@ -222,6 +231,7 @@ export default function PrismEdgeTerminal() {
           favoriteSymbols={favoriteSymbols}
           onToggleFavorite={handleToggleFavorite}
           favoriteSyncState={favoriteSyncState}
+          layoutTier={layoutTier}
         />
       </div>
 

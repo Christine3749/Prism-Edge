@@ -24,7 +24,8 @@ export default function BottomPanel({
   onAnalysisResult,
   strategyMode = false,
   workspaceDeck = null,
-  theme = "dark"
+  theme = "dark",
+  layoutTier = "desktop"
 }: BottomPanelProps) {
   const t = useTranslation(lang);
   const [activeTab, setActiveTab] = useState<BottomPanelTab>("ai");
@@ -269,6 +270,7 @@ export default function BottomPanel({
       matrixMode={matrixMode}
       executionMode={executionMode}
       reservedMode={reservedMode}
+      layoutTier={layoutTier}
       onSelectTab={(tab) => {
         setActiveTab(tab);
         setCollapsed(false);

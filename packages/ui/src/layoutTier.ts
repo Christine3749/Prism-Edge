@@ -1,0 +1,1 @@
+export type LayoutTier = "desktop" | "laptop" | "ultraportable" | "compact";
