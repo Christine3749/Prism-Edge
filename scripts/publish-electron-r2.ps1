@@ -130,7 +130,12 @@ try {
   }
 
   $manifestPath = Join-Path ([System.IO.Path]::GetTempPath()) "prism-edge-r2-latest.json"
-  $manifest | ConvertTo-Json -Depth 4 | Set-Content -LiteralPath $manifestPath -Encoding UTF8
+  $manifestJson = $manifest | ConvertTo-Json -Depth 4
+  [System.IO.File]::WriteAllText(
+    $manifestPath,
+    $manifestJson,
+    [System.Text.UTF8Encoding]::new($false)
+  )
 
   Invoke-CheckedCommand $wrangler.Source @(
     "r2", "object", "put", "$Bucket/$ManifestKey", "--remote",
