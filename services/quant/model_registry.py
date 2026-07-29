@@ -12,7 +12,7 @@ import tomllib
 from typing import Any
 
 
-DEFAULT_MODEL_ROOT = Path(r"C:\Users\Ethan\Desktop\01-Projects\GSYEN-Model")
+DEFAULT_MODEL_ROOT = Path(r"C:\Users\Ethan\Desktop\01-Projects\01-core-partnership\GSYEN-Model")
 DEFAULT_DGWM_ROOT = DEFAULT_MODEL_ROOT / "dgwm"
 
 

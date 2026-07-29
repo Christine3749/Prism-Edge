@@ -11,7 +11,7 @@ from services.quant.dgwm_runtime import DgwmRuntime, DgwmRuntimeConfig
 from services.quant.prism_edge_quant.engine import run_analysis
 
 
-DEFAULT_DGWM_ROOT = Path(r"C:\Users\Ethan\Desktop\01-Projects\GSYEN-Model\dgwm")
+DEFAULT_DGWM_ROOT = Path(r"C:\Users\Ethan\Desktop\01-Projects\01-core-partnership\GSYEN-Model\dgwm")
 
 
 @dataclass(frozen=True, slots=True)

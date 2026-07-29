@@ -1,6 +1,6 @@
 # Prism-Edge 成功系统分解
 
-本文件基于当前原项目文件夹 `C:\Users\Ethan\Desktop\01-Projects\Prism-Edge` 拆解，不创建快捷方式，不迁移项目目录。
+本文件基于项目文件夹 `C:\Users\Ethan\Desktop\01-Projects\02-own-long-term\02-intelligence-and-analysis\Prism-Edge` 拆解。
 
 ## 1. 系统目标
 
@@ -166,4 +166,3 @@ next dev
 4. 稳定会员权限：登录、免费激活、收藏云同步、feature gate。
 5. 稳定部署路径：Vercel/GCP/Docker 文档与实际 build 结果一致。
 6. 稳定回测和 runtime diagnostic：限制超时、输入大小、错误返回和 UI 展示。
-

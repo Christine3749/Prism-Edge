@@ -8,7 +8,7 @@ Prism-Edge is a cross-platform market analysis terminal. The frontend owns chart
 prism-edge/
   apps/
     web/                 # React/Vite frontend
-    desktop/             # Tauri shell
+    electron/            # Electron desktop shell
     android/             # Capacitor shell
   services/
     api/                 # Python FastAPI backend
@@ -52,6 +52,37 @@ npm run dev
 Open `http://localhost:3000`.
 
 FastAPI docs are available at `http://localhost:8000/docs`.
+
+## Desktop Release
+
+Electron installers are published to Cloudflare R2 bucket `prism-edge-releases`.
+
+Tagged releases build Windows plus macOS (`arm64` and `x64`) installers in GitHub Actions:
+
+```powershell
+git tag v0.1.2
+git push origin v0.1.2
+```
+
+One-time setup:
+
+```powershell
+wrangler login
+```
+
+Build and upload the Windows installer:
+
+```powershell
+npm run release:r2
+```
+
+Reuse the current installer in `apps/electron/dist` and upload only:
+
+```powershell
+npm run release:r2:skip-build
+```
+
+The release script uploads `Prism-Edge-Setup-<version>-win-x64.exe`, the matching blockmap when present, and `latest.json`. The public download base URL is `https://downloads.prismedge.tech`.
 
 ## Verification
 

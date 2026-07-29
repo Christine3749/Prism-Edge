@@ -1,9 +1,9 @@
 # MSIR Prism x DGWM 动态几何量化融合评审报告
 
-生成日期：2026-06-24  
-评审对象：动态几何 / DGWM 论文作者与量化同事  
-项目路径：`C:\Users\Ethan\Desktop\01-Projects\PrismEdge`  
-量化模型路径：`C:\Users\Ethan\Desktop\01-Projects\GSYEN-Model\dgwm`  
+生成日期：2026-06-24
+评审对象：动态几何 / DGWM 论文作者与量化同事
+项目路径：`C:\Users\Ethan\Desktop\01-Projects\02-own-long-term\02-intelligence-and-analysis\Prism-Edge`
+量化模型路径：`C:\Users\Ethan\Desktop\01-Projects\01-core-partnership\GSYEN-Model\dgwm`
 论文路径：`C:\Users\Ethan\Desktop\05-Docs\动态几何_RLBoost\动态几何_谱分区条件化RLBoost融合版_最终.pdf`
 
 ## 1. 报告目的

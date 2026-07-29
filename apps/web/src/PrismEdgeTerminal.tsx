@@ -19,6 +19,7 @@ import { useAnalysisRunner } from "./hooks/useAnalysisRunner";
 import { useLanguagePreference } from "./hooks/useLanguagePreference";
 import { useLayoutTier } from "./hooks/useLayoutTier";
 import { useLayoutPersistence } from "./hooks/useLayoutPersistence";
+import { useDesktopSymbolSync } from "./hooks/useDesktopSymbolSync";
 import { useFavoriteCloudSync } from "./hooks/useFavoriteCloudSync";
 import { useMarketRuntime } from "./hooks/useMarketRuntime";
 import { useToast } from "./hooks/useToast";
@@ -77,14 +78,20 @@ export default function PrismEdgeTerminal() {
   const handleGoHome = useCallback(() => {
     setWorkspaceDeck(null);
   }, []);
-  const handleSymbolSelect = (symbol: MarketSymbol) => {
+  const handleSymbolSelect = useCallback((symbol: MarketSymbol) => {
     const hydrated = enrichMarketSymbol(symbol);
     setCurrentSymbol(hydrated);
     setSymbolsList((prev) => {
       if (prev.some((item) => item.symbol === hydrated.symbol)) return prev;
       return [hydrated, ...prev].slice(0, 120);
     });
-  };
+  }, []);
+
+  useDesktopSymbolSync({
+    currentSymbol,
+    symbolsList,
+    onSymbolSelect: handleSymbolSelect
+  });
 
   const handleSaveWorkspace = () => {
     StorageService.saveDrawings(drawings);

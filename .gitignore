@@ -13,4 +13,7 @@ apps/android/android/
 
 .vercel
 .codex-preview/
+.codex-backups/
+.wrangler/
+tmp/
 *.pid

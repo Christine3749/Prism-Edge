@@ -1,0 +1,176 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  preflight:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22.12"
+          cache: npm
+
+      - name: Verify release version and branch
+        shell: bash
+        run: |
+          node - <<'NODE'
+          const root = require("./package.json");
+          const desktop = require("./apps/electron/package.json");
+          const tag = process.env.GITHUB_REF_NAME;
+          const version = tag.startsWith("v") ? tag.slice(1) : tag;
+          if (root.version !== version || desktop.version !== version) {
+            throw new Error(
+              `Version mismatch: tag=${version}, root=${root.version}, electron=${desktop.version}`,
+            );
+          }
+          NODE
+          git fetch origin main
+          git merge-base --is-ancestor "$GITHUB_SHA" origin/main
+
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run api:check
+      - run: npm run build
+
+  build-windows:
+    needs: preflight
+    runs-on: windows-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22.12"
+          cache: npm
+
+      - run: npm ci
+      - run: npm run build
+      - run: npm --workspace prism-edge-electron run dist -- --win --x64
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: prism-edge-windows
+          path: |
+            apps/electron/dist/*.exe
+            apps/electron/dist/*.exe.blockmap
+          if-no-files-found: error
+
+  build-macos-intel:
+    needs: preflight
+    runs-on: macos-15-intel
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22.12"
+          cache: npm
+
+      - run: npm ci
+      - run: npm run build
+      - run: npm --workspace prism-edge-electron run dist -- --mac --x64
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: prism-edge-macos-intel
+          path: |
+            apps/electron/dist/*.dmg
+            apps/electron/dist/*.dmg.blockmap
+          if-no-files-found: error
+
+  build-macos-arm:
+    needs: preflight
+    runs-on: macos-15
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22.12"
+          cache: npm
+
+      - run: npm ci
+      - run: npm run build
+      - run: npm --workspace prism-edge-electron run dist -- --mac --arm64
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: prism-edge-macos-arm
+          path: |
+            apps/electron/dist/*.dmg
+            apps/electron/dist/*.dmg.blockmap
+          if-no-files-found: error
+
+  publish:
+    needs:
+      - build-windows
+      - build-macos-intel
+      - build-macos-arm
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: release-assets
+
+      - name: Normalize assets and checksums
+        shell: bash
+        run: |
+          set -euo pipefail
+          version="${GITHUB_REF_NAME#v}"
+          mkdir -p release-assets/final
+
+          windows_exe="$(find release-assets/prism-edge-windows -maxdepth 1 -type f -name '*.exe' -print -quit)"
+          windows_blockmap="$(find release-assets/prism-edge-windows -maxdepth 1 -type f -name '*.exe.blockmap' -print -quit)"
+          mac_intel="$(find release-assets/prism-edge-macos-intel -maxdepth 1 -type f -name '*.dmg' -print -quit)"
+          mac_arm="$(find release-assets/prism-edge-macos-arm -maxdepth 1 -type f -name '*.dmg' -print -quit)"
+
+          test -n "$windows_exe"
+          test -n "$windows_blockmap"
+          test -n "$mac_intel"
+          test -n "$mac_arm"
+
+          cp "$windows_exe" "release-assets/final/Prism-Edge-Setup-${version}-win-x64.exe"
+          cp "$windows_blockmap" "release-assets/final/Prism-Edge-Setup-${version}-win-x64.exe.blockmap"
+          cp "$mac_intel" "release-assets/final/Prism-Edge-${version}-mac-x64.dmg"
+          cp "$mac_arm" "release-assets/final/Prism-Edge-${version}-mac-arm64.dmg"
+
+          (
+            cd release-assets/final
+            sha256sum ./* > SHA256SUMS.txt
+          )
+
+      - name: Publish GitHub release
+        shell: bash
+        run: |
+          if gh release view "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release upload "$GITHUB_REF_NAME" release-assets/final/* \
+              --repo "$GITHUB_REPOSITORY" \
+              --clobber
+          else
+            gh release create "$GITHUB_REF_NAME" release-assets/final/* \
+              --repo "$GITHUB_REPOSITORY" \
+              --title "$GITHUB_REF_NAME" \
+              --generate-notes
+          fi

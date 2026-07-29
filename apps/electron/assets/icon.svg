@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256" role="img" aria-label="Prism-Edge">
+  <rect width="256" height="256" rx="56" fill="#0A0A0A"/>
+  <path d="M57 196 L128 52 L199 196 Z" fill="none" stroke="#F2EFE9" stroke-width="16" stroke-linejoin="round"/>
+  <path d="M128 52 L128 196" stroke="#F2EFE9" stroke-width="9" stroke-linecap="round"/>
+  <path d="M128 124 L214 94" stroke="#7C6AF7" stroke-width="17" stroke-linecap="round"/>
+  <path d="M128 124 L220 150" stroke="#7C6AF7" stroke-width="10" stroke-linecap="round" opacity="0.82"/>
+  <path d="M128 124 L203 187" stroke="#7C6AF7" stroke-width="8" stroke-linecap="round" opacity="0.58"/>
+  <circle cx="128" cy="124" r="17" fill="#7C6AF7"/>
+</svg>

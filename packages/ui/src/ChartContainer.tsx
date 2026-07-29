@@ -12,6 +12,7 @@ import type {
 import { ChartStatusOverlays } from "./chart/ChartStatusOverlays";
 import { ChartWatermark } from "./chart/ChartWatermark";
 import { DrawingOverlay } from "./chart/DrawingOverlay";
+import { useDesktopCrosshairSync } from "./chart/useDesktopCrosshairSync";
 import { useLightweightChart } from "./chart/useLightweightChart";
 
 interface ChartContainerProps {
@@ -30,7 +31,6 @@ interface ChartContainerProps {
   scannerHandleActive?: boolean;
   onPrimaryInfoHoverChange?: (active: boolean) => void;
 }
-
 export default function ChartContainer({
   currentSymbol,
   candles,
@@ -62,6 +62,11 @@ export default function ChartContainer({
     chartType,
     isOscActive,
     pricePrecision: currentSymbol.precision
+  });
+  useDesktopCrosshairSync({
+    chartInstance,
+    mainSeries,
+    symbolId: currentSymbol.id
   });
 
   return (

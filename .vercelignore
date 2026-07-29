@@ -9,3 +9,7 @@ dist/
 *.log
 .env*
 *.sql
+.wrangler/
+apps/electron/dist/
+.codex-backups/
+tmp/
