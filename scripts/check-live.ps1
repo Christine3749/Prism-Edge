@@ -1,6 +1,4 @@
 param(
-  [string]$Project = "prism-edge-7586",
-  [string]$Region = "asia-east1",
   [string]$Domain = "https://msirprism.com",
   [string]$WwwDomain = "https://www.msirprism.com"
 )
@@ -55,22 +53,9 @@ function Test-PageAssets {
     Write-Host $_.Exception.Message -ForegroundColor Yellow
   }
 }
-$webUrl = ""
-try {
-  $webUrl = gcloud run services describe prism-edge-web `
-    --region $Region `
-    --project $Project `
-    --format "value(status.url)"
-} catch {
-  Write-Host "Could not resolve Cloud Run URL through gcloud: $($_.Exception.Message)" -ForegroundColor Yellow
-}
-
 Test-Url "$Domain/?v=live-check"
 Test-Url "$WwwDomain/?v=live-check"
 Test-Url "$Domain/api/market/quote?symbols=BTCUSDT,ETHUSDT"
 Test-Url "$WwwDomain/api/market/quote?symbols=BTCUSDT,ETHUSDT"
 Test-PageAssets $Domain
 Test-PageAssets $WwwDomain
-if ($webUrl) {
-  Test-Url "$webUrl/?v=live-check"
-}

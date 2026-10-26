@@ -129,7 +129,7 @@ Prism-Edge 是一个跨平台市场分析终端，目标是把行情、图表、
 权限数据流：
 
 1. 登录页获取会员身份 token。
-2. Node 网关通过 HS/Supabase 相关接口校验会员状态。
+2. Node 网关通过阿里云 210 的 HS 账号 API 校验身份并读取产品会员状态。
 3. 量化实验室、模型注册表、回测、runtime diagnostic 等功能按 feature key 放行。
 4. 前端根据接口返回展示可用或受限状态。
 
@@ -164,5 +164,5 @@ next dev
 2. 稳定市场数据：搜索、K 线、报价、source/isLive/stale/simulated 状态。
 3. 稳定分析契约：Node fallback、FastAPI engine、DGWM adapter 输出保持同形。
 4. 稳定会员权限：登录、免费激活、收藏云同步、feature gate。
-5. 稳定部署路径：Vercel/GCP/Docker 文档与实际 build 结果一致。
+5. 稳定部署路径：Vercel/阿里云 210/Docker 配置与部署说明保持一致。
 6. 稳定回测和 runtime diagnostic：限制超时、输入大小、错误返回和 UI 展示。

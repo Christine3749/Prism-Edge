@@ -1,6 +1,7 @@
 import type { Express } from "express";
 import { hsProductCode, getHsMembershipForRequest } from "./hsMembership";
 import { isValidMarketSymbol, normalizeMarketSymbol } from "./marketFormat";
+import { hsApiRequest } from "./hsApi";
 
 const FAVORITE_SYMBOL_LIMIT = 500;
 
@@ -19,15 +20,15 @@ export function registerAuthRoutes(app: Express) {
     }
 
     try {
-      const payload = await hsAuthRequest("/auth/v1/token?grant_type=password", {
+      const payload = await hsApiRequest("/auth/login", {
         method: "POST",
         body: JSON.stringify({ email, password })
       });
       return res.json({
-        access_token: payload.access_token,
-        refresh_token: payload.refresh_token,
-        expires_at: payload.expires_at,
-        token_type: payload.token_type,
+        access_token: payload.idToken,
+        refresh_token: payload.refreshToken,
+        expires_at: Math.floor(Date.now() / 1000) + Number(payload.expiresIn || 0),
+        token_type: "bearer",
         user: payload.user ? { id: payload.user.id, email: payload.user.email } : null
       });
     } catch (error: any) {
@@ -40,7 +41,9 @@ export function registerAuthRoutes(app: Express) {
     if (!token) return res.status(401).json({ error: "UNAUTHORIZED", message: "Please sign in before activating membership." });
 
     try {
-      const payload = await hsAuthRequest("/rest/v1/rpc/hs_activate_free_membership", {
+      // The account RPC bridge exists; Prism activation is not yet exposed there.
+      // Keep the existing operation and upstream error; never activate another product.
+      const payload = await hsApiRequest("/gsyen/data/rest/v1/rpc/hs_activate_free_membership", {
         method: "POST",
         token,
         body: JSON.stringify({ target_product_code: hsProductCode() })
@@ -56,7 +59,7 @@ export function registerAuthRoutes(app: Express) {
     if (!token) return res.status(401).json({ error: "UNAUTHORIZED", message: "Please sign in before syncing favorites." });
 
     try {
-      const user = await hsAuthRequest("/auth/v1/user", { method: "GET", token });
+      const user = await hsApiRequest("/gsyen/auth/v1/user", { method: "GET", token });
       return res.json({ ok: true, source: "hs-user-metadata", ...readCloudFavoriteState(user) });
     } catch (error: any) {
       return res.status(error.status || 502).json({ error: error.code || "FAVORITES_SYNC_FAILED", message: error.message || "Unable to load cloud favorites." });
@@ -71,10 +74,10 @@ export function registerAuthRoutes(app: Express) {
     const updatedAt = new Date().toISOString();
 
     try {
-      const user = await hsAuthRequest("/auth/v1/user", { method: "GET", token });
+      const user = await hsApiRequest("/gsyen/auth/v1/user", { method: "GET", token });
       const metadata = readHsUserMetadata(user);
       const prismEdgeMetadata = isRecord(metadata.prism_edge) ? metadata.prism_edge : {};
-      const payload = await hsAuthRequest("/auth/v1/user", {
+      const payload = await hsApiRequest("/gsyen/auth/v1/user", {
         method: "PUT",
         token,
         body: JSON.stringify({
@@ -117,30 +120,6 @@ function readHsUserMetadata(user: unknown) {
   if (!isRecord(user)) return {};
   const metadata = isRecord(user.user_metadata) ? user.user_metadata : isRecord(user.raw_user_meta_data) ? user.raw_user_meta_data : {};
   return { ...metadata };
-}
-
-async function hsAuthRequest(path: string, options: { method: "GET" | "POST" | "PUT"; body?: string; token?: string }) {
-  const baseUrl = String(process.env.HS_SUPABASE_URL || process.env.SUPABASE_URL || "").replace(/\/+$/, "");
-  const anonKey = String(process.env.HS_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY || "");
-  if (!baseUrl || !anonKey) throw Object.assign(new Error("MSIR Prism membership login service is not configured."), { status: 503, code: "HS_AUTH_NOT_CONFIGURED" });
-
-  const response = await fetch(`${baseUrl}${path}`, {
-    method: options.method,
-    headers: { apikey: anonKey, Authorization: `Bearer ${options.token || anonKey}`, "Content-Type": "application/json", Accept: "application/json" },
-    body: options.body,
-    signal: AbortSignal.timeout(8000)
-  });
-  const text = await response.text();
-  let payload: any = {};
-  if (text) {
-    try { payload = JSON.parse(text); } catch { payload = { message: text }; }
-  }
-  if (!response.ok) {
-    const message = String(payload.msg || payload.message || payload.error_description || payload.error || `HS request failed with ${response.status}`);
-    const code = response.status === 401 || response.status === 400 ? "INVALID_CREDENTIALS" : "HS_AUTH_REQUEST_FAILED";
-    throw Object.assign(new Error(message), { status: response.status, code });
-  }
-  return payload;
 }
 
 function readBearerTokenFromHeader(header: unknown) {

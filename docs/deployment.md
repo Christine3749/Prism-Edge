@@ -1,81 +1,42 @@
 # Deployment
 
-## Google Cloud Run
+## Current service configuration
 
-This project deploys as two Cloud Run services:
+Prism-Edge uses the services already migrated to Aliyun host `47.111.123.210`.
 
-- `prism-edge-api`: FastAPI quant adapter service.
-- `prism-edge-web`: React/Vite frontend plus Node API gateway.
+- Public application: `https://msirprism.com` and `https://www.msirprism.com`.
+- Node gateway origin configured in this repository: `https://prism-origin.gsyen.com`.
+- `vercel.json` forwards `/api/:path*` to that origin and serves the frontend from `dist`.
+- Node forwards analysis and quant requests to the existing FastAPI service through `API_BASE_URL`. The local development default is `http://127.0.0.1:8000`; production uses the value in the existing 210 service configuration.
 
-Default Cloud Build substitutions:
+The previous Google Cloud build, release and domain-mapping entry points have been removed, including executable archive copies. Historical versions remain in Git and are not deployment or recovery targets.
 
-```text
-_REGION=asia-east1
-_APP_URL=https://msirprism.com
-_WEB_SERVICE=prism-edge-web
-_API_SERVICE=prism-edge-api
-```
+## Runtime settings
 
-Deploy:
+- Keep browser `VITE_API_BASE_URL` and `VITE_WS_BASE_URL` empty for same-origin routing unless the existing deployment supplies an explicit gateway override.
+- Keep `INTERNAL_API_KEY` consistent between the Node gateway and FastAPI service when it is configured.
+- `DGWM_ROOT` refers to a local project directory. It may remain empty when that directory is not mounted.
+- `HS_ACCOUNT_URL` selects the existing native HS account API, defaulting to `https://account.gsyen.com` on 210. The gateway does not read the retired provider URL, anon key or service-role settings.
+- Preserve the existing HS account IDs, local password verification, memberships and saved data in the shared account service.
 
-```bash
-gcloud builds submit --config cloudbuild.yaml .
-```
+Use the existing service management on 210. This repository does not provide a replacement deployment runner.
 
-Windows helper:
+## Shared authentication and cleanup status (2026-10-26)
 
-```powershell
-.\scripts\deploy-gcp.ps1 -Project prism-edge-7586 -Region asia-east1 -AppUrl https://msirprism.com
-```
+- The running 210 gateway and `/srv/prism-edge/compose.private.json` both use `API_BASE_URL=http://prism-edge-api:8080` for the migrated quant API. The origin proxy is `/etc/nginx/sites-enabled/prism-edge`.
+- The 210 coordinator reports that the retired auth URL/key have been removed, `HS_ACCOUNT_URL=https://account.gsyen.com` is configured, and `/srv/prism-edge/native/server-native-membership-20261026.cjs` is mounted as the current entry. It retains the original membership guard and snapshot normalization. Startup was reported successful with zero restarts; account and membership acceptance has not been performed. This session does not modify that server configuration.
+- The existing replacement account service is `https://account.gsyen.com`. Its `care-account` container mounts `/srv/gyencare/current/api-node24-oauth-20261023/dist`; local identity reads `auth.identity_credentials`, retains the original user ID and checks the original BCRYPT/FIREBASE_SCRYPT password hashes locally. The shared account service source and data were not modified.
+- The project adapter now maps native `POST /auth/login` to the unchanged frontend token response, `GET /auth/me?profile=identity` to the user identity, and `GET /auth/membership/msir_prism` to the existing membership snapshot. Plan features and enforcement checks remain in place. Provider-specific table queries and service-role fallback have been removed.
+- Favorite symbols still use the original user metadata keys. `GET/PUT /gsyen/auth/v1/user` is an existing account API on 210, backed by local data; it is not a call to the retired provider. Other metadata fields and browser storage compatibility are retained.
+- Free membership activation is not yet connected: the 210 account RPC bridge does not expose `hs_activate_free_membership` for Prism. The existing project route now addresses that bridge and preserves its actual error; it does not fabricate an active membership or activate the `gyenbox` product. This requires the shared service owner to provide the existing Prism activation operation before it can succeed.
+- `packages/shared/src/hsAuth.ts` retains the old `sb-...-auth-token` browser-storage identifiers solely to read existing local sessions. They do not create an external connection or request a provider token refresh.
+- The source cleanup is separate from runtime image replacement. The GitHub change includes only authentication, connection settings, retired scripts and related documentation; it excludes uncommitted VI and quant changes. This session does not build, install or deploy the application.
+- GitHub `Christine3749/Prism-Edge` main already contains the coordinator's retired-release cleanup `80e11c7`. Use the saved repository-owner credential for this repository; the other active account's read-only permission does not describe the owner credential. The tag-triggered Release workflow has no GCP calls and remains unchanged. Repository and Preview/Production environment Secrets and Variables were read with the owner credential and were empty. The linked Vercel project configuration remains unavailable (HTTP 404), so its settings are not claimed cleaned.
+- Two old mirror repositories were mentioned without exact repository names. The repository remote, owner repository list and fork metadata did not identify them; neither mirror is claimed cleaned or overwritten.
+- Locally imported images on 210 retain `gcp-migrated/...` names. These are existing local image tags, not an instruction to fetch from or connect to the retired platform; they were not renamed or rebuilt.
 
-After deployment, get the web service URL:
+## Other existing release paths
 
-```bash
-gcloud run services describe prism-edge-web --region asia-east1 --format="value(status.url)"
-```
+The generic Node and Python Dockerfiles remain available. GitHub's Electron release workflow and the Cloudflare R2 publishing script do not use the retired platform and are unchanged by this cleanup.
 
-Current deployment:
-
-- Project: `prism-edge-7586`
-- Region: `asia-east1`
-- Web: `https://prism-edge-web-v3kyxd4wea-de.a.run.app`
-- API: `https://prism-edge-api-v3kyxd4wea-de.a.run.app`
-
-## Cloudflare DNS And Cache
-
-Use Cloudflare for `msirprism.com` DNS.
-
-Map the custom domain in Google Cloud Run first. Cloud Run will provide DNS records. Add those records in Cloudflare DNS for:
-
-- `msirprism.com`
-- `www.msirprism.com`
-
-Recommended DNS mode:
-
-- `msirprism.com`: proxied after Google certificate provisioning is complete.
-- `www.msirprism.com`: DNS only while Google domain mapping is still provisioning; proxied is safe after the origin works on HTTPS.
-- SSL/TLS mode: Full or Full (strict) once Cloud Run certificate is active. A 525 usually means Cloudflare is proxying before the origin certificate path is ready.
-
-Cache policy:
-
-- HTML shell: `Cache-Control: no-cache, max-age=0, must-revalidate`.
-- `/api/*`: `Cache-Control: no-store, max-age=0`.
-- `/assets/*`: `Cache-Control: public, max-age=31536000, immutable`.
-
-When testing Cloudflare changes, use a cache-busting query such as:
-
-```text
-https://msirprism.com/?v=<commit-sha>
-```
-
-Create Cloud Run domain mappings and print the DNS records:
-
-```powershell
-.\scripts\map-domain-gcp.ps1 -Region asia-east1
-```
-
-Check the live domain, Cloud Run service URL, and cache headers:
-
-```powershell
-.\scripts\check-live.ps1
-```
+`scripts/check-live.ps1` remains the existing manual domain/asset inspection tool. It no longer resolves or contacts an old platform service; this cleanup does not run it.

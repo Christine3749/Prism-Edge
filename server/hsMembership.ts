@@ -27,7 +27,7 @@ export async function getHsMembershipForRequest(req: Request): Promise<Membershi
 
   try {
     const token = readBearerToken(req.headers.authorization);
-    if (!token) throw new HsMembershipError(401, "missing_bearer_token", "Missing HS Supabase access token.");
+    if (!token) throw new HsMembershipError(401, "missing_bearer_token", "Missing HS access token.");
     const user = await verifyHsUser(token);
     const snapshot = await loadMembershipSnapshot(token, user);
     return { ok: true, snapshot };

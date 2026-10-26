@@ -1,3 +1,6 @@
+<!-- aliyun-connection-status-20261026 -->
+当前源码配置（2026-10-26）：网关与分析服务使用阿里云 47.111.123.210，会员账号使用 `https://account.gsyen.com`，Vercel 的 API 代理指向 `https://prism-origin.gsyen.com`。旧平台连接、凭据引用和发布脚本已移除；共享免费开通接口仍待接通。源码与运行状态见 [部署说明](docs/deployment.md)。
+
 # Prism-Edge｜棱镜先生
 
 Prism-Edge is a cross-platform market analysis terminal. The frontend owns charting and workspace UX; the backend owns market analysis, quant adapters, and future backtesting.
